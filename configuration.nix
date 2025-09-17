@@ -14,12 +14,14 @@
 
   services.displayManager.ly.enable = true;
   programs.niri.enable = true;
-
+  programs.zsh.enable = true;
+  programs.starship.enable = true;
   programs.firefox.enable = true;
   nixpkgs.config.allowUnfree = true;
   environment.systemPackages = with pkgs; [
     vim
     git
+    fzf
     wget
 
     wofi
@@ -35,6 +37,7 @@
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
   users.users.duskyelf = {
+    shell = pkgs.zsh;
     isNormalUser = true;
     description = "DuskyElf";
     extraGroups = [ "networkmanager" "wheel" ];
