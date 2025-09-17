@@ -34,6 +34,28 @@
     nerd-fonts.jetbrains-mono
   ];
 
+  # for better battery life keep it at 80%
+  systemd.services.battery-threshold-control = {
+    script = ''
+      echo "80" > /sys/class/power_supply/BAT0/charge_control_end_threshold
+    '';
+    wantedBy = [ "multi-user.target" ];
+  };
+
+  services.auto-cpufreq = {
+    enable = true;
+    settings = {
+      battery = {
+        governor = "powersave";
+        turbo = "never";
+      };
+      charger = {
+        governor = "powersave";
+        turbo = "auto";
+      };
+    };
+  };
+
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
   users.users.duskyelf = {
