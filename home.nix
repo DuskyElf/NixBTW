@@ -4,6 +4,12 @@ let
   shellAliases = {
     btw = "echo I use NixOS, btw";
   };
+
+  extraShelly = /*bash*/''
+    nx() {
+      nix-shell -p "$1" --run "$1"
+    }
+  '';
 in {
   home.username = "duskyelf";
   home.homeDirectory = "/home/duskyelf";
@@ -56,7 +62,7 @@ in {
         zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
         # Filename completion colors
         zstyle ':completion:*' list-colors "''${(s.:.)LS_COLORS}"
-      '';
+      '' + extraShelly;
 
       syntaxHighlighting.enable = true;
       plugins = [{
@@ -69,6 +75,7 @@ in {
     bash = {
       enable = true;
       inherit shellAliases;
+      initExtra = extraShelly;
     };
   };
 
