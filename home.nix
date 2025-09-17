@@ -1,6 +1,10 @@
 { config, pkgs, ... }:
 
-{
+let
+  shellAliases = {
+    btw = "echo I use NixOS, btw";
+  };
+in {
   home.username = "duskyelf";
   home.homeDirectory = "/home/duskyelf";
 
@@ -28,6 +32,7 @@
 
     zsh = {
       enable = true;
+      inherit shellAliases;
       history = {
         size = 6900;
         save = 6900;
@@ -63,9 +68,7 @@
 
     bash = {
       enable = true;
-      shellAliases = {
-        btw = "echo I use NixOS, btw";
-      };
+      inherit shellAliases;
     };
   };
 
