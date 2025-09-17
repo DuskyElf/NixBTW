@@ -4,6 +4,8 @@
   home.username = "duskyelf";
   home.homeDirectory = "/home/duskyelf";
 
+  xdg.enable = true;
+
   programs = {
     git = {
       enable = true;
@@ -12,6 +14,51 @@
       extraConfig = {
         init.defaultBranch = "main";
       };
+    };
+
+    fzf = {
+      enable = true;
+      enableZshIntegration = true;
+    };
+
+    zoxide = {
+      enable = true;
+      enableZshIntegration = true;
+    };
+
+    zsh = {
+      enable = true;
+      history = {
+        size = 6900;
+        save = 6900;
+        share = true;
+        append = true;
+        ignoreDups = true;
+        findNoDups = true;
+        saveNoDups = true;
+        ignoreSpace = true;
+        ignoreAllDups = true;
+        path = "${config.xdg.dataHome}/zsh/zsh_history";
+      };
+
+      initContent = /*bash*/''
+        bindkey -e
+        # Search along with the command prefix
+        bindkey '^p' history-search-backward
+        bindkey '^n' history-search-forward
+
+        # Case insensitive completions
+        zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
+        # Filename completion colors
+        zstyle ':completion:*' list-colors "''${(s.:.)LS_COLORS}"
+      '';
+
+      syntaxHighlighting.enable = true;
+      plugins = [{
+        name = "zsh-autosuggestions";
+        src = pkgs.zsh-autosuggestions;
+        file = "share/zsh-autosuggestions/zsh-autosuggestions.zsh";
+      }];
     };
 
     bash = {
