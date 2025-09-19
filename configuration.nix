@@ -23,11 +23,6 @@
     git
     fzf
     wget
-
-    wofi
-    alacritty
-
-    brightnessctl
   ];
 
   fonts.packages = with pkgs; [
