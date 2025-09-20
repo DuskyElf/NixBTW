@@ -55,12 +55,18 @@
     };
   };
 
-  hardware.graphics = {
-    enable = true;
-    extraPackages = with pkgs; [
-      vpl-gpu-rt
-    ];
+  hardware = {
+    graphics = {
+      enable = true;
+      extraPackages = with pkgs; [
+        intel-media-driver
+        libvdpau-va-gl
+        vpl-gpu-rt
+        #intel-media-sdk # for older iGPUs
+      ];
+    };
   };
+  environment.sessionVariables = { LIBVA_DRIVER_NAME = "iHD"; };
 
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
