@@ -23,6 +23,8 @@
     git
     fzf
     wget
+
+    waydroid-helper
   ];
 
   virtualisation.waydroid.enable = true;
