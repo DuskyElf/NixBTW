@@ -78,6 +78,10 @@ in {
       initExtra = extraShelly;
     };
 
+    zen-browser = {
+      enable = true;
+    };
+
     niri = {
       package = pkgs.niri;
 
