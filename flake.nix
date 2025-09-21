@@ -18,6 +18,8 @@
       url = "github:sodiboo/niri-flake";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    zen-browser.url = "github:0xc000022070/zen-browser-flake/beta";
   };
 
   outputs = { self, nixpkgs, home-manager, ... }@inputs:
@@ -39,6 +41,7 @@
         inputs.niri.homeModules.config
         inputs.niri.homeModules.stylix
         inputs.stylix.homeModules.stylix
+        inputs.zen-browser.homeModules.beta
         ./home.nix
       ];
     };
