@@ -5,12 +5,14 @@ let
     btw = "echo I use NixOS, btw";
   };
 
-  extraShelly = /*bash*/''
-    nx() {
-      nix-shell -p "$1" --run "$1"
-    }
-  '';
-in {
+  extraShelly = # bash
+    ''
+      nx() {
+        nix-shell -p "$1" --run "$1"
+      }
+    '';
+in
+{
   home.username = "duskyelf";
   home.homeDirectory = "/home/duskyelf";
 
@@ -52,7 +54,8 @@ in {
         path = "${config.xdg.dataHome}/zsh/zsh_history";
       };
 
-      initContent = /*bash*/''
+      initContent = # bash
+      ''
         bindkey -e
         # Search along with the command prefix
         bindkey '^p' history-search-backward
@@ -62,14 +65,17 @@ in {
         zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
         # Filename completion colors
         zstyle ':completion:*' list-colors "''${(s.:.)LS_COLORS}"
-      '' + extraShelly;
+      ''
+      + extraShelly;
 
       syntaxHighlighting.enable = true;
-      plugins = [{
-        name = "zsh-autosuggestions";
-        src = pkgs.zsh-autosuggestions;
-        file = "share/zsh-autosuggestions/zsh-autosuggestions.zsh";
-      }];
+      plugins = [
+        {
+          name = "zsh-autosuggestions";
+          src = pkgs.zsh-autosuggestions;
+          file = "share/zsh-autosuggestions/zsh-autosuggestions.zsh";
+        }
+      ];
     };
 
     bash = {
@@ -204,8 +210,8 @@ in {
           "Mod+G".action = toggle-column-tabbed-display;
 
           "Mod+Q" = {
-             repeat = false;
-             action = close-window;
+            repeat = false;
+            action = close-window;
           };
           "Mod+T".action = spawn "alacritty";
           "Mod+O".action = spawn "fuzzel";
@@ -264,7 +270,7 @@ in {
         prefer-no-csd = true;
         hotkey-overlay.skip-at-startup = true;
         spawn-at-startup = [
-          { argv = ["waybar"]; }
+          { argv = [ "waybar" ]; }
         ];
       };
     };

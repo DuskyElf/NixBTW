@@ -22,28 +22,41 @@
     zen-browser.url = "github:0xc000022070/zen-browser-flake/beta";
   };
 
-  outputs = { self, nixpkgs, home-manager, ... }@inputs:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      home-manager,
+      ...
+    }@inputs:
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
-    in {
-    nixosConfigurations.asus = nixpkgs.lib.nixosSystem {
-      inherit system;
-      modules = [
-        ./configuration.nix
-        { config._module.args = { hostName = "asus"; }; }
-      ];
-    };
+    in
+    {
+      nixosConfigurations.asus = nixpkgs.lib.nixosSystem {
+        inherit system;
+        modules = [
+          ./configuration.nix
+          {
+            config._module.args = {
+              hostName = "asus";
+            };
+          }
+        ];
+      };
 
-    homeConfigurations.duskyelf = home-manager.lib.homeManagerConfiguration {
-      inherit pkgs;
-      modules = [
-        inputs.niri.homeModules.config
-        inputs.niri.homeModules.stylix
-        inputs.stylix.homeModules.stylix
-        inputs.zen-browser.homeModules.beta
-        ./home.nix
-      ];
+      homeConfigurations.duskyelf = home-manager.lib.homeManagerConfiguration {
+        inherit pkgs;
+        modules = [
+          inputs.niri.homeModules.config
+          inputs.niri.homeModules.stylix
+          inputs.stylix.homeModules.stylix
+          inputs.zen-browser.homeModules.beta
+          ./home.nix
+        ];
+      };
+
+      formatter.${system} = pkgs.nixfmt-tree;
     };
-  };
 }
