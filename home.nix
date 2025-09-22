@@ -288,13 +288,12 @@ in
 
   stylix = {
     enable = true;
+    polarity = "dark";
     fonts.monospace = {
       package = pkgs.nerd-fonts.jetbrains-mono;
       name = "JetBrainsMonoNerdFontMono";
     };
-
-    polarity = "dark";
-    image = ./test.jpg;
+    base16Scheme = "${pkgs.base16-schemes}/share/themes/catppuccin-mocha.yaml";
   };
 
   # Don't change
