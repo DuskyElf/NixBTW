@@ -35,6 +35,10 @@
   console.useXkbConfig = true;
   services.xserver.xkbOptions = "ctrl:swapcaps";
 
+  fonts.packages = with pkgs; [
+    nerd-fonts.jetbrains-mono
+  ];
+
   # for better battery life keep it at 80%
   systemd.services.battery-threshold-control = {
     script = ''
