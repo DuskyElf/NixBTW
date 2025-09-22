@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, pkgs, lib, ... }:
 
 let
   shellAliases = {
@@ -287,8 +287,13 @@ in
   ];
 
   stylix = {
-    polarity = "dark";
     enable = true;
+    fonts.monospace = {
+      package = pkgs.nerd-fonts.jetbrains-mono;
+      name = "JetBrainsMonoNerdFontMono";
+    };
+
+    polarity = "dark";
     image = ./test.jpg;
   };
 
