@@ -17,15 +17,14 @@
   networking.networkmanager.enable = true;
 
   services.displayManager.ly.enable = true;
-  programs.niri.enable = true;
   programs.zsh.enable = true;
-  programs.starship.enable = true;
+  programs.niri.enable = true;
   programs.firefox.enable = true;
+
   nixpkgs.config.allowUnfree = true;
   environment.systemPackages = with pkgs; [
     vim
     git
-    fzf
     wget
 
     waydroid-helper
