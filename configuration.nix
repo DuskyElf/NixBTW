@@ -33,7 +33,7 @@
   virtualisation.waydroid.enable = true;
 
   console.useXkbConfig = true;
-  services.xserver.xkbOptions = "ctrl:swapcaps";
+  services.xserver.xkb.options = "ctrl:swapcaps";
 
   fonts.packages = with pkgs; [
     nerd-fonts.jetbrains-mono
