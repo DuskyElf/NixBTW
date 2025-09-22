@@ -74,6 +74,7 @@
   };
   environment.sessionVariables = {
     LIBVA_DRIVER_NAME = "iHD";
+    NIXOS_OZONE_WL = "1";
   };
 
   nix.settings.experimental-features = [
