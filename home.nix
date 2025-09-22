@@ -79,7 +79,7 @@ in
 
       initContent = # bash
       ''
-        bindkey -e
+        bindkey -v
         # Search along with the command prefix
         bindkey '^p' history-search-backward
         bindkey '^n' history-search-forward
@@ -92,13 +92,7 @@ in
       + extraShelly;
 
       syntaxHighlighting.enable = true;
-      plugins = [
-        {
-          name = "zsh-autosuggestions";
-          src = pkgs.zsh-autosuggestions;
-          file = "share/zsh-autosuggestions/zsh-autosuggestions.zsh";
-        }
-      ];
+      autosuggestion.enable = true;
     };
 
     bash = {
