@@ -1,4 +1,9 @@
-{ config, pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 
 let
   shellAliases = {
@@ -45,7 +50,7 @@ in
       keyMode = "vi";
       customPaneNavigationAndResize = true;
 
-      extraConfig = '' 
+      extraConfig = ''
         set-option -g status-position top
       '';
 
