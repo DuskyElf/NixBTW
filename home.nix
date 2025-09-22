@@ -29,8 +29,32 @@ in
     };
 
     fzf.enable = true;
-    zoxide.enable = true;
     starship.enable = true;
+
+    zoxide = {
+      enable = true;
+      options = [
+        "--cmd"
+        "cd"
+      ];
+    };
+
+    tmux = {
+      enable = true;
+      mouse = true;
+      keyMode = "vi";
+      customPaneNavigationAndResize = true;
+
+      extraConfig = '' 
+        set-option -g status-position top
+      '';
+
+      plugins = with pkgs; [
+        {
+          plugin = tmuxPlugins.catppuccin;
+        }
+      ];
+    };
 
     zsh = {
       enable = true;
@@ -76,6 +100,19 @@ in
       enable = true;
       inherit shellAliases;
       initExtra = extraShelly;
+    };
+
+    alacritty = {
+      enable = true;
+      settings = {
+        window = {
+          opacity = lib.mkForce 0.9;
+          padding = {
+            x = 10;
+            y = 10;
+          };
+        };
+      };
     };
 
     zen-browser = {
@@ -273,7 +310,6 @@ in
     fuzzel.enable = true;
     waybar.enable = true;
     swaylock.enable = true;
-    alacritty.enable = true;
   };
 
   services = {
