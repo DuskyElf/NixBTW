@@ -28,15 +28,9 @@ in
       };
     };
 
-    fzf = {
-      enable = true;
-      enableZshIntegration = true;
-    };
-
-    zoxide = {
-      enable = true;
-      enableZshIntegration = true;
-    };
+    fzf.enable = true;
+    zoxide.enable = true;
+    starship.enable = true;
 
     zsh = {
       enable = true;
