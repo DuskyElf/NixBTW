@@ -92,6 +92,7 @@ in
             middle-emulation = true;
           };
           warp-mouse-to-focus.enable = true;
+          keyboard.xkb.options = "ctrl:swapcaps";
         };
 
         outputs = {
