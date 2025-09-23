@@ -47,16 +47,83 @@ in
     tmux = {
       enable = true;
       mouse = true;
-      keyMode = "vi";
-      customPaneNavigationAndResize = true;
 
       extraConfig = ''
-        set-option -g status-position top
+        set -g prefix C-Space
+
+        set -g detach-on-destroy off
+        set -g history-limit 100000
+        set -g renumber-windows on
+        set -g set-clipboard on
+        set -g mode-keys vi
+        set -g status-keys emacs
+        set -s escape-time 0
+        set -g display-time 4000
+        set -g focus-events
+        set -g status-interval 2
+        set -g status-position top
+        setw -g aggressive-resize on
+        set -g default-terminal 'screen-256color'
+        set -g terminal-overrides ',xterm-256color:RGB'
+        set -g pane-active-border-style 'fg=magenta,bg=default'
+        set -g pane-border-style 'fg=brightblack,bg=default'
+
+        bind p command-prompt
+        bind R source-file ~/.config/tmux/tmux.conf
+
+        bind ^D detach
+        bind * list-clients
+
+        bind ^N new-window
+        bind ^Q kill-window
+        bind -r ^H previous-window
+        bind -r ^L next-window
+        bind '"' choose-window
+        bind ^R command-prompt "rename-window %%"
+
+        bind | split-window -h
+        bind _ split-window -v
+        bind h select-pane -L
+        bind j select-pane -D
+        bind k select-pane -U
+        bind l select-pane -R
+        bind i swap-pane -D
+        bind q kill-pane
+
+        bind 0 select-window -t 0
+        bind 1 select-window -t 1
+        bind 2 select-window -t 2
+        bind 3 select-window -t 3
+        bind 4 select-window -t 4
+        bind 5 select-window -t 5
+        bind 6 select-window -t 6
+        bind 7 select-window -t 7
+        bind 8 select-window -t 8
+        bind 9 select-window -t 9
       '';
 
       plugins = with pkgs; [
         {
           plugin = tmuxPlugins.catppuccin;
+        }
+        {
+          plugin = tmuxPlugins.resurrect;
+          extraConfig = ''
+            set -g @resurrect-save '^S'
+            set -g @resurrect-restore '`'
+            set -g @resurrect-strategy-nvim 'session'
+            set -g @resurrect-capture-pane-contents 'on'
+          '';
+        }
+        {
+          plugin = tmuxPlugins.tmux-sessionx;
+          extraConfig = ''
+            set -g @sessionx-bind '^O'
+            set -g @sessionx-x-path ""
+            set -g @sessionx-zoxide-mode 'on'
+            set -g @sessionx-fzf-builtin-tmux 'on'
+            set -g @sessionx-filter-current 'false'
+          '';
         }
       ];
     };
@@ -77,19 +144,31 @@ in
         path = "${config.xdg.dataHome}/zsh/zsh_history";
       };
 
-      initContent = # bash
-      ''
-        bindkey -v
-        # Search along with the command prefix
-        bindkey '^p' history-search-backward
-        bindkey '^n' history-search-forward
+      initContent =
+        lib.mkOrder 1500 # bash
+          (
+            ''
+              bindkey -v
+              bindkey '^f' forward-char # take completions
 
-        # Case insensitive completions
-        zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
-        # Filename completion colors
-        zstyle ':completion:*' list-colors "''${(s.:.)LS_COLORS}"
-      ''
-      + extraShelly;
+              # Search along with the command prefix
+              bindkey '^p' history-search-backward
+              bindkey '^n' history-search-forward
+
+              # Case insensitive completions
+              zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
+              # Filename completion colors
+              zstyle ':completion:*' list-colors "''${(s.:.)LS_COLORS}"
+              if command -v tmux &> /dev/null && [ -n "$PS1" ] && [[ ! "$TERM" =~ screen ]] && [[ ! "$TERM" =~ tmux ]] && [ -z "$TMUX" ]; then
+                if tmux has-session -t main 2>/dev/null; then
+                  exec tmux attach -t main
+                else
+                  exec tmux new -s main
+                fi
+              fi
+            ''
+            + extraShelly
+          );
 
       syntaxHighlighting.enable = true;
       autosuggestion.enable = true;
