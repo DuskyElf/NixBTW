@@ -17,6 +17,7 @@
   networking.networkmanager.enable = true;
 
   services.displayManager.ly.enable = true;
+  services.blueman.enable = true;
   programs.zsh.enable = true;
   programs.niri.enable = true;
   programs.firefox.enable = true;
@@ -62,6 +63,7 @@
   };
 
   hardware = {
+    bluetooth.enable = true;
     graphics = {
       enable = true;
       extraPackages = with pkgs; [
