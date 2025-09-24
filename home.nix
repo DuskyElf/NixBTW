@@ -46,66 +46,13 @@ in
 
     tmux = {
       enable = true;
-      mouse = true;
 
       extraConfig = ''
-        set -g prefix C-Space
-
-        set -g detach-on-destroy off
-        set -g history-limit 100000
-        set -g renumber-windows on
-        set -g set-clipboard on
-        set -g mode-keys vi
-        set -g status-keys emacs
-        set -s escape-time 0
-        set -g display-time 4000
-        set -g focus-events
-        set -g status-interval 2
-        set -g status-position top
-        setw -g aggressive-resize on
-        set -g default-terminal 'screen-256color'
-        set -g terminal-overrides ',xterm-256color:RGB'
-        set -g pane-active-border-style 'fg=magenta,bg=default'
-        set -g pane-border-style 'fg=brightblack,bg=default'
-
-        bind p command-prompt
-        bind R source-file ~/.config/tmux/tmux.conf
-
-        bind ^D detach
-        bind * list-clients
-
-        bind ^N new-window
-        bind ^Q kill-window
-        bind -r ^H previous-window
-        bind -r ^L next-window
-        bind '"' choose-window
-        bind ^R command-prompt "rename-window %%"
-
-        bind | split-window -h
-        bind _ split-window -v
-        bind h select-pane -L
-        bind j select-pane -D
-        bind k select-pane -U
-        bind l select-pane -R
-        bind i swap-pane -D
-        bind q kill-pane
-
-        bind 0 select-window -t 0
-        bind 1 select-window -t 1
-        bind 2 select-window -t 2
-        bind 3 select-window -t 3
-        bind 4 select-window -t 4
-        bind 5 select-window -t 5
-        bind 6 select-window -t 6
-        bind 7 select-window -t 7
-        bind 8 select-window -t 8
-        bind 9 select-window -t 9
+        source-file ${config.xdg.configHome}/tmux/hotreloaded.conf
+        bind R source-file ${config.xdg.configHome}/tmux/tmux.conf
       '';
 
       plugins = with pkgs; [
-        {
-          plugin = tmuxPlugins.catppuccin;
-        }
         {
           plugin = tmuxPlugins.resurrect;
           extraConfig = ''
@@ -184,11 +131,8 @@ in
       enable = true;
       settings = {
         window = {
-          opacity = lib.mkForce 0.9;
-          padding = {
-            x = 10;
-            y = 10;
-          };
+          opacity = lib.mkForce 0.85;
+          padding.x = 10;
         };
       };
     };
@@ -243,39 +187,16 @@ in
         };
 
         layout = {
-          gaps = 32;
-          border.enable = false;
-          always-center-single-column = true;
-          default-column-width.proportion = 0.85;
-
+          gaps = 0;
           empty-workspace-above-first = true;
-
-          default-column-display = "tabbed";
+          always-center-single-column = true;
+          default-column-width.proportion = 1.0;
           tab-indicator.hide-when-single-tab = true;
 
-          focus-ring = {
-            enable = true;
-            width = 1;
-          };
-
-          shadow = {
-            enable = true;
-            spread = 10;
-            softness = 15;
-          };
+          focus-ring.enable = false;
+          border.enable = false;
+          shadow.enable = false;
         };
-
-        window-rules = [
-          {
-            clip-to-geometry = true;
-            geometry-corner-radius = {
-              top-left = 7.0;
-              top-right = 7.0;
-              bottom-left = 7.0;
-              bottom-right = 7.0;
-            };
-          }
-        ];
 
         binds = with config.lib.niri.actions; {
           "Mod+Shift+Slash".action = show-hotkey-overlay;
@@ -380,15 +301,16 @@ in
         prefer-no-csd = true;
         hotkey-overlay.skip-at-startup = true;
         spawn-at-startup = [
-          { argv = [ "waybar" ]; }
+          { argv = [ "alacritty" ]; }
         ];
       };
     };
 
     fuzzel.enable = true;
-    waybar.enable = true;
     swaylock.enable = true;
   };
+
+  xdg.configFile."tmux/hotreloaded.conf".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/dotfiles/hot-configs/tmux.conf";
 
   services = {
     mako.enable = true;
