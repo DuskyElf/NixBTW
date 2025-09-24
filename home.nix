@@ -59,7 +59,6 @@ in
             set -g @resurrect-save '^S'
             set -g @resurrect-restore '`'
             set -g @resurrect-strategy-nvim 'session'
-            set -g @resurrect-capture-pane-contents 'on'
           '';
         }
         {
@@ -67,6 +66,7 @@ in
           extraConfig = ''
             set -g @sessionx-bind '^O'
             set -g @sessionx-x-path ""
+            set -g @sessionx-tree-mode 'on' 
             set -g @sessionx-zoxide-mode 'on'
             set -g @sessionx-fzf-builtin-tmux 'on'
             set -g @sessionx-filter-current 'false'
