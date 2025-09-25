@@ -19,6 +19,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    nixvim = {
+      url = "github:nix-community/nixvim/nixos-25.05";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     zen-browser.url = "github:0xc000022070/zen-browser-flake/beta";
   };
 
@@ -52,6 +57,7 @@
           inputs.niri.homeModules.config
           inputs.niri.homeModules.stylix
           inputs.stylix.homeModules.stylix
+          inputs.nixvim.homeModules.nixvim
           inputs.zen-browser.homeModules.beta
           ./home.nix
         ];
