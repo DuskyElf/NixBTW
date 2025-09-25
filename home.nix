@@ -310,7 +310,8 @@ in
     swaylock.enable = true;
   };
 
-  xdg.configFile."tmux/hotreloaded.conf".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/dotfiles/hot-configs/tmux.conf";
+  xdg.configFile."tmux/hotreloaded.conf".source =
+    config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/dotfiles/hot-configs/tmux.conf";
 
   services = {
     mako.enable = true;

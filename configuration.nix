@@ -97,10 +97,15 @@
   };
 
   fileSystems = {
-    "/".options = [ "noatime" "compress=zstd" ];
-    "/home".options = [ "noatime" "compress=zstd" ];
+    "/".options = [
+      "noatime"
+      "compress=zstd"
+    ];
+    "/home".options = [
+      "noatime"
+      "compress=zstd"
+    ];
   };
-
 
   time.timeZone = "Asia/Kolkata";
   i18n.defaultLocale = "en_US.UTF-8";
