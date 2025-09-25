@@ -141,6 +141,10 @@ in
       enable = true;
     };
 
+    nixvim = {
+      enable = true;
+    };
+
     niri = {
       package = pkgs.niri;
 
