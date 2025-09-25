@@ -97,7 +97,7 @@
   };
 
   fileSystems = {
-    "/".options = [ "noatime" ];
+    "/".options = [ "noatime" "compress=zstd" ];
     "/home".options = [ "noatime" "compress=zstd" ];
   };
 
