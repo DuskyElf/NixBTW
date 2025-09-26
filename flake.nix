@@ -42,24 +42,28 @@
       nixosConfigurations.asus = nixpkgs.lib.nixosSystem {
         inherit system;
         modules = [
-          ./configuration.nix
-          {
-            config._module.args = {
-              hostName = "asus";
-            };
-          }
+          ./system.nix
+          ./hosts/asus/system.nix
+
+          ./cli/system.nix
+          ./gui/system.nix
+          ./gui/waydroid.nix
         ];
       };
 
-      homeConfigurations.duskyelf = home-manager.lib.homeManagerConfiguration {
+      homeConfigurations."duskyelf@asus" = home-manager.lib.homeManagerConfiguration {
         inherit pkgs;
         modules = [
+          ./home.nix
+
+          ./cli/home.nix
+          ./gui/home.nix
+
           inputs.niri.homeModules.config
           inputs.niri.homeModules.stylix
           inputs.stylix.homeModules.stylix
           inputs.nixvim.homeModules.nixvim
           inputs.zen-browser.homeModules.beta
-          ./home.nix
         ];
       };
 
