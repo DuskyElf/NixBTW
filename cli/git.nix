@@ -1,4 +1,4 @@
-{ ... }:
+{ pkgs, ... }:
 {
   programs.git = {
     enable = true;
@@ -8,4 +8,6 @@
       init.defaultBranch = "main";
     };
   };
+
+  home.packages = [ pkgs.github-cli ];
 }
