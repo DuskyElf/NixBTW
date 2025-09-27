@@ -52,6 +52,8 @@ in
               # Search along with the command prefix
               bindkey '^p' history-search-backward
               bindkey '^n' history-search-forward
+              bindkey -M viins '^?' backward-delete-char
+              bindkey -M viins '^H' backward-delete-char
 
               # Case insensitive completions
               zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
