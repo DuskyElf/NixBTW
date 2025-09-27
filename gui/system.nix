@@ -7,6 +7,10 @@
   programs.niri.enable = true;
   services.displayManager.ly.enable = true;
 
+  environment.systemPackages = with pkgs; [
+    wl-clipboard
+  ];
+
   environment.sessionVariables = {
     NIXOS_OZONE_WL = "1"; # wayland support for some chromium applications
   };
