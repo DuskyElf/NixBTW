@@ -11,6 +11,15 @@
     vim
     git
     wget
+    curl
     brightnessctl
+    coreutils-full
+
+    fd
+    fzf
+    bat
+    dust
+    ripgrep
+    tealdeer
   ];
 }
