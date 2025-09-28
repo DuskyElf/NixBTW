@@ -19,8 +19,8 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    nixvim = {
-      url = "github:nix-community/nixvim/nixos-25.05";
+    nvim = {
+      url = "./nvim";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -59,10 +59,10 @@
           ./cli/home.nix
           ./gui/home.nix
 
+          inputs.nvim.homeModule
           inputs.niri.homeModules.config
           inputs.niri.homeModules.stylix
           inputs.stylix.homeModules.stylix
-          inputs.nixvim.homeModules.nixvim
           inputs.zen-browser.homeModules.beta
         ];
       };
