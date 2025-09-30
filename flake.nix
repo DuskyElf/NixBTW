@@ -2,6 +2,8 @@
   description = "DuskyElf's dotfiles";
 
   inputs = {
+    self.submodules = true;
+
     nixpkgs.url = "nixpkgs/nixos-25.05";
 
     home-manager = {
@@ -19,10 +21,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    nvim = {
-      url = "./nvim";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    neovimBTW.url = ./neovimBTW;
 
     zen-browser.url = "github:0xc000022070/zen-browser-flake/beta";
   };
@@ -36,7 +35,12 @@
     }@inputs:
     let
       system = "x86_64-linux";
-      pkgs = nixpkgs.legacyPackages.${system};
+      pkgs = import nixpkgs {
+        inherit system;
+        overlays = [
+          inputs.neovimBTW.overlays.default
+        ];
+      };
     in
     {
       nixosConfigurations.asus = nixpkgs.lib.nixosSystem {
@@ -59,7 +63,6 @@
           ./cli/home.nix
           ./gui/home.nix
 
-          inputs.nvim.homeModule
           inputs.niri.homeModules.config
           inputs.niri.homeModules.stylix
           inputs.stylix.homeModules.stylix

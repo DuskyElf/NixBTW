@@ -1,0 +1,3 @@
+[submodule "neovimBTW"]
+	path = neovimBTW
+	url = https://github.com/DuskyElf/neovimBTW
