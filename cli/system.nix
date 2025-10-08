@@ -8,6 +8,7 @@
   programs.zsh.enable = true;
 
   environment.systemPackages = with pkgs; [
+    gcc
     vim
     git
     wget
