@@ -1,4 +1,4 @@
-{ config, lib, ... }:
+{ config, pkgs, lib, ... }:
 let
   shellAliases = {
     btw = "echo I use NixOS, btw";
@@ -12,6 +12,15 @@ let
     '';
 in
 {
+  xdg.configFile."scripts" = {
+    recursive = true;
+    source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/dotfiles/scripts";
+  };
+  home.packages = with pkgs; [
+    lm_sensors
+    gnugrep
+  ];
+
   programs = {
     fzf.enable = true;
     starship.enable = true;
