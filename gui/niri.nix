@@ -163,8 +163,9 @@
             action = spawn "brightnessctl" "--class=backlight" "set" "1-";
           };
 
-          "Print".action = screenshot;
-          "Alt+Print".action = screenshot-window;
+          # FIXME: tracked in https://github.com/sodiboo/niri-flake/issues/922
+          "Print".action.screenshot = [];
+          "Alt+Print".action.screenshot-screen = [];
 
           "Mod+Escape" = {
             allow-inhibiting = false;
