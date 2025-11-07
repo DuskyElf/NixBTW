@@ -1,6 +1,13 @@
 { config, pkgs, ... }:
 {
-  home.packages = [
-    pkgs.neovimBTW
+  home.packages = with pkgs; [
+    neovimBTW
+
+    nil # nix LSP
+    nodejs
+    stylua
+    lua-language-server
+    vscode-langservers-extracted
+    luajitPackages.luacheck
   ];
 }
