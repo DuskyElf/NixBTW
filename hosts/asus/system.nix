@@ -10,6 +10,9 @@
   nixpkgs.hostPlatform = "x86_64-linux";
 
   networking.useDHCP = lib.mkDefault true;
+  environment.systemPackages = with pkgs; [
+    ungoogled-chromium
+  ];
 
   users.users.duskyelf = {
     shell = pkgs.zsh;
