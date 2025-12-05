@@ -72,6 +72,6 @@
       LC_TIME = "en_IN";
     };
 
-    system.stateVersion = "25.05"; # Leave it as it is
+    system.stateVersion = "25.11"; # Leave it as it is
   };
 }
