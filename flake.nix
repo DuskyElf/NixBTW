@@ -23,6 +23,11 @@
 
     neovimBTW.url = ./neovimBTW;
 
+    opencode = {
+      url = "github:sst/opencode";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     zen-browser.url = "github:0xc000022070/zen-browser-flake/beta";
   };
 
@@ -68,6 +73,9 @@
           inputs.stylix.homeModules.stylix
           inputs.zen-browser.homeModules.beta
         ];
+        extraSpecialArgs = {
+          inherit inputs;
+        };
       };
 
       formatter.${system} = pkgs.nixfmt-tree;
