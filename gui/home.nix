@@ -4,5 +4,6 @@
     ./niri.nix
     ./alacritty.nix
     ./zen-browser.nix
+    ./chromium.nix
   ];
 }
