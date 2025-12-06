@@ -10,4 +10,9 @@
     vscode-langservers-extracted
     luajitPackages.luacheck
   ];
+
+  home.sessionVariables = {
+    EDITOR = "nvim";
+    VISUAL = "nvim";
+  };
 }
