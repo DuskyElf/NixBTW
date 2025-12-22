@@ -54,6 +54,7 @@
     cpu.intel = {
       updateMicrocode = config.hardware.enableRedistributableFirmware;
     };
+
     graphics = {
       enable = true;
       extraPackages = with pkgs; [
@@ -63,7 +64,26 @@
         #intel-media-sdk # for older iGPUs
       ];
     };
+
+    nvidia = {
+      open = true;
+      modesetting.enable = true;
+      powerManagement.enable = true;
+      prime = {
+        offload = {
+          enable = true;
+          enableOffloadCmd = true;
+        };
+        intelBusId = "PCI:0:2:0";
+        nvidiaBusId = "PCI:1:0:0";
+      };
+    };
   };
+
+  services.xserver.videoDrivers = [
+    "modesetting"
+    "nvidia"
+  ];
 
   environment.sessionVariables = {
     LIBVA_DRIVER_NAME = "iHD"; # for iGPU support from some applicaptions
