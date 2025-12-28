@@ -4,17 +4,14 @@
   ...
 }:
 {
-  programs.alacritty = {
+  programs.ghostty = {
     enable = true;
     settings = {
-      colors.primary.background = lib.mkForce "#181818";
-      window = {
-        opacity = lib.mkForce 0.85;
-        padding.x = 10;
-      };
-      env = {
-        TERM = "xterm-256color";
-      };
+      background = "#181818";
+      custom-shader = "cursor_warp.glsl";
     };
   };
+
+  xdg.configFile."ghostty/cursor_warp.glsl".source =
+    config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/dotfiles/hot-configs/ghostty/cursor_warp.glsl";
 }
