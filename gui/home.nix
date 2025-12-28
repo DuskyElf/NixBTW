@@ -2,7 +2,7 @@
 {
   imports = [
     ./niri.nix
-    ./alacritty.nix
+    ./ghostty.nix
     ./zen-browser.nix
     ./chromium.nix
     ./blender.nix
