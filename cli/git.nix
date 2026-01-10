@@ -2,6 +2,13 @@
 {
   programs.git = {
     enable = true;
+    package = pkgs.gitFull;
+
+    signing = {
+      key = "~/.ssh/id_ed25519_signing";
+      format = "ssh";
+      signByDefault = true;
+    };
 
     settings = {
       user = {
