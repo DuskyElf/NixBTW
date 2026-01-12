@@ -2,6 +2,7 @@
 let
   shellAliases = {
     btw = "echo I use NixOS, btw";
+    get-nob = "curl -o nob.h https://raw.githubusercontent.com/tsoding/nob.h/main/nob.h";
   };
 
   extraShelly = # bash
