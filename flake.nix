@@ -23,6 +23,11 @@
 
     neovimBTW.url = ./neovimBTW;
 
+    voxtype = {
+      url = "github:peteonrails/voxtype";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     opencode = {
       url = "github:sst/opencode";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -71,6 +76,7 @@
           inputs.niri.homeModules.config
           inputs.niri.homeModules.stylix
           inputs.stylix.homeModules.stylix
+          inputs.voxtype.homeManagerModules.default
           inputs.zen-browser.homeModules.beta
         ];
         extraSpecialArgs = {

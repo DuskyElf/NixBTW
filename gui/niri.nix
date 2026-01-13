@@ -1,6 +1,7 @@
 {
   config,
   pkgs,
+  inputs,
   ...
 }:
 {
@@ -12,6 +13,31 @@
   home.packages = with pkgs; [
     swaybg
   ];
+
+  programs.voxtype = {
+    enable = true;
+    package = inputs.voxtype.packages."x86_64-linux".vulkan;
+    model.name = "base.en";
+    service.enable = true;
+
+    # All config options go in settings (converted to config.toml)
+    settings = {
+      hotkey.enabled = false; # Use compositor keybindings instead
+      audio = {
+        device = "default";
+        sample_rate = 16000;
+        max_duration_secs = 60;
+
+        feedback = {
+          enabled = true;
+          theme = "default";
+          volume = 0.7;
+        };
+      };
+      output.mode = "type";
+      whisper.language = "en";
+    };
+  };
 
   programs = {
     fuzzel.enable = true;
@@ -173,12 +199,23 @@
           };
 
           "Mod+Shift+E".action = quit;
+
+          "Mod+semicolon" = {
+            repeat = false;
+            action = spawn "voxtype" "record" "start";
+          };
+
+          "Mod+apostrophe" = {
+            repeat = false;
+            action = spawn "voxtype" "record" "stop";
+          };
         };
 
         prefer-no-csd = true;
         hotkey-overlay.skip-at-startup = true;
         spawn-at-startup = [
           { argv = [ "ghostty" ]; }
+          { argv = [ "voxtype" "daemon" ]; }
         ];
       };
     };

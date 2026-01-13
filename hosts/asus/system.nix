@@ -17,6 +17,7 @@
     description = "DuskyElf";
     extraGroups = [
       "networkmanager"
+      "input"
       "wheel"
     ];
   };
