@@ -1,3 +1,6 @@
 [submodule "neovimBTW"]
 	path = neovimBTW
 	url = https://github.com/DuskyElf/neovimBTW
+[submodule "opencodeBTW"]
+	path = opencodeBTW
+	url = https://github.com/DuskyElf/opencodeBTW
