@@ -102,6 +102,25 @@
     };
     kernelModules = [ "kvm-intel" ];
     extraModulePackages = [ ];
+
+    kernelPackages = pkgs.linuxPackages_zen;
+    kernelPatches = [
+      {
+        name = "march-native-for-zen-kernel";
+        patch = null;
+        structuredExtraConfig = with lib.kernel; {
+          X86_NATIVE_CPU = yes;
+          X86_INTEL_PSTATE = yes;
+          PREEMPT = yes;
+          PREEMPT_DYNAMIC = yes;
+          CPU_IDLE = yes;
+          INTEL_IDLE = yes;
+          SCHED_SMT = yes;
+          SCHED_MC = yes;
+          SCHED_MC_PRIO = yes;
+        };
+      }
+    ];
   };
 
   # auto-generated stuff
