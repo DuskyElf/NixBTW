@@ -4,6 +4,24 @@
   inputs,
   ...
 }:
+let
+  niriNativeOverlay =
+    final: prev:
+    let
+      niriOverlay = inputs.niri.overlays.niri;
+      base = niriOverlay final prev;
+    in
+    base
+    // {
+      niri-unstable = base.niri-unstable.overrideAttrs (old: {
+        env = (old.env or {}) // {
+          RUSTFLAGS = (old.env.RUSTFLAGS or "") + " -C target-cpu=native";
+        };
+      });
+    };
+
+  niri-native-pkgs = pkgs.extend niriNativeOverlay;
+in
 {
   services = {
     mako.enable = true;
@@ -44,7 +62,7 @@
     swaylock.enable = true;
 
     niri = {
-      package = pkgs.niri;
+      package = niri-native-pkgs.niri-unstable;
 
       settings = {
         input = {
@@ -190,8 +208,8 @@
           };
 
           # FIXME: tracked in https://github.com/sodiboo/niri-flake/issues/922
-          "Print".action.screenshot = [];
-          "Alt+Print".action.screenshot-screen = [];
+          "Print".action.screenshot = [ ];
+          "Alt+Print".action.screenshot-screen = [ ];
 
           "Mod+Escape" = {
             allow-inhibiting = false;
@@ -215,7 +233,12 @@
         hotkey-overlay.skip-at-startup = true;
         spawn-at-startup = [
           { argv = [ "ghostty" ]; }
-          { argv = [ "voxtype" "daemon" ]; }
+          {
+            argv = [
+              "voxtype"
+              "daemon"
+            ];
+          }
         ];
       };
     };
