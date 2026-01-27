@@ -30,7 +30,8 @@
 
     opencode = {
       url = "github:sst/opencode";
-      inputs.nixpkgs.follows = "nixpkgs";
+      # Bun version mismatch from nixpkgs issue: https://github.com/anomalyco/opencode/pull/9938
+      # inputs.nixpkgs.follows = "nixpkgs";
     };
 
     zen-browser.url = "github:0xc000022070/zen-browser-flake/beta";
