@@ -6,6 +6,8 @@
 
     nixpkgs.url = "nixpkgs/nixos-25.11";
 
+    nixpkgs-unstable.url = "nixpkgs/nixos-unstable";
+
     home-manager = {
       url = "github:nix-community/home-manager/release-25.11";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -46,6 +48,9 @@
     }@inputs:
     let
       system = "x86_64-linux";
+      pkgs-unstable = import inputs.nixpkgs-unstable {
+        inherit system;
+      };
       pkgs = import nixpkgs {
         inherit system;
         overlays = [
@@ -82,6 +87,7 @@
         ];
         extraSpecialArgs = {
           inherit inputs;
+          inherit pkgs-unstable;
         };
       };
 
