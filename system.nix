@@ -25,6 +25,11 @@
     networking = {
       networkmanager.enable = true;
       hostName = config.hostOptions.hostName;
+      #firewall = {
+      #  enable = true;
+      #  allowedTCPPorts = [ 9000 ];
+      #  allowedUDPPorts = [ 9000 ];
+      #};
     };
 
     services.blueman.enable = true;
