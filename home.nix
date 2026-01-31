@@ -39,18 +39,18 @@
         echo "Starting flake auto-update at $(date)"
 
         # Update specific flakes
-        echo "Updating opencode and zen-browser flakes..."
-        if nix flake update opencode zen-browser; then
+        echo "Updating zen-browser flakes..."
+        if nix flake update zen-browser; then
           echo "Flake update successful"
 
           # Commit the flake.lock changes
           echo "Committing flake.lock changes..."
           git add flake.lock
-          git commit -m "chore: nix flake update opencode zen-browser" --no-gpg-sign
+          git commit -m "chore: nix flake update zen-browser" --no-gpg-sign
 
         else
           echo "Flake update failed"
-          notify-send -u critical "Update failed" "Failed to update opencode and zen-browser flakes"
+          notify-send -u critical "Update failed" "Failed to update zen-browser flakes"
           exit 1
         fi
 
