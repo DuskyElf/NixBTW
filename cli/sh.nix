@@ -20,7 +20,6 @@ in
   home.packages = with pkgs; [
     lm_sensors
     gnugrep
-    btop
     fastfetch
   ];
 

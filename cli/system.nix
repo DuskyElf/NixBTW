@@ -14,8 +14,10 @@
     git
     wget
     curl
+    btop
     brightnessctl
     coreutils-full
+    intel-gpu-tools
 
     fd
     fzf
