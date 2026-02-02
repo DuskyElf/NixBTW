@@ -16,7 +16,7 @@
       package = pkgs.nerd-fonts.jetbrains-mono;
       name = "JetBrainsMonoNerdFontMono";
     };
-    base16Scheme = "${pkgs.base16-schemes}/share/themes/catppuccin-mocha.yaml";
+    base16Scheme = "${pkgs.base16-schemes}/share/themes/gruvbox-material-dark-hard.yaml";
   };
 
   # Don't change
@@ -76,8 +76,8 @@
       PartOf = [ "graphical-session.target" ];
     };
     Timer = {
-      OnBootSec = "2min";  # Run 2 minutes after login
-      OnUnitActiveSec = "24h";  # Optional: run daily
+      OnBootSec = "2min"; # Run 2 minutes after login
+      OnUnitActiveSec = "24h"; # Optional: run daily
     };
     Install.WantedBy = [ "timers.target" ];
   };
