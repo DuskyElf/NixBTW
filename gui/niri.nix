@@ -164,7 +164,7 @@ in
             repeat = false;
             action = close-window;
           };
-          "Mod+T".action = spawn "ghostty";
+          "Mod+T".action = spawn "kitty";
           "Mod+O".action = spawn "fuzzel";
 
           "XF86AudioMute" = {
@@ -232,7 +232,7 @@ in
         prefer-no-csd = true;
         hotkey-overlay.skip-at-startup = true;
         spawn-at-startup = [
-          { argv = [ "ghostty" ]; }
+          { argv = [ "kitty" ]; }
           {
             argv = [
               "voxtype"
