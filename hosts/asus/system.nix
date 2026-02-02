@@ -86,7 +86,17 @@
     "nvidia"
   ];
 
+  environment.systemPackages = with pkgs; [
+    cudatoolkit
+    cudaPackages.cudnn
+    cudaPackages.cuda_cudart
+  ];
+
   environment.sessionVariables = {
+    CUDA_PATH = "${pkgs.cudatoolkit}";
+    LD_LIBRARY_PATH = "${config.boot.kernelPackages.nvidiaPackages.stable}/lib";
+    EXTRA_LDFLAGS = "-L/lib -L${config.boot.kernelPackages.nvidiaPackages.stable}/lib";
+
     LIBVA_DRIVER_NAME = "iHD"; # for iGPU support from some applicaptions
   };
 
