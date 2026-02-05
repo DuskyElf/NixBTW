@@ -113,10 +113,51 @@
     kernelModules = [ "kvm-intel" ];
     extraModulePackages = [ ];
 
-    kernelPackages = pkgs.linuxPackages_zen;
+    kernelPackages = pkgs.linuxPackagesFor (
+      pkgs.linuxKernel.kernels.linux_zen.override {
+        extraMakeFlags = [
+          # Gcc flags.
+          # "KCFLAGS+=-O3"
+          # "KCFLAGS+=-march=native"
+          # "KCFLAGS+=-mtune=native"
+
+          # Clang/llvm flags
+          "KCFLAGS+=-O3"
+          "KCFLAGS+=-mtune=native"
+          "KCFLAGS+=-march=native"
+          "KCFLAGS+=-Wno-unused-command-line-argument"
+          "KCFLAGS+=-fuse-ld=lld"
+          "KCFLAGS+=-flto=full"
+          "KCFLAGS+=-ffat-lto-objects"
+          "KLDFLAGS+=--lto-O3"
+          "KLDFLAGS+=--fat-lto-objects"
+          "CC=${pkgs.llvmPackages.clang-unwrapped}/bin/clang"
+          "AR=${pkgs.llvm}/bin/llvm-ar"
+          "NM=${pkgs.llvm}/bin/llvm-nm"
+          "LD=${pkgs.lld}/bin/ld.lld"
+          "LLVM=1"
+        ];
+
+        stdenv = pkgs.stdenvAdapters.overrideInStdenv pkgs.llvmPackages.stdenv [
+          pkgs.llvm
+          pkgs.lld
+        ];
+
+        # Config generation failing usually corresponds to your config begin edited
+        # in the output due to the incompatible options and therefore also failing.
+        ignoreConfigErrors = true;
+
+        # Start with an all-no config.  It is slightly easiler to pull together
+        # enough options to get this running than to whittle down the defaults.
+        # However, it is still a lot and you may miss some that are more important
+        # than what you gain by starting from a clean slate.
+        # defconfig = "ARCH=x86_64 allnoconfig";
+      }
+    );
+
     kernelPatches = [
       {
-        name = "march-native-for-zen-kernel";
+        name = "march-native-llvm-lto";
         patch = null;
         structuredExtraConfig = with lib.kernel; {
           X86_NATIVE_CPU = yes;
@@ -128,6 +169,9 @@
           SCHED_SMT = yes;
           SCHED_MC = yes;
           SCHED_MC_PRIO = yes;
+          # Clang options require a lot of extra config
+          CC_IS_CLANG = lib.mkForce yes;
+          LTO_CLANG_FULL = lib.mkForce yes;
         };
       }
     ];
