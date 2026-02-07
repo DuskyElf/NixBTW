@@ -40,7 +40,7 @@
     };
 
     opencode = {
-      url = "github:sst/opencode/?ref=v1.1.47";
+      url = "github:sst/opencode/?ref=v1.1.59";
       # Bun version mismatch from nixpkgs issue: https://github.com/anomalyco/opencode/pull/9938
       # inputs.nixpkgs.follows = "nixpkgs";
     };
