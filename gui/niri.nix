@@ -40,6 +40,7 @@ in
 
     # All config options go in settings (converted to config.toml)
     settings = {
+      state_file = "auto";
       hotkey.enabled = false; # Use compositor keybindings instead
       audio = {
         device = "default";
