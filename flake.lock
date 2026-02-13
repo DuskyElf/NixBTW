@@ -519,22 +519,6 @@
     },
     "nixpkgs_4": {
       "locked": {
-        "lastModified": 1770073757,
-        "narHash": "sha256-Vy+G+F+3E/Tl+GMNgiHl9Pah2DgShmIUBJXmbiQPHbI=",
-        "owner": "NixOS",
-        "repo": "nixpkgs",
-        "rev": "47472570b1e607482890801aeaf29bfb749884f6",
-        "type": "github"
-      },
-      "original": {
-        "owner": "NixOS",
-        "ref": "nixpkgs-unstable",
-        "repo": "nixpkgs",
-        "type": "github"
-      }
-    },
-    "nixpkgs_5": {
-      "locked": {
         "lastModified": 1769461804,
         "narHash": "sha256-msG8SU5WsBUfVVa/9RPLaymvi5bI8edTavbIq3vRlhI=",
         "owner": "nixos",
@@ -575,21 +559,18 @@
       }
     },
     "opencode": {
-      "inputs": {
-        "nixpkgs": "nixpkgs_4"
-      },
       "locked": {
-        "lastModified": 1770824220,
-        "narHash": "sha256-+vvNQzfhuP91mK/BjBufWGdS+2vHJAtB8iDl14z4y48=",
-        "owner": "sst",
-        "repo": "opencode",
-        "rev": "42bea5d297125c4f8ea5c1d6055fa06829de0a51",
+        "lastModified": 1770975968,
+        "narHash": "sha256-ijdSLIXg9F4EtFspszHs7gvK9a1GBV6CgQtwPgq2t/w=",
+        "owner": "duskyelf",
+        "repo": "nixpkgs",
+        "rev": "3ddb073cc253437025198c3092d3c2adaa5a0610",
         "type": "github"
       },
       "original": {
-        "owner": "sst",
-        "ref": "v1.1.59",
-        "repo": "opencode",
+        "owner": "duskyelf",
+        "ref": "update-opencode",
+        "repo": "nixpkgs",
         "type": "github"
       }
     },
@@ -824,7 +805,7 @@
     "zen-browser": {
       "inputs": {
         "home-manager": "home-manager_2",
-        "nixpkgs": "nixpkgs_5"
+        "nixpkgs": "nixpkgs_4"
       },
       "locked": {
         "lastModified": 1770416716,
