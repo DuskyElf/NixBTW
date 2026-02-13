@@ -21,6 +21,7 @@ in
     lm_sensors
     gnugrep
     fastfetch
+    nixpkgs-review
   ];
 
   programs = {
