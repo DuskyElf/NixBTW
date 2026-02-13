@@ -1,7 +1,7 @@
 { config, inputs, pkgs, ... }:
 {
   home.packages = [
-    inputs.opencode.packages."x86_64-linux".default
+    inputs.opencode.legacyPackages."x86_64-linux".opencode
     pkgs.libnotify
   ];
 
