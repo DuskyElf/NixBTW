@@ -560,11 +560,11 @@
     },
     "opencode": {
       "locked": {
-        "lastModified": 1771171602,
-        "narHash": "sha256-oU7h71n97vWQvRsmfrBgPReEiwVs5k7S619VOG45KZs=",
+        "lastModified": 1771229564,
+        "narHash": "sha256-yG6j/k7luc0Fdt3qxjk4jrjtEsfgJMeL++s9g6p6fpM=",
         "owner": "duskyelf",
         "repo": "nixpkgs",
-        "rev": "b51ab90b69f7c822a499c09c22db9788b2dcee3f",
+        "rev": "3b17a45aed3670bf722a61c193d1598a41e18647",
         "type": "github"
       },
       "original": {
