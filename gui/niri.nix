@@ -30,6 +30,7 @@ in
 
   home.packages = with pkgs; [
     swaybg
+    wtype
   ];
 
   programs.voxtype = {
@@ -120,6 +121,21 @@ in
         };
 
         binds = with config.lib.niri.actions; {
+          # Vim-style keybindings via wtype
+          "Alt+J".action = spawn "wtype" "-m" "alt" "-k" "down";
+          "Alt+K".action = spawn "wtype" "-m" "alt" "-k" "up";
+          "Alt+H".action = spawn "wtype" "-m" "alt" "-k" "left";
+          "Alt+L".action = spawn "wtype" "-m" "alt" "-k" "right";
+          "Alt+B".action = spawn "wtype" "-m" "alt" "-M" "ctrl" "-k" "left";
+          "Alt+E".action = spawn "wtype" "-m" "alt" "-M" "ctrl" "-k" "right";
+          "Alt+A".action = spawn "wtype" "-m" "alt" "-k" "home";
+          "Alt+I".action = spawn "wtype" "-m" "alt" "-k" "end";
+          "Alt+U".action = spawn "wtype" "-m" "alt" "-k" "page_up";
+          "Alt+D".action = spawn "wtype" "-m" "alt" "-k" "page_down";
+          "Alt+N".action = spawn "wtype" "-m" "alt" "-k" "down";
+          "Alt+P".action = spawn "wtype" "-m" "alt" "-k" "up";
+          "Alt+BRACKETLEFT".action = spawn "wtype" "-m" "alt" "-k" "escape";
+
           "Mod+Shift+Slash".action = show-hotkey-overlay;
           "Super+Alt+L".action = spawn "swaylock";
 
