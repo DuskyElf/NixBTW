@@ -60,10 +60,25 @@
     time.timeZone = "Asia/Kolkata";
     i18n.defaultLocale = "en_US.UTF-8";
 
-    nix.settings.experimental-features = [
-      "nix-command"
-      "flakes"
-    ];
+    nix.settings = {
+      trusted-users = [
+        "duskyelf"
+      ];
+
+      substituters = [
+        "https://cache.nixos.org"
+        "https://cuda-maintainers.cachix.org"
+      ];
+
+      trusted-public-keys = [
+        "cuda-maintainers.cachix.org-1:0dq3bujKpuEPMCX6U4WylrUDZ9JyUG0VpVZa7CNfq5E="
+      ];
+
+      experimental-features = [
+        "nix-command"
+        "flakes"
+      ];
+    };
 
     i18n.extraLocaleSettings = {
       LC_ADDRESS = "en_IN";
