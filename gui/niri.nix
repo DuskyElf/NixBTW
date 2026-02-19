@@ -128,8 +128,8 @@ in
           "Alt+L".action = spawn "wtype" "-m" "alt" "-k" "right";
           "Alt+B".action = spawn "wtype" "-m" "alt" "-M" "ctrl" "-k" "left";
           "Alt+E".action = spawn "wtype" "-m" "alt" "-M" "ctrl" "-k" "right";
-          "Alt+A".action = spawn "wtype" "-m" "alt" "-k" "home";
-          "Alt+I".action = spawn "wtype" "-m" "alt" "-k" "end";
+          "Alt+I".action = spawn "wtype" "-m" "alt" "-k" "home";
+          "Alt+A".action = spawn "wtype" "-m" "alt" "-k" "end";
           "Alt+U".action = spawn "wtype" "-m" "alt" "-k" "page_up";
           "Alt+D".action = spawn "wtype" "-m" "alt" "-k" "page_down";
           "Alt+N".action = spawn "wtype" "-m" "alt" "-k" "down";
