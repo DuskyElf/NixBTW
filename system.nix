@@ -15,7 +15,6 @@
     nixpkgs.config.allowUnfree = true;
 
     console.useXkbConfig = true;
-    services.xserver.xkb.options = "ctrl:swapcaps";
 
     boot.loader = {
       systemd-boot.enable = true;

@@ -14,7 +14,7 @@ let
     base
     // {
       niri-unstable = base.niri-unstable.overrideAttrs (old: {
-        env = (old.env or {}) // {
+        env = (old.env or { }) // {
           RUSTFLAGS = (old.env.RUSTFLAGS or "") + " -C target-cpu=native";
         };
       });
@@ -73,7 +73,6 @@ in
             middle-emulation = true;
           };
           warp-mouse-to-focus.enable = true;
-          keyboard.xkb.options = "ctrl:swapcaps";
         };
 
         outputs = {
@@ -121,20 +120,18 @@ in
         };
 
         binds = with config.lib.niri.actions; {
-          # Vim-style keybindings via wtype
-          "Alt+J".action = spawn "wtype" "-m" "alt" "-k" "down";
-          "Alt+K".action = spawn "wtype" "-m" "alt" "-k" "up";
-          "Alt+H".action = spawn "wtype" "-m" "alt" "-k" "left";
-          "Alt+L".action = spawn "wtype" "-m" "alt" "-k" "right";
-          "Alt+B".action = spawn "wtype" "-m" "alt" "-M" "ctrl" "-k" "left";
-          "Alt+E".action = spawn "wtype" "-m" "alt" "-M" "ctrl" "-k" "right";
-          "Alt+I".action = spawn "wtype" "-m" "alt" "-k" "home";
-          "Alt+A".action = spawn "wtype" "-m" "alt" "-k" "end";
-          "Alt+U".action = spawn "wtype" "-m" "alt" "-k" "page_up";
-          "Alt+D".action = spawn "wtype" "-m" "alt" "-k" "page_down";
-          "Alt+N".action = spawn "wtype" "-m" "alt" "-k" "down";
-          "Alt+P".action = spawn "wtype" "-m" "alt" "-k" "up";
-          "Alt+BRACKETLEFT".action = spawn "wtype" "-m" "alt" "-k" "escape";
+          "Ctrl+Return".action =
+            spawn "bash" "-c"
+              "[ -f '/tmp/niri-vmn' ] || notify-send 'Vim Mode' --urgency=critical -p > /tmp/niri-vmn";
+          "Ctrl+Shift+Return".action =
+            spawn "bash" "-c"
+              "notify-send '' --replace-id=$(cat /tmp/niri-vmn) --expire-time=1; rm -f /tmp/niri-vmn";
+          "Ctrl+Alt+Return".action =
+            spawn "bash" "-c"
+              "notify-send 'Visual Mode' --replace-id=$(cat /tmp/niri-vmn)";
+          "Ctrl+Alt+Shift+Return".action =
+            spawn "bash" "-c"
+              "notify-send 'Vim Mode' --urgency=critical --replace-id=$(cat /tmp/niri-vmn)";
 
           "Mod+Shift+Slash".action = show-hotkey-overlay;
           "Super+Alt+L".action = spawn "swaylock";
