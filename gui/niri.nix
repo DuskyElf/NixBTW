@@ -21,6 +21,20 @@ let
     };
 
   niri-native-pkgs = pkgs.extend niriNativeOverlay;
+
+  notif =
+    { title, message }:
+    "notify-send \"${title}\" \"${message}\" --expire-time=500 -p --replace-id=$(cat '/tmp/niri-${title}') > '/tmp/niri-${title}' || notify-send \"${title}\" \"${message}\" --expire-time=500 -p > '/tmp/niri-${title}'";
+
+  audio-notification = notif {
+    title = "Audio";
+    message = "$(wpctl get-volume @DEFAULT_AUDIO_SINK@)";
+  };
+
+  brightness-notification = notif {
+    title = "Brightness";
+    message = "$(brightnessctl --class=backlight get)";
+  };
 in
 {
   services = {
@@ -187,42 +201,42 @@ in
 
           "XF86AudioMute" = {
             allow-when-locked = true;
-            action = spawn "wpctl" "set-mute" "@DEFAULT_AUDIO_SINK@" "toggle";
+            action = spawn "bash" "-c" ("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle;" + audio-notification);
           };
           "XF86AudioRaiseVolume" = {
             allow-when-locked = true;
-            action = spawn "wpctl" "set-volume" "@DEFAULT_AUDIO_SINK@" "0.1+";
+            action = spawn "bash" "-c" ("wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.1+;" + audio-notification);
           };
           "XF86AudioLowerVolume" = {
             allow-when-locked = true;
-            action = spawn "wpctl" "set-volume" "@DEFAULT_AUDIO_SINK@" "0.1-";
+            action = spawn "bash" "-c" ("wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.1-;" + audio-notification);
           };
 
           "XF86MonBrightnessUp" = {
             allow-when-locked = true;
-            action = spawn "brightnessctl" "--class=backlight" "set" "2%+";
+            action = spawn "bash" "-c" ("brightnessctl --class=backlight set 2%+;" + brightness-notification);
           };
           "XF86MonBrightnessDown" = {
             allow-when-locked = true;
-            action = spawn "brightnessctl" "--class=backlight" "set" "2%-";
+            action = spawn "bash" "-c" ("brightnessctl --class=backlight set 2%-;" + brightness-notification);
           };
 
           "Mod+TouchpadScrollDown" = {
             allow-when-locked = true;
-            action = spawn "wpctl" "set-volume" "@DEFAULT_AUDIO_SINK@" "0.02+";
+            action = spawn "bash" "-c" ("wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.02+;" + audio-notification);
           };
           "Mod+TouchpadScrollUp" = {
             allow-when-locked = true;
-            action = spawn "wpctl" "set-volume" "@DEFAULT_AUDIO_SINK@" "0.02-";
+            action = spawn "bash" "-c" ("wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.02-;" + audio-notification);
           };
 
           "Mod+Alt+TouchpadScrollDown" = {
             allow-when-locked = true;
-            action = spawn "brightnessctl" "--class=backlight" "set" "1+";
+            action = spawn "bash" "-c" ("brightnessctl --class=backlight set 1+;" + brightness-notification);
           };
           "Mod+Alt+TouchpadScrollUp" = {
             allow-when-locked = true;
-            action = spawn "brightnessctl" "--class=backlight" "set" "1-";
+            action = spawn "bash" "-c" ("brightnessctl --class=backlight set 1-;" + brightness-notification);
           };
 
           # FIXME: tracked in https://github.com/sodiboo/niri-flake/issues/922
