@@ -119,6 +119,10 @@ in
           shadow.enable = false;
         };
 
+        overview = {
+          zoom = 0.25;
+        };
+
         binds = with config.lib.niri.actions; {
           "Ctrl+Return".action =
             spawn "bash" "-c"
