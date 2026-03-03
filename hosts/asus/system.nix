@@ -100,7 +100,7 @@
 
   environment.systemPackages = with pkgs; [
     cudatoolkit
-    cudaPackages.cudnn
+    #cudaPackages.cudnn
     cudaPackages.cuda_cudart
   ];
 
