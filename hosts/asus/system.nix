@@ -98,6 +98,15 @@
     "nvidia"
   ];
 
+  # set max temp to 93C to prevent overheating and throttling
+
+  systemd.services.cpu-temp-control = {
+    script = ''
+      ${pkgs.undervolt}/bin/undervolt -t 93
+    '';
+    wantedBy = [ "multi-user.target" ];
+  };
+
   environment.systemPackages = with pkgs; [
     cudatoolkit
     #cudaPackages.cudnn
@@ -122,7 +131,7 @@
       ];
       kernelModules = [ ];
     };
-    kernelModules = [ "kvm-intel" ];
+    kernelModules = [ "kvm-intel" "msr" ];
     extraModulePackages = [ ];
 
     kernelPackages = pkgs.linuxPackagesFor (
