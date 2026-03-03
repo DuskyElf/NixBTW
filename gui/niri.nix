@@ -2,6 +2,7 @@
   config,
   pkgs,
   inputs,
+  pkgs-unstable,
   ...
 }:
 let
@@ -49,7 +50,7 @@ in
 
   programs.voxtype = {
     enable = true;
-    package = inputs.voxtype.packages."x86_64-linux".vulkan;
+    package = pkgs-unstable.voxtype-vulkan;
     model.name = "base.en";
     service.enable = true;
 
