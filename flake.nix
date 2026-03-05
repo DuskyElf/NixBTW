@@ -39,6 +39,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    worktrunk = {
+      url= "github:duskyelf/worktrunk/home-manager-module";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     opencode = {
       url = "github:duskyelf/nixpkgs/update-opencode";
     };
@@ -99,6 +104,7 @@
           inputs.stylix.homeModules.stylix
           inputs.voxtype.homeManagerModules.default
           inputs.zen-browser.homeModules.beta
+          inputs.worktrunk.homeModules.default
         ];
         extraSpecialArgs = {
           inherit inputs;

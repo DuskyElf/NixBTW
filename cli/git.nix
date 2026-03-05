@@ -19,5 +19,7 @@
     };
   };
 
+  programs.worktrunk.enable = true;
+
   home.packages = [ pkgs.github-cli ];
 }
