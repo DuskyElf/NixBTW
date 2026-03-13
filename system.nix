@@ -21,6 +21,8 @@
       efi.canTouchEfiVariables = true;
     };
 
+    boot.initrd.systemd.enable = true;
+
     networking = {
       networkmanager.enable = true;
       hostName = config.hostOptions.hostName;
