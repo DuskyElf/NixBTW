@@ -5,11 +5,6 @@
   ...
 }:
 let
-  shellAliases = {
-    btw = "echo I use NixOS, btw";
-    get-nob = "curl -o nob.h https://raw.githubusercontent.com/tsoding/nob.h/main/nob.h";
-  };
-
   extraShelly = # bash
     ''
       nx() {
@@ -18,6 +13,11 @@ let
     '';
 in
 {
+  home.shellAliases = {
+    btw = "echo I use NixOS, btw";
+    get-nob = "curl -o nob.h https://raw.githubusercontent.com/tsoding/nob.h/main/nob.h";
+  };
+
   xdg.configFile."scripts" = {
     recursive = true;
     source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/dotfiles/scripts";
@@ -42,7 +42,6 @@ in
 
     zsh = {
       enable = true;
-      inherit shellAliases;
       history = {
         size = 6900;
         save = 6900;
@@ -90,7 +89,6 @@ in
 
     bash = {
       enable = true;
-      inherit shellAliases;
       initExtra = extraShelly;
     };
   };
