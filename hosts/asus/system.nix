@@ -131,7 +131,10 @@
       ];
       kernelModules = [ ];
     };
-    kernelModules = [ "kvm-intel" "msr" ];
+    kernelModules = [
+      "kvm-intel"
+      "msr"
+    ];
     extraModulePackages = [ ];
 
     kernelPackages = pkgs.linuxPackagesFor (

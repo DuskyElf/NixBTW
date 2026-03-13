@@ -1,4 +1,9 @@
-{ config, inputs, pkgs, ... }:
+{
+  config,
+  inputs,
+  pkgs,
+  ...
+}:
 {
   home.packages = [
     inputs.opencode.legacyPackages."x86_64-linux".opencode
@@ -14,7 +19,9 @@
       After = [ "network.target" ];
     };
     Service = {
-      ExecStart = "${inputs.opencode.legacyPackages."x86_64-linux".opencode}/bin/opencode web --port 4096";
+      ExecStart = "${
+        inputs.opencode.legacyPackages."x86_64-linux".opencode
+      }/bin/opencode web --port 4096";
       Restart = "on-failure";
       RestartSec = 5;
     };

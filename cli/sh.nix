@@ -1,4 +1,9 @@
-{ config, pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 let
   shellAliases = {
     btw = "echo I use NixOS, btw";
