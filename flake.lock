@@ -432,18 +432,14 @@
         "nixpkgs": "nixpkgs_3"
       },
       "locked": {
-        "lastModified": 1773465573,
-        "narHash": "sha256-AaT9bHVRDw2BQY8EiCHrrQ9t0WoHK+U33I32pGyxHao=",
-        "owner": "duskyelf",
-        "repo": "neovimBTW",
-        "rev": "357f6f4e00785bddef5e878a732014998fa133dd",
-        "type": "github"
+        "path": "neovimBTW",
+        "type": "path"
       },
       "original": {
-        "owner": "duskyelf",
-        "repo": "neovimBTW",
-        "type": "github"
-      }
+        "path": "neovimBTW",
+        "type": "path"
+      },
+      "parent": []
     },
     "niri": {
       "inputs": {
