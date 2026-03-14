@@ -1,7 +1,7 @@
-{ pkgs, ... }:
+{ pkgs, inputs, ... }:
 {
   home.packages = with pkgs; [
-    neovimBTW
+    inputs.neovimBTW.packages.${pkgs.stdenv.hostPlatform.system}.nvim
 
     nil # nix LSP
     nodejs

@@ -32,7 +32,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    neovimBTW.url = ./neovimBTW;
+    neovimBTW.url = "github:duskyelf/neovimBTW";
 
     voxtype = {
       url = "github:peteonrails/voxtype";
@@ -73,9 +73,6 @@
       };
       pkgs = import nixpkgs {
         inherit system;
-        overlays = [
-          inputs.neovimBTW.overlays.default
-        ];
       };
     in
     {
