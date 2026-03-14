@@ -52,7 +52,6 @@ in
     enable = true;
     package = pkgs-unstable.voxtype-vulkan;
     model.name = "base.en";
-    service.enable = true;
 
     # All config options go in settings (converted to config.toml)
     settings = {
@@ -266,6 +265,7 @@ in
         hotkey-overlay.skip-at-startup = true;
         spawn-at-startup = [
           { argv = [ "kitty" ]; }
+          { argv = [ "voxtype" "daemon" ]; }
         ];
       };
     };
