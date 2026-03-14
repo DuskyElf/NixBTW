@@ -32,7 +32,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    neovimBTW.url = "github:duskyelf/neovimBTW";
+    neovimBTW.url = ./neovimBTW;
 
     voxtype = {
       url = "github:peteonrails/voxtype";
