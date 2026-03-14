@@ -8,6 +8,7 @@
 
   environment.systemPackages = with pkgs; [
     wl-clipboard
+    libnotify
   ];
 
   environment.sessionVariables = {
