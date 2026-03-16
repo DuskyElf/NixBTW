@@ -957,16 +957,15 @@
         "rust-overlay": "rust-overlay_2"
       },
       "locked": {
-        "lastModified": 1772738798,
-        "narHash": "sha256-aq5pFHwBrz3Q3Ux4n9P3ynHZ/I1qzKFrXbrP5wwSZUg=",
-        "owner": "duskyelf",
+        "lastModified": 1773647559,
+        "narHash": "sha256-yyA1g4pl7uS03PkTDfktA+imLjnz6txQ7UG6BK+72oM=",
+        "owner": "max-sixty",
         "repo": "worktrunk",
-        "rev": "8e3e1cb6ae8323e7d6c0da68328ef929fcee0f37",
+        "rev": "0f0cb2a118030d2356f4a08c1de5a7268cb16c0b",
         "type": "github"
       },
       "original": {
-        "owner": "duskyelf",
-        "ref": "home-manager-module",
+        "owner": "max-sixty",
         "repo": "worktrunk",
         "type": "github"
       }
