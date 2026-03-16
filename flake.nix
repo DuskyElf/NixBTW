@@ -40,7 +40,7 @@
     };
 
     worktrunk = {
-      url= "github:duskyelf/worktrunk/home-manager-module";
+      url= "github:max-sixty/worktrunk";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
