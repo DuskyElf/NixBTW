@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, pkgs-unstable, ... }:
 {
   programs.git = {
     enable = true;
@@ -19,7 +19,10 @@
     };
   };
 
-  programs.worktrunk.enable = true;
+  programs.worktrunk = {
+    enable = true;
+    package = pkgs-unstable.worktrunk;
+  };
 
   home.packages = [ pkgs.github-cli ];
 }
