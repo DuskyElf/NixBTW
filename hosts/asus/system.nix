@@ -113,26 +113,6 @@
     wantedBy = [ "multi-user.target" ];
   };
 
-  systemd.services.fan-monitor = {
-    description = "Monitor fan RPM and warn if below threshold";
-    wantedBy = [ "multi-user.target" ];
-    path = with pkgs; [ lm_sensors gawk libnotify ];
-    script = ''
-      while true; do
-        rpm=$(sensors | awk '/fan[0-9]+:/ {gsub(/[^0-9]/, "", $2); if ($2 > 0) print $2}' | head -n1)
-
-        if [ -n "$rpm" ] && [ "$rpm" -lt 200 ]; then
-          notify-send -u critical "Fan Warning" "Fan RPM is $rpm (below 200)"
-        fi
-
-        sleep 5
-      done
-    '';
-    serviceConfig = {
-      Type = "simple";
-    };
-  };
-
   environment.systemPackages = with pkgs; [
     cudatoolkit
     #cudaPackages.cudnn
