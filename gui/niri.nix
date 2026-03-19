@@ -288,6 +288,15 @@ in
               "daemon"
             ];
           }
+          {
+            argv = [
+              "niri"
+              "msg"
+              "output"
+              "DP-2"
+              "off"
+            ];
+          }
         ];
       };
     };
