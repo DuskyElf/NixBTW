@@ -93,6 +93,18 @@
       LC_TIME = "en_IN";
     };
 
+    security.sudo.extraRules = [
+      {
+        users = [ "duskyelf" ];
+        commands = [
+          {
+            command = "/home/duskyelf/.config/scripts/power.sh";
+            options = [ "NOPASSWD" ];
+          }
+        ];
+      }
+    ];
+
     system.stateVersion = "25.11"; # Leave it as it is
   };
 }

@@ -36,6 +36,16 @@ let
     title = "Brightness";
     message = "$(brightnessctl --class=backlight get)";
   };
+
+  power-perf-notification = notif {
+    title = "Power Mode";
+    message = "Performance";
+  };
+
+  power-save-notification = notif {
+    title = "Power Mode";
+    message = "Power Save";
+  };
 in
 {
   services = {
@@ -198,6 +208,13 @@ in
           };
           "Mod+T".action = spawn "kitty";
           "Mod+O".action = spawn "fuzzel";
+
+          "Mod+9".action = spawn "bash" "-c" (
+            "sudo ~/.config/scripts/power.sh performance && " + power-perf-notification
+          );
+          "Mod+0".action = spawn "bash" "-c" (
+            "sudo ~/.config/scripts/power.sh powersave && " + power-save-notification
+          );
 
           "XF86AudioMute" = {
             allow-when-locked = true;
