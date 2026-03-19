@@ -14,6 +14,7 @@
     wget
     curl
     btop
+    undervolt
     brightnessctl
     coreutils-full
     intel-gpu-tools
