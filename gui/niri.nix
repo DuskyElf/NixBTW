@@ -282,7 +282,12 @@ in
         hotkey-overlay.skip-at-startup = true;
         spawn-at-startup = [
           { argv = [ "kitty" ]; }
-          { argv = [ "voxtype" "daemon" ]; }
+          {
+            argv = [
+              "voxtype"
+              "daemon"
+            ];
+          }
         ];
       };
     };
