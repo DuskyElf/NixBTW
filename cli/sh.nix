@@ -78,9 +78,9 @@ in
               zstyle ':completion:*' list-colors "''${(s.:.)LS_COLORS}"
               if command -v tmux &> /dev/null && [ -n "$PS1" ] && [[ ! "$TERM" =~ screen ]] && [[ ! "$TERM" =~ tmux ]] && [ -z "$TMUX" ]; then
                 if tmux has-session -t main 2>/dev/null; then
-                  exec tmux attach -t main
+                  tmux attach -t main
                 else
-                  exec tmux new -s main
+                  tmux new -s main
                 fi
               fi
             ''
