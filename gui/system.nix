@@ -6,6 +6,8 @@
   programs.niri.enable = true;
   services.displayManager.ly.enable = true;
 
+  programs.thunderbird.enable = true;
+
   environment.systemPackages = with pkgs; [
     wl-clipboard
     libnotify
