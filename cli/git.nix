@@ -13,7 +13,7 @@
     settings = {
       user = {
         name = "DuskyElf";
-        email = "91879372+DuskyElf@users.noreply.github.com";
+        email = "git@duskyelf.me";
       };
       init.defaultBranch = "main";
     };
