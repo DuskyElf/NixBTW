@@ -36,16 +36,6 @@ let
     title = "Brightness";
     message = "$(brightnessctl --class=backlight get)";
   };
-
-  power-perf-notification = notif {
-    title = "Power Mode";
-    message = "Performance";
-  };
-
-  power-save-notification = notif {
-    title = "Power Mode";
-    message = "Power Save";
-  };
 in
 {
   services = {
@@ -57,6 +47,33 @@ in
     swaybg
     wtype
   ];
+
+  systemd.user.services.voxtype = {
+    Unit = {
+      Description = "VoxType push-to-talk voice-to-text daemon";
+      Documentation = "https://voxtype.io";
+      PartOf = [ "graphical-session.target" ];
+      After = [
+        "graphical-session.target"
+        "pipewire.service"
+        "pipewire-pulse.service"
+      ];
+    };
+
+    Service = {
+      Type = "simple";
+      # Wait for the Wayland environment variable to be exported by the compositor
+      ExecStartPre = "${pkgs.bash}/bin/bash -c 'while ! ${pkgs.systemd}/bin/systemctl --user show-environment | ${pkgs.gnugrep}/bin/grep -q WAYLAND_DISPLAY; do ${pkgs.coreutils}/bin/sleep 1; done'";
+      # Fetch the latest environment variables right before execution to ensure they are picked up
+      ExecStart = "${pkgs.bash}/bin/bash -c 'export WAYLAND_DISPLAY=$(${pkgs.systemd}/bin/systemctl --user show-environment | ${pkgs.gnugrep}/bin/grep ^WAYLAND_DISPLAY= | ${pkgs.coreutils}/bin/cut -d= -f2-); exec ${config.programs.voxtype.package}/bin/voxtype daemon'";
+      Restart = "always";
+      RestartSec = 3;
+    };
+
+    Install = {
+      WantedBy = [ "graphical-session.target" ];
+    };
+  };
 
   programs.voxtype = {
     enable = true;
@@ -209,11 +226,14 @@ in
           "Mod+T".action = spawn "kitty";
           "Mod+O".action = spawn "fuzzel";
 
+          "Mod+8".action = spawn "bash" "-c" (
+            "sudo ~/.config/scripts/power.sh powersave"
+          );
           "Mod+9".action = spawn "bash" "-c" (
-            "sudo ~/.config/scripts/power.sh performance && " + power-perf-notification
+            "sudo ~/.config/scripts/power.sh performance"
           );
           "Mod+0".action = spawn "bash" "-c" (
-            "sudo ~/.config/scripts/power.sh powersave && " + power-save-notification
+            "sudo ~/.config/scripts/power.sh ultra-powersave"
           );
 
           "XF86AudioMute" = {
@@ -278,16 +298,16 @@ in
           };
         };
 
+        # explicitly only use iGPU and leave the dGPU alone
+        debug = {
+          ignore-drm-device = "/dev/dri/by-path/pci-0000:01:00.0-render";
+          render-drm-device = "/dev/dri/by-path/pci-0000:00:02.0-render";
+        };
+
         prefer-no-csd = true;
         hotkey-overlay.skip-at-startup = true;
         spawn-at-startup = [
           { argv = [ "kitty" ]; }
-          {
-            argv = [
-              "voxtype"
-              "daemon"
-            ];
-          }
           {
             argv = [
               "niri"

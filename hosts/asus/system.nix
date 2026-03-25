@@ -98,21 +98,6 @@
     "nvidia"
   ];
 
-  # set max temp to 70C to prevent overheating and throttling
-  systemd.services.cpu-temp-control = {
-    script = ''
-      ${pkgs.undervolt}/bin/undervolt -t 70
-    '';
-    wantedBy = [ "multi-user.target" ];
-  };
-
-  systemd.services.force-powersave = {
-    script = ''
-      ${pkgs.auto-cpufreq}/bin/auto-cpufreq --force powersave
-    '';
-    wantedBy = [ "multi-user.target" ];
-  };
-
   environment.systemPackages = with pkgs; [
     cudatoolkit
     #cudaPackages.cudnn
