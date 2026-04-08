@@ -7,5 +7,6 @@
     ./chromium.nix
     ./blender.nix
     ./antigravity.nix
+    ./gnucash.nix
   ];
 }
