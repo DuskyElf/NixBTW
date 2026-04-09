@@ -2,15 +2,16 @@
   config,
   pkgs,
   lib,
+  jail,
   ...
 }:
 let
-  extraShelly = # bash
-    ''
-      nx() {
-        nix-shell -p "$1" --run "$1"
-      }
-    '';
+  extraShelly = ''
+    nx() {
+      nix-shell -p "$1" --run "$1"
+    }
+  '';
+  home = config.home.homeDirectory;
 in
 {
   home.shellAliases = {
@@ -27,7 +28,14 @@ in
     lm_sensors
     gnugrep
     fastfetch
-    nixpkgs-review
+    (jail "nixpkgs-review" nixpkgs-review (
+      c: with c; [
+        network
+        mount-cwd
+        (xdg-app home "nixpkgs-review")
+        (readonly "/run/current-system/sw/bin")
+      ]
+    ))
   ];
 
   programs = {

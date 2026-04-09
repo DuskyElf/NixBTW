@@ -226,15 +226,9 @@ in
           "Mod+T".action = spawn "kitty";
           "Mod+O".action = spawn "fuzzel";
 
-          "Mod+8".action = spawn "bash" "-c" (
-            "sudo ~/.config/scripts/power.sh powersave"
-          );
-          "Mod+9".action = spawn "bash" "-c" (
-            "sudo ~/.config/scripts/power.sh performance"
-          );
-          "Mod+0".action = spawn "bash" "-c" (
-            "sudo ~/.config/scripts/power.sh ultra-powersave"
-          );
+          "Mod+8".action = spawn "bash" "-c" ("sudo ~/.config/scripts/power.sh powersave");
+          "Mod+9".action = spawn "bash" "-c" ("sudo ~/.config/scripts/power.sh performance");
+          "Mod+0".action = spawn "bash" "-c" ("sudo ~/.config/scripts/power.sh ultra-powersave");
 
           "XF86AudioMute" = {
             allow-when-locked = true;
