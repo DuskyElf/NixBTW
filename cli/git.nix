@@ -1,8 +1,16 @@
-{ pkgs, pkgs-unstable, ... }:
+{
+  config,
+  pkgs,
+  pkgs-unstable,
+  jail,
+  ...
+}:
+let
+  home = config.home.homeDirectory;
+in
 {
   programs.git = {
     enable = true;
-    package = pkgs.gitFull;
 
     signing = {
       key = "~/.ssh/id_ed25519_signing";
@@ -24,5 +32,14 @@
     package = pkgs-unstable.worktrunk;
   };
 
-  home.packages = [ pkgs.github-cli ];
+  home.packages = [
+    (jail "gh" pkgs.github-cli (
+      c: with c; [
+        network
+        mount-cwd
+        (readonly "/run/current-system/sw/bin")
+        (xdg-app home "gh")
+      ]
+    ))
+  ];
 }

@@ -13,6 +13,8 @@
   inputs = {
     self.submodules = true;
 
+    jail-nix.url = "sourcehut:~alexdavid/jail.nix";
+
     nixpkgs.url = "nixpkgs/nixos-25.11";
 
     nixpkgs-unstable.url = "nixpkgs/nixos-unstable";
@@ -43,7 +45,7 @@
     };
 
     worktrunk = {
-      url= "github:max-sixty/worktrunk";
+      url = "github:max-sixty/worktrunk";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -77,10 +79,31 @@
       pkgs = import nixpkgs {
         inherit system;
       };
+      baseJail = inputs.jail-nix.lib.extend {
+        inherit pkgs;
+        additionalCombinators = c: with c; {
+          xdg-app = home: appName: compose [
+            (set-env "XDG_CONFIG_HOME" "${home}/.config")
+            (set-env "XDG_DATA_HOME" "${home}/.local/share")
+            (set-env "XDG_CACHE_HOME" "${home}/.cache")
+            (try-rw-bind "${home}/.config/${appName}" "${home}/.config/${appName}")
+            (try-rw-bind "${home}/.local/share/${appName}" "${home}/.local/share/${appName}")
+            (try-rw-bind "${home}/.cache/${appName}" "${home}/.cache/${appName}")
+            (try-rw-bind "${home}/.${appName}" "${home}/.${appName}")
+          ];
+        };
+      };
+      jail = name: pkg: combinators: pkgs.symlinkJoin {
+        name = "${name}-jailed";
+        paths = [ (baseJail name pkg combinators) pkg ];
+      };
     in
     {
       nixosConfigurations.asus = nixpkgs.lib.nixosSystem {
         inherit system;
+        specialArgs = {
+          inherit inputs pkgs-unstable jail;
+        };
         modules = [
           ./system.nix
           ./hosts/asus/system.nix
@@ -107,8 +130,7 @@
           inputs.worktrunk.homeModules.default
         ];
         extraSpecialArgs = {
-          inherit inputs;
-          inherit pkgs-unstable;
+          inherit inputs pkgs-unstable jail;
         };
       };
 

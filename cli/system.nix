@@ -1,5 +1,6 @@
 {
   pkgs,
+  jail,
   ...
 }:
 {
@@ -7,25 +8,25 @@
   programs.zsh.enable = true;
   programs.gpu-screen-recorder.enable = true;
 
-  environment.systemPackages = with pkgs; [
-    gcc
-    vim
-    git
-    wget
-    curl
-    btop
-    undervolt
-    brightnessctl
-    coreutils-full
-    intel-gpu-tools
+  environment.systemPackages = [
+    pkgs.gcc
+    pkgs.vim
+    pkgs.git
+    (jail "wget" pkgs.wget (c: with c; [ network mount-cwd ]))
+    (jail "curl" pkgs.curl (c: with c; [ network mount-cwd ]))
+    pkgs.btop
+    pkgs.undervolt
+    pkgs.brightnessctl
+    pkgs.coreutils-full
+    pkgs.intel-gpu-tools
 
-    fd
-    fzf
-    bat
-    dust
-    ripgrep
-    tealdeer
+    pkgs.fd
+    pkgs.fzf
+    pkgs.bat
+    pkgs.dust
+    pkgs.ripgrep
+    pkgs.tealdeer
 
-    gpu-screen-recorder-gtk
+    pkgs.gpu-screen-recorder-gtk
   ];
 }
