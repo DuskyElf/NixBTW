@@ -13,11 +13,14 @@
   inputs = {
     self.submodules = true;
 
-    jail-nix.url = "sourcehut:~alexdavid/jail.nix";
-
     nixpkgs.url = "nixpkgs/nixos-25.11";
 
     nixpkgs-unstable.url = "nixpkgs/nixos-unstable";
+
+    jail-nix = {
+      url = "sourcehut:~alexdavid/jail.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
 
     home-manager = {
       url = "github:nix-community/home-manager/release-25.11";
@@ -54,7 +57,10 @@
       inputs.nixpkgs.follows = "nixpkgs-unstable";
     };
 
-    zen-browser.url = "github:0xc000022070/zen-browser-flake/beta";
+    zen-browser = {
+      url = "github:0xc000022070/zen-browser-flake/beta";
+      inputs.nixpkgs.follows = "nixpkgs-unstable";
+    };
   };
 
   outputs =
@@ -82,22 +88,30 @@
       };
       baseJail = inputs.jail-nix.lib.extend {
         inherit pkgs;
-        additionalCombinators = c: with c; {
-          xdg-app = home: appName: compose [
-            (set-env "XDG_CONFIG_HOME" "${home}/.config")
-            (set-env "XDG_DATA_HOME" "${home}/.local/share")
-            (set-env "XDG_CACHE_HOME" "${home}/.cache")
-            (try-rw-bind "${home}/.config/${appName}" "${home}/.config/${appName}")
-            (try-rw-bind "${home}/.local/share/${appName}" "${home}/.local/share/${appName}")
-            (try-rw-bind "${home}/.cache/${appName}" "${home}/.cache/${appName}")
-            (try-rw-bind "${home}/.${appName}" "${home}/.${appName}")
+        additionalCombinators =
+          c: with c; {
+            xdg-app =
+              home: appName:
+              compose [
+                (set-env "XDG_CONFIG_HOME" "${home}/.config")
+                (set-env "XDG_DATA_HOME" "${home}/.local/share")
+                (set-env "XDG_CACHE_HOME" "${home}/.cache")
+                (try-rw-bind "${home}/.config/${appName}" "${home}/.config/${appName}")
+                (try-rw-bind "${home}/.local/share/${appName}" "${home}/.local/share/${appName}")
+                (try-rw-bind "${home}/.cache/${appName}" "${home}/.cache/${appName}")
+                (try-rw-bind "${home}/.${appName}" "${home}/.${appName}")
+              ];
+          };
+      };
+      jail =
+        name: pkg: combinators:
+        pkgs.symlinkJoin {
+          name = "${name}-jailed";
+          paths = [
+            (baseJail name pkg combinators)
+            pkg
           ];
         };
-      };
-      jail = name: pkg: combinators: pkgs.symlinkJoin {
-        name = "${name}-jailed";
-        paths = [ (baseJail name pkg combinators) pkg ];
-      };
     in
     {
       nixosConfigurations.asus = nixpkgs.lib.nixosSystem {
