@@ -6,7 +6,7 @@
 }:
 {
   home.packages = [
-    inputs.opencode.legacyPackages."x86_64-linux".opencode
+    inputs.opencode.packages.${pkgs.system}.default
     pkgs.libnotify
   ];
 
@@ -20,7 +20,7 @@
     };
     Service = {
       ExecStart = "${
-        inputs.opencode.legacyPackages."x86_64-linux".opencode
+        inputs.opencode.packages.${pkgs.system}.default
       }/bin/opencode web --port 4096";
       Restart = "on-failure";
       RestartSec = 5;
