@@ -678,18 +678,22 @@
       }
     },
     "opencode": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs-unstable"
+        ]
+      },
       "locked": {
-        "lastModified": 1775613003,
-        "narHash": "sha256-oRUveoB8GBwx6rqwtLt2x3V75PXvQI0UaGowgJjc2wM=",
-        "owner": "duskyelf",
-        "repo": "nixpkgs",
-        "rev": "8cbc8f33d66feaccc78a759d6ce93af522316a8f",
+        "lastModified": 1775798145,
+        "narHash": "sha256-y8lTBGkoNUTeOIvRn3p5tGnB5YY5KlitGaz/wm93ENg=",
+        "owner": "anomalyco",
+        "repo": "opencode",
+        "rev": "ce19c051be86b5d0fff458bf4d74803c40c06350",
         "type": "github"
       },
       "original": {
-        "owner": "duskyelf",
-        "ref": "update-opencode",
-        "repo": "nixpkgs",
+        "owner": "anomalyco",
+        "repo": "opencode",
         "type": "github"
       }
     },
