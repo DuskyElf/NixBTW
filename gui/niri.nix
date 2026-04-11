@@ -282,6 +282,28 @@ in
 
           "Mod+Shift+E".action = quit;
 
+          "Mod+1" = {
+            allow-when-locked = true;
+            action = spawn "bash" "-c" ''
+              STATE_FILE="/tmp/dp2_state"
+              if [ ! -f "$STATE_FILE" ]; then
+                echo "off" > "$STATE_FILE"
+              fi
+              STATE=$(cat "$STATE_FILE")
+              if [ "$STATE" = "off" ]; then
+                niri msg output DP-2 on
+                sudo ~/.config/scripts/power.sh screenpad on || true
+                echo "on" > "$STATE_FILE"
+                notify-send "Secondary Display" "Turned ON" -t 1000 -p > /tmp/niri-dp2-notif
+              else
+                niri msg output DP-2 off
+                sudo ~/.config/scripts/power.sh screenpad off || true
+                echo "off" > "$STATE_FILE"
+                notify-send "Secondary Display" "Turned OFF" -t 1000 -p > /tmp/niri-dp2-notif
+              fi
+            '';
+          };
+
           "Mod+semicolon" = {
             repeat = false;
             action = spawn "voxtype" "record" "start";
