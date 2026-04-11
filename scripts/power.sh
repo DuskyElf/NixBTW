@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [ "$#" -ne 1 ]; then
-    echo "Usage: $0 <powersave|ultra-powersave|performance>"
+if [ "$#" -lt 1 ]; then
+    echo "Usage: $0 <powersave|ultra-powersave|performance|screenpad>"
     exit 1
 fi
 
@@ -18,7 +18,17 @@ run_user_cmd() {
     fi
 }
 
-if [ "$MODE" = "ultra-powersave" ]; then
+if [ "$MODE" = "screenpad" ]; then
+    STATE=${2:-}
+    if [ "$STATE" = "off" ]; then
+        echo 4 > /sys/class/backlight/asus_screenpad/bl_power
+    elif [ "$STATE" = "on" ]; then
+        echo 0 > /sys/class/backlight/asus_screenpad/bl_power
+    else
+        echo "Usage: $0 screenpad <on|off>"
+        exit 1
+    fi
+elif [ "$MODE" = "ultra-powersave" ]; then
     # Switch to ultra-powersave mode
     run_user_cmd systemctl --user stop voxtype
     auto-cpufreq --force powersave
