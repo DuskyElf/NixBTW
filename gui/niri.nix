@@ -180,6 +180,8 @@ in
           "Mod+Shift+Slash".action = show-hotkey-overlay;
           "Super+Alt+L".action = spawn "swaylock";
 
+          "Mod+B".action = spawn "bash" "-c" "systemctl --user restart break-timer.service; makoctl dismiss -n $(cat /tmp/break_timer_id) || true; rm -f /tmp/break_timer_id";
+
           "Mod+P" = {
             repeat = false;
             action = toggle-overview;

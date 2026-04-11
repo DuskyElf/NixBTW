@@ -5,12 +5,49 @@
 }:
 
 let
+  dim60 = pkgs.writeShellScriptBin "dim60" ''
+    if pidof swaylock > /dev/null; then
+      ${pkgs.brightnessctl}/bin/brightnessctl -s set 0%
+      touch /tmp/dimmed_by_60
+    fi
+  '';
+  resume60 = pkgs.writeShellScriptBin "resume60" ''
+    if [ -f /tmp/dimmed_by_60 ]; then
+      ${pkgs.brightnessctl}/bin/brightnessctl -r
+      rm -f /tmp/dimmed_by_60
+    fi
+  '';
+  dim120 = pkgs.writeShellScriptBin "dim120" ''
+    if [ ! -f /tmp/dimmed_by_60 ]; then
+      ${pkgs.brightnessctl}/bin/brightnessctl -s set 0%
+      touch /tmp/dimmed_by_120
+    fi
+    ${pkgs.systemd}/bin/systemctl --user stop break-timer.service
+  '';
+  resume120 = pkgs.writeShellScriptBin "resume120" ''
+    if [ -f /tmp/dimmed_by_120 ]; then
+      ${pkgs.brightnessctl}/bin/brightnessctl -r
+      rm -f /tmp/dimmed_by_120
+    fi
+    ${pkgs.systemd}/bin/systemctl --user start break-timer.service
+  '';
+
+  skipBreak = pkgs.writeShellScriptBin "skip-break" ''
+    if [ -f /tmp/break_timer_id ]; then
+      ${pkgs.mako}/bin/makoctl dismiss -n $(cat /tmp/break_timer_id) || true
+      rm -f /tmp/break_timer_id
+    fi
+    # Restarting the service will kill the current sleep and start the 20m timer again
+    ${pkgs.systemd}/bin/systemctl --user restart break-timer.service
+  '';
+
   breakTimer = pkgs.writeShellScriptBin "break-timer" ''
     # Wait for 20 minutes (1200 seconds)
     sleep 1200
 
-    # Notify
-    ${pkgs.libnotify}/bin/notify-send "Break Time!" "Look away for 20 seconds. Locking in 10s." -u critical
+    # Notify and save the notification ID
+    NOTIFY_ID=$(${pkgs.libnotify}/bin/notify-send -p "Break Time!" "Look away for 20 seconds. Locking in 10s. Press Mod+B to skip." -u critical)
+    echo "$NOTIFY_ID" > /tmp/break_timer_id
 
     # Pause any running media
     ${pkgs.playerctl}/bin/playerctl -a pause || true
@@ -18,18 +55,11 @@ let
     # Play notification sound (runs in background so it doesn't delay locking)
     ${pkgs.pipewire}/bin/pw-play ${pkgs.sound-theme-freedesktop}/share/sounds/freedesktop/stereo/message-new-instant.oga &
 
-    # Save brightness and dim
-    CURRENT_BRIGHTNESS=$(${pkgs.brightnessctl}/bin/brightnessctl get)
-    ${pkgs.brightnessctl}/bin/brightnessctl set 1%-
-
     # Wait 10 seconds before locking
     sleep 10
 
-    # Lock the screen
-    ${pkgs.swaylock-effects}/bin/swaylock
-
-    # Restore brightness
-    ${pkgs.brightnessctl}/bin/brightnessctl set $CURRENT_BRIGHTNESS
+    # Lock the screen via loginctl so swaylock isn't killed by systemd when the timer resets/stops
+    ${pkgs.systemd}/bin/loginctl lock-session
   '';
 in
 {
@@ -57,16 +87,22 @@ in
       };
 
       listener = [
-        # Listener 1: 2 minutes (120s) - Stop break timer and dim screen
+        # Listener 1: 60s - If locked, set brightness to 0
+        {
+          timeout = 60;
+          on-timeout = "${dim60}/bin/dim60";
+          on-resume = "${resume60}/bin/resume60";
+        }
+        # Listener 2: 2 minutes (120s) - If not already dimmed, set brightness to 0 and stop break timer
         {
           timeout = 120;
-          on-timeout = "${pkgs.bash}/bin/bash -c '${pkgs.brightnessctl}/bin/brightnessctl -s set 10%- && ${pkgs.systemd}/bin/systemctl --user stop break-timer.service'";
-          on-resume = "${pkgs.bash}/bin/bash -c '${pkgs.brightnessctl}/bin/brightnessctl -r && ${pkgs.systemd}/bin/systemctl --user start break-timer.service'";
+          on-timeout = "${dim120}/bin/dim120";
+          on-resume = "${resume120}/bin/resume120";
         }
-        # Listener 2: 3 minutes (180s) - Auto-lock
+        # Listener 3: 3 minutes (180s) - Auto-lock
         {
           timeout = 180;
-          on-timeout = "pidof swaylock || ${pkgs.swaylock-effects}/bin/swaylock";
+          on-timeout = "${pkgs.systemd}/bin/loginctl lock-session";
         }
       ];
     };
