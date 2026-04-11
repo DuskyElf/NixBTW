@@ -102,7 +102,6 @@ in
 
   programs = {
     fuzzel.enable = true;
-    swaylock.enable = true;
 
     niri = {
       package = niri-native-pkgs.niri-unstable;

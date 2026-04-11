@@ -2,6 +2,7 @@
 {
   imports = [
     ./niri.nix
+    ./idle.nix
     ./kitty.nix
     ./zen-browser.nix
     ./chromium.nix
