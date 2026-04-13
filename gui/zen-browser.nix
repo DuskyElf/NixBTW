@@ -6,7 +6,7 @@
   ...
 }:
 let
-  zen-browser = inputs.zen-browser.packages.${pkgs.system}.beta;
+  zen-browser = inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.beta;
   home = config.home.homeDirectory;
 in
 {
