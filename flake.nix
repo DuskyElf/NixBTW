@@ -21,6 +21,11 @@
       url = "sourcehut:~alexdavid/jail.nix";
     };
 
+    microvm = {
+      url = "github:astro/microvm.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     home-manager = {
       url = "github:nix-community/home-manager/release-25.11";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -125,6 +130,17 @@
           ./cli/system.nix
           ./gui/system.nix
           ./gui/waydroid.nix
+        ];
+      };
+
+      nixosConfigurations.review-vm = nixpkgs.lib.nixosSystem {
+        inherit system;
+        specialArgs = {
+          inherit inputs pkgs-unstable;
+        };
+        modules = [
+          inputs.microvm.nixosModules.microvm
+          ./cli/review-vm.nix
         ];
       };
 

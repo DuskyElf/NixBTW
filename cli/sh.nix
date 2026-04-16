@@ -2,7 +2,6 @@
   config,
   pkgs,
   lib,
-  jail,
   ...
 }:
 let
@@ -18,6 +17,7 @@ in
     btw = "echo I use NixOS, btw";
     get-nob = "curl -o nob.h https://raw.githubusercontent.com/tsoding/nob.h/main/nob.h";
     opencode = "opencode attach http://127.0.0.1:4096 --dir .";
+    review-vm = "nix run /home/duskyelf/dotfiles#nixosConfigurations.review-vm.config.microvm.declaredRunner";
   };
 
   xdg.configFile."scripts" = {
@@ -28,14 +28,6 @@ in
     lm_sensors
     gnugrep
     fastfetch
-    (jail "nixpkgs-review" nixpkgs-review (
-      c: with c; [
-        network
-        mount-cwd
-        (xdg-app home "nixpkgs-review")
-        (readonly "/run/current-system/sw/bin")
-      ]
-    ))
   ];
 
   programs = {
