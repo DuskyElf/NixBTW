@@ -9,15 +9,17 @@ let
 in
 {
   home.packages = [
-    (jail "gnucash" pkgs.gnucash (c: with c; [
-      gui
-      (xdg-app home "gnucash")
-      (dbus {
-        talk = [
-          "org.freedesktop.portal.Desktop"
-          "org.freedesktop.portal.Documents"
-        ];
-      })
-    ]))
+    (jail "gnucash" pkgs.gnucash (
+      c: with c; [
+        gui
+        (xdg-app home "gnucash")
+        (dbus {
+          talk = [
+            "org.freedesktop.portal.Desktop"
+            "org.freedesktop.portal.Documents"
+          ];
+        })
+      ]
+    ))
   ];
 }
