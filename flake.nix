@@ -129,7 +129,6 @@
 
           ./cli/system.nix
           ./gui/system.nix
-          ./gui/waydroid.nix
         ];
       };
 
