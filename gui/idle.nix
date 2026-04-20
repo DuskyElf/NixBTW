@@ -7,26 +7,32 @@
 let
   dim60 = pkgs.writeShellScriptBin "dim60" ''
     if pidof swaylock > /dev/null; then
-      ${pkgs.brightnessctl}/bin/brightnessctl -s set 0%
+      OLD_B=$(${pkgs.systemd}/bin/busctl --user get-property rs.wl-gammarelay / rs.wl.gammarelay Brightness | awk '{print $2}')
+      echo "$OLD_B" > /tmp/wl_gamma_brightness_60
+      ${pkgs.systemd}/bin/busctl --user set-property rs.wl-gammarelay / rs.wl.gammarelay Brightness d 0.0
       touch /tmp/dimmed_by_60
     fi
   '';
   resume60 = pkgs.writeShellScriptBin "resume60" ''
     if [ -f /tmp/dimmed_by_60 ]; then
-      ${pkgs.brightnessctl}/bin/brightnessctl -r
+      OLD_B=$(cat /tmp/wl_gamma_brightness_60 || echo 1.0)
+      ${pkgs.systemd}/bin/busctl --user set-property rs.wl-gammarelay / rs.wl.gammarelay Brightness d "$OLD_B"
       rm -f /tmp/dimmed_by_60
     fi
   '';
   dim120 = pkgs.writeShellScriptBin "dim120" ''
     if [ ! -f /tmp/dimmed_by_60 ]; then
-      ${pkgs.brightnessctl}/bin/brightnessctl -s set 0%
+      OLD_B=$(${pkgs.systemd}/bin/busctl --user get-property rs.wl-gammarelay / rs.wl.gammarelay Brightness | awk '{print $2}')
+      echo "$OLD_B" > /tmp/wl_gamma_brightness_120
+      ${pkgs.systemd}/bin/busctl --user set-property rs.wl-gammarelay / rs.wl.gammarelay Brightness d 0.0
       touch /tmp/dimmed_by_120
     fi
     ${pkgs.systemd}/bin/systemctl --user stop break-timer.service
   '';
   resume120 = pkgs.writeShellScriptBin "resume120" ''
     if [ -f /tmp/dimmed_by_120 ]; then
-      ${pkgs.brightnessctl}/bin/brightnessctl -r
+      OLD_B=$(cat /tmp/wl_gamma_brightness_120 || echo 1.0)
+      ${pkgs.systemd}/bin/busctl --user set-property rs.wl-gammarelay / rs.wl.gammarelay Brightness d "$OLD_B"
       rm -f /tmp/dimmed_by_120
     fi
     ${pkgs.systemd}/bin/systemctl --user start break-timer.service
