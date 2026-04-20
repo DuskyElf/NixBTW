@@ -215,7 +215,6 @@ in
           "Mod+BracketRight".action = consume-or-expel-window-right;
 
           "Mod+F".action = maximize-column;
-          "Mod+Shift+F".action = fullscreen-window;
           "Mod+R".action = switch-preset-column-width;
           "Mod+Shift+R".action = switch-preset-window-height;
           "Mod+M".action = expand-column-to-available-width;
