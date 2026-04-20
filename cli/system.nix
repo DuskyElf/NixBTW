@@ -12,8 +12,18 @@
     pkgs.gcc
     pkgs.vim
     pkgs.git
-    (jail "wget" pkgs.wget (c: with c; [ network mount-cwd ]))
-    (jail "curl" pkgs.curl (c: with c; [ network mount-cwd ]))
+    (jail "wget" pkgs.wget (
+      c: with c; [
+        network
+        mount-cwd
+      ]
+    ))
+    (jail "curl" pkgs.curl (
+      c: with c; [
+        network
+        mount-cwd
+      ]
+    ))
     pkgs.btop
     pkgs.undervolt
     pkgs.brightnessctl
