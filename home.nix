@@ -35,33 +35,35 @@
       ExecStart = "${pkgs.writeShellScript "flake-update-script" ''
         trap 'echo "Caught SIGTERM, exiting..."; exit 143' TERM
 
-        cd /home/duskyelf/dotfiles
+        # Change to the PRIVATE wrapper repo
+        DEPLOY_DIR="/home/duskyelf/.deploy-system"
+        cd "$DEPLOY_DIR" || exit 1
+
         echo "Starting flake auto-update at $(date)"
 
-        # Update specific flakes
-        echo "Updating zen-browser flakes..."
-        if nix flake update zen-browser; then
-          echo "Flake update successful"
+        # Update the inputs (this updates zen-browser and your dotfiles)
+        echo "Updating flake inputs privately..."
+        if nix flake update; then
+          echo "Private flake update successful"
 
-          # Commit the flake.lock changes
-          echo "Committing flake.lock changes..."
+          # Commit the flake.lock changes PRIVATELY
+          echo "Committing flake.lock privately..."
           git add flake.lock
-          git commit -m "chore: nix flake update zen-browser" --no-gpg-sign
-
+          git commit -m "chore: private auto-update" --no-gpg-sign
         else
           echo "Flake update failed"
-          notify-send -u critical "Update failed" "Failed to update zen-browser flakes"
+          ${pkgs.libnotify}/bin/notify-send -u critical "Update failed" "Failed to update flakes"
           exit 1
         fi
 
-        # Switch home-manager
+        # Switch home-manager using the PRIVATE wrapper
         echo "Switching home-manager configuration..."
         if home-manager switch --flake . --cores 16; then
           echo "Home-manager switch successful"
-          notify-send "Update successful" "Successfully updated flakes and switched home-manager configuration"
+          ${pkgs.libnotify}/bin/notify-send "Update successful" "Successfully updated and switched privately"
         else
           echo "Home-manager switch failed"
-          notify-send -u critical "Update failed" "Failed to switch home-manager configuration"
+          ${pkgs.libnotify}/bin/notify-send -u critical "Update failed" "Failed to switch configuration"
           exit 1
         fi
 
