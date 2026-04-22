@@ -2,11 +2,12 @@
   config,
   inputs,
   pkgs,
+  pkgs-unstable,
   ...
 }:
 {
   home.packages = [
-    inputs.opencode.packages.${pkgs.stdenv.hostPlatform.system}.default
+    pkgs-unstable.opencode
     pkgs.libnotify
   ];
 
@@ -20,7 +21,7 @@
     };
     Service = {
       ExecStart = "${
-        inputs.opencode.packages.${pkgs.stdenv.hostPlatform.system}.default
+        pkgs-unstable.opencode
       }/bin/opencode web --port 4096";
       Restart = "on-failure";
       RestartSec = 5;
