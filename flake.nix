@@ -38,9 +38,6 @@
 
     niri = {
       url = "github:sodiboo/niri-flake";
-      # FIXME: This is a temporary workaround until the PR is merged and released
-      # https://github.com/niri-wm/niri/pull/3651
-      inputs.niri-unstable.url = "github:duskyelf/niri";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
