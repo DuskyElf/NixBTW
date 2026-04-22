@@ -4,3 +4,6 @@
 [submodule "opencodeBTW"]
 	path = opencodeBTW
 	url = https://github.com/DuskyElf/opencodeBTW
+[submodule "piBTW"]
+	path = piBTW
+	url = https://github.com/DuskyElf/piBTW
