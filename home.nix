@@ -78,8 +78,8 @@
       PartOf = [ "graphical-session.target" ];
     };
     Timer = {
-      OnBootSec = "2min"; # Run 2 minutes after login
-      OnUnitActiveSec = "24h"; # Optional: run daily
+      OnCalendar = "daily";
+      Persistent = true;
     };
     Install.WantedBy = [ "timers.target" ];
   };
