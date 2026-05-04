@@ -7,5 +7,6 @@
     ./nvim.nix
     ./opencode.nix
     ./pi-coding-agent.nix
+    ./ollama.nix
   ];
 }
