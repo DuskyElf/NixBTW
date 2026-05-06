@@ -33,11 +33,18 @@ in
   };
 
   home.packages = [
-    (jail "gh" pkgs.github-cli (
+    (jail "gh" (pkgs.github-cli.overrideAttrs (old: {
+      nativeBuildInputs = (old.nativeBuildInputs or []) ++ [ pkgs.makeWrapper ];
+      postInstall = (old.postInstall or "") + ''
+        wrapProgram "$out/bin/gh" \
+          --prefix PATH : "${pkgs.git}/bin" \
+          --prefix LD_LIBRARY_PATH : "${pkgs.git}/lib"
+      '';
+    })) (
       c: with c; [
         network
         mount-cwd
-        (readonly "/run/current-system/sw/bin")
+        (readonly "/nix/store")
         (xdg-app home "gh")
       ]
     ))
