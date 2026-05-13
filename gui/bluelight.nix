@@ -29,7 +29,7 @@
     };
     Service = {
       Type = "oneshot";
-      ExecStart = "${pkgs.systemd}/bin/busctl --user set-property rs.wl-gammarelay / rs.wl.gammarelay Temperature q 4500";
+      ExecStart = "${pkgs.systemd}/bin/busctl --user set-property rs.wl-gammarelay / rs.wl.gammarelay Temperature q 5500";
     };
   };
 
