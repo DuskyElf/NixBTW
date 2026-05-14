@@ -48,11 +48,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    worktrunk = {
-      url = "github:max-sixty/worktrunk";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     zen-browser = {
       url = "github:0xc000022070/zen-browser-flake/beta";
       inputs.nixpkgs.follows = "nixpkgs-unstable";
@@ -148,7 +143,6 @@
           inputs.stylix.homeModules.stylix
           inputs.voxtype.homeManagerModules.default
           inputs.zen-browser.homeModules.beta
-          inputs.worktrunk.homeModules.default
         ];
         extraSpecialArgs = {
           inherit inputs pkgs-unstable jail;

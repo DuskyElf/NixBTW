@@ -1,7 +1,6 @@
 {
   config,
   pkgs,
-  pkgs-unstable,
   jail,
   ...
 }:
@@ -21,15 +20,10 @@ in
     settings = {
       user = {
         name = "DuskyElf";
-        email = "git@duskyelf.me";
+        email = "91879372+DuskyElf@users.noreply.github.com";
       };
       init.defaultBranch = "main";
     };
-  };
-
-  programs.worktrunk = {
-    enable = true;
-    package = pkgs-unstable.worktrunk;
   };
 
   home.packages = [
