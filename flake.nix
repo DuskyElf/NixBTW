@@ -62,17 +62,9 @@
       ...
     }@inputs:
     let
-      lib = nixpkgs.lib;
       system = "x86_64-linux";
       pkgs-unstable = import inputs.nixpkgs-unstable {
         inherit system;
-        config = {
-          allowUnfreePredicate =
-            pkg:
-            builtins.elem (lib.getName pkg) [
-              "antigravity"
-            ];
-        };
       };
       pkgs = import nixpkgs {
         inherit system;

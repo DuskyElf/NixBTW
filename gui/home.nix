@@ -8,7 +8,6 @@
     ./zen-browser.nix
     ./chromium.nix
     ./blender.nix
-    ./antigravity.nix
     ./gnucash.nix
   ];
 }
