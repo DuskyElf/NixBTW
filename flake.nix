@@ -15,6 +15,9 @@
 
     nixpkgs.url = "nixpkgs/nixos-25.11";
 
+    # pkgs from release-25.11 are not cached, I compile my kernel myself either way
+    nixpkgs-fast-release.url = "nixpkgs/release-25.11";
+
     nixpkgs-unstable.url = "nixpkgs/nixos-unstable";
 
     jail-nix = {
@@ -63,11 +66,11 @@
     }@inputs:
     let
       system = "x86_64-linux";
-      pkgs-unstable = import inputs.nixpkgs-unstable {
-        inherit system;
-      };
-      pkgs = import nixpkgs {
-        inherit system;
+      pkgs = nixpkgs.legacyPackages.${system};
+      pkgs-unstable = inputs.nixpkgs-unstable.legacyPackages.${system};
+      pkgs-fast-release = import inputs.nixpkgs-fast-release {
+        system = system;
+        config.allowUnfree = true;
       };
       baseJail = inputs.jail-nix.lib.extend {
         inherit pkgs;
@@ -100,7 +103,12 @@
       nixosConfigurations.asus = nixpkgs.lib.nixosSystem {
         inherit system;
         specialArgs = {
-          inherit inputs pkgs-unstable jail;
+          inherit
+            inputs
+            jail
+            pkgs-unstable
+            pkgs-fast-release
+            ;
         };
         modules = [
           ./system.nix

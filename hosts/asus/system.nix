@@ -1,6 +1,7 @@
 {
   config,
   pkgs,
+  pkgs-fast-release,
   lib,
   modulesPath,
   ...
@@ -129,38 +130,10 @@
     ];
     extraModulePackages = [ ];
 
-    kernelPackages = pkgs.linuxPackagesFor (
-      pkgs.linuxKernel.kernels.linux_zen.override {
-        extraMakeFlags = [
-          # Gcc flags.
-          # "KCFLAGS+=-O3"
-          # "KCFLAGS+=-march=native"
-          # "KCFLAGS+=-mtune=native"
+    #kernelPackages = pkgs.linuxPackages_latest;
 
-          # Clang/llvm flags
-          "KCFLAGS+=-O3"
-          "KCFLAGS+=-mtune=native"
-          "KCFLAGS+=-march=native"
-          "KCFLAGS+=-Wno-unused-command-line-argument"
-          "KCFLAGS+=-fuse-ld=lld"
-          "KCFLAGS+=-flto=full"
-          "KCFLAGS+=-ffat-lto-objects"
-          "KLDFLAGS+=--lto-O3"
-          "KLDFLAGS+=--fat-lto-objects"
-          "CC=${pkgs.llvmPackages.clang-unwrapped}/bin/clang"
-          "AR=${pkgs.llvm}/bin/llvm-ar"
-          "NM=${pkgs.llvm}/bin/llvm-nm"
-          "LD=${pkgs.lld}/bin/ld.lld"
-          "LLVM=1"
-        ];
-
-        stdenv = pkgs.stdenvAdapters.overrideInStdenv pkgs.llvmPackages.stdenv [
-          pkgs.llvm
-          pkgs.lld
-        ];
-
-        # Config generation failing usually corresponds to your config begin edited
-        # in the output due to the incompatible options and therefore also failing.
+    kernelPackages = pkgs-fast-release.linuxPackagesFor (
+      pkgs-fast-release.linuxKernel.kernels.linux_7_0.override {
         ignoreConfigErrors = true;
 
         # Start with an all-no config.  It is slightly easiler to pull together
@@ -178,7 +151,7 @@
         structuredExtraConfig = with lib.kernel; {
           X86_NATIVE_CPU = yes;
           X86_INTEL_PSTATE = yes;
-          PREEMPT = yes;
+          PREEMPT = lib.mkForce yes;
           PREEMPT_DYNAMIC = yes;
           CPU_IDLE = yes;
           INTEL_IDLE = yes;
