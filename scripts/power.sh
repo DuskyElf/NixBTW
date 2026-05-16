@@ -30,7 +30,6 @@ if [ "$MODE" = "screenpad" ]; then
     fi
 elif [ "$MODE" = "ultra-powersave" ]; then
     # Switch to ultra-powersave mode
-    run_user_cmd systemctl --user stop ollama
     run_user_cmd systemctl --user stop voxtype
     auto-cpufreq --force powersave
     undervolt -t 70
@@ -39,7 +38,6 @@ elif [ "$MODE" = "ultra-powersave" ]; then
     run_user_cmd notify-send "Power Mode" "Switched to ultra-powersave mode" --expire-time=500
 elif [ "$MODE" = "powersave" ]; then
     # Switch to powersave mode (reset CPU, disable GPU)
-    run_user_cmd systemctl --user stop ollama
     run_user_cmd systemctl --user stop voxtype
     auto-cpufreq --force reset
     undervolt -t 93
@@ -52,7 +50,6 @@ elif [ "$MODE" = "performance" ]; then
     undervolt -t 93
     echo 1 | sudo tee /sys/bus/pci/rescan
     modprobe nvidia nvidia_modeset nvidia_drm
-    run_user_cmd systemctl --user start ollama
     run_user_cmd systemctl --user start voxtype
     run_user_cmd notify-send "Power Mode" "Switched to performance mode" --expire-time=500
 else
