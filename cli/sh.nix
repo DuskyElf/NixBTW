@@ -10,7 +10,6 @@ let
       nix-shell -p "$1" --run "$1"
     }
   '';
-  home = config.home.homeDirectory;
 in
 {
   home.shellAliases = {
@@ -32,7 +31,16 @@ in
 
   programs = {
     fzf.enable = true;
-    starship.enable = true;
+    starship = {
+      enable = true;
+      settings = {
+        git_branch.disabled = true;
+        git_commit.disabled = true;
+        git_state.disabled = true;
+        git_metrics.disabled = true;
+        git_status.disabled = true;
+      };
+    };
     zoxide = {
       enable = true;
       options = [
