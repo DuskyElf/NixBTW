@@ -1,13 +1,26 @@
 {
   config,
-  pkgs,
   pkgs-unstable,
+  jail,
   ...
 }:
 {
   home.packages = [
-    pkgs-unstable.opencode
-    pkgs.libnotify
+    (jail "opencode" pkgs-unstable.opencode (
+      c: with c; [
+        network
+        mount-cwd
+        (readwrite "/home/duskyelf/.config/opencode")
+
+        # can run any binary with limited file system access
+        (readonly "/nix/store")
+        (readonly "/run/current-system/sw/bin")
+        (readonly "/home/duskyelf/.nix-profile/bin")
+        (set-env "PATH" "/run/current-system/sw/bin:/home/duskyelf/.nix-profile/bin")
+
+        (set-env "EDITOR" "vim")
+      ]
+    ))
   ];
 
   xdg.configFile."opencode".source =
