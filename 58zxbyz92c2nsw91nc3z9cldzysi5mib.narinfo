@@ -1,0 +1,10 @@
+StorePath: /nix/store/58zxbyz92c2nsw91nc3z9cldzysi5mib-linux-7.0.9
+URL: nar/0i3gbh64nm9awsgn1g6szyxqllxqbsg6mfmhic7gnx5hwb0qvgkl.nar.xz
+Compression: xz
+FileHash: sha256:0i3gbh64nm9awsgn1g6szyxqllxqbsg6mfmhic7gnx5hwb0qvgkl
+FileSize: 14115848
+NarHash: sha256:0jhfdks96xciq3rnwngy9gidviq7z9zrrwa1n9kgm2vvmrvrfvrk
+NarSize: 22438440
+References: 
+Deriver: r47bbsyjhxh9mpblggfxv7kbfnyyd4y2-linux-7.0.9.drv
+Sig: i9-kernel-cache:GujCAZNr0nqstUBfVXX1bX38AAoL6TBXYtz1gy3q2qohioKhdAv6MiZAOO2vrzMmSTPcLxvUO8kvYL18FVTvCg==
