@@ -44,7 +44,7 @@
 
         # Update the inputs
         echo "Updating flake inputs..."
-        if nix flake update nixpkgs nixpkgs-unstable zen-browser; then
+        if nix flake update nixpkgs nixpkgs-unstable-small zen-browser; then
           echo "Private flake update successful"
         else
           echo "Flake update failed"

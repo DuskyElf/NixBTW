@@ -20,6 +20,10 @@
 
     nixpkgs-unstable.url = "nixpkgs/nixos-unstable";
 
+    # for opencoode and pi-coding-agent
+    # which I want to be on the latest version but don't want to wait for the whole nixpkgs-unstable to build
+    nixpkgs-unstable-small.url = "nixpkgs/nixos-unstable-small";
+
     jail-nix = {
       url = "sourcehut:~alexdavid/jail.nix";
     };
@@ -68,6 +72,7 @@
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
       pkgs-unstable = inputs.nixpkgs-unstable.legacyPackages.${system};
+      pkgs-unstable-small = inputs.nixpkgs-unstable-small.legacyPackages.${system};
       pkgs-fast-release = import inputs.nixpkgs-fast-release {
         system = system;
         config.allowUnfree = true;
@@ -145,7 +150,7 @@
           inputs.zen-browser.homeModules.beta
         ];
         extraSpecialArgs = {
-          inherit inputs pkgs-unstable jail;
+          inherit inputs pkgs-unstable pkgs-unstable-small jail;
         };
       };
 

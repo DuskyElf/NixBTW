@@ -1,12 +1,12 @@
 {
   config,
   jail,
-  pkgs-unstable,
+  pkgs-unstable-small,
   ...
 }:
 {
   home.packages = [
-    (jail "pi" pkgs-unstable.pi-coding-agent (
+    (jail "pi" pkgs-unstable-small.pi-coding-agent (
       c: with c; [
         network
         mount-cwd

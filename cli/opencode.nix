@@ -1,12 +1,12 @@
 {
   config,
-  pkgs-unstable,
+  pkgs-unstable-small,
   jail,
   ...
 }:
 {
   home.packages = [
-    (jail "opencode" pkgs-unstable.opencode (
+    (jail "opencode" pkgs-unstable-small.opencode (
       c: with c; [
         network
         mount-cwd
