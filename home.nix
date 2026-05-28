@@ -17,6 +17,9 @@
       name = "JetBrainsMonoNerdFontMono";
     };
     base16Scheme = "${pkgs.base16-schemes}/share/themes/gruvbox-material-dark-hard.yaml";
+
+    # FIXME: remove when stylix releases a 26.05 branch
+    enableReleaseChecks = false;
   };
 
   # Don't change

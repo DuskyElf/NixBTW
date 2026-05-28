@@ -51,6 +51,7 @@ in
 
     zsh = {
       enable = true;
+      dotDir = "${config.xdg.configHome}/zsh";
       history = {
         size = 6900;
         save = 6900;
