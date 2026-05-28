@@ -20,7 +20,10 @@
 
     # FIXME: remove when stylix releases a 26.05 branch
     enableReleaseChecks = false;
+    targets.gnome.enable = false;
   };
+
+  gtk.gtk4.theme = config.gtk.theme;
 
   # Don't change
   home.stateVersion = "25.11";
