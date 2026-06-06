@@ -23,6 +23,8 @@ let
 
   niri-native-pkgs = pkgs.extend niriNativeOverlay;
 
+  wallpaper = ../wallpapers/linux_fuck_nvidia.jpeg;
+
   notif =
     { title, message }:
     "notify-send \"${title}\" \"${message}\" --expire-time=500 -p --replace-id=$(cat '/tmp/niri-${title}') > '/tmp/niri-${title}' || notify-send \"${title}\" \"${message}\" --expire-time=500 -p > '/tmp/niri-${title}'";
@@ -336,6 +338,15 @@ in
           { argv = [ "${pkgs.wl-gammarelay-rs}/bin/wl-gammarelay-rs" ]; }
           { argv = [ "bash" "-c" "for i in {1..20}; do if ${pkgs.systemd}/bin/busctl --user set-property rs.wl-gammarelay / rs.wl.gammarelay Brightness d 0.7 && ${pkgs.systemd}/bin/busctl --user set-property rs.wl-gammarelay / rs.wl.gammarelay Temperature q 4500; then break; fi; sleep 0.5; done" ]; }
           { argv = [ "kitty" ]; }
+          {
+            argv = [
+              "${pkgs.swaybg}/bin/swaybg"
+              "-i"
+              "${wallpaper}"
+              "-m"
+              "fill"
+            ];
+          }
           {
             argv = [
               "niri"
