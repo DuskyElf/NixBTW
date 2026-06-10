@@ -256,11 +256,15 @@ in
 
           "XF86MonBrightnessUp" = {
             allow-when-locked = true;
-            action = spawn "bash" "-c" ("${pkgs.systemd}/bin/busctl --user call rs.wl-gammarelay / rs.wl.gammarelay UpdateBrightness d -- 0.05; ${notifyBrightness}/bin/notify-brightness");
+            action = spawn "bash" "-c" (
+              "${pkgs.systemd}/bin/busctl --user call rs.wl-gammarelay / rs.wl.gammarelay UpdateBrightness d -- 0.05; ${notifyBrightness}/bin/notify-brightness"
+            );
           };
           "XF86MonBrightnessDown" = {
             allow-when-locked = true;
-            action = spawn "bash" "-c" ("${pkgs.systemd}/bin/busctl --user call rs.wl-gammarelay / rs.wl.gammarelay UpdateBrightness d -- -0.05; ${notifyBrightness}/bin/notify-brightness");
+            action = spawn "bash" "-c" (
+              "${pkgs.systemd}/bin/busctl --user call rs.wl-gammarelay / rs.wl.gammarelay UpdateBrightness d -- -0.05; ${notifyBrightness}/bin/notify-brightness"
+            );
           };
 
           "Mod+TouchpadScrollDown" = {
@@ -274,11 +278,15 @@ in
 
           "Mod+Alt+TouchpadScrollDown" = {
             allow-when-locked = true;
-            action = spawn "bash" "-c" ("${pkgs.systemd}/bin/busctl --user call rs.wl-gammarelay / rs.wl.gammarelay UpdateBrightness d -- 0.005; ${notifyBrightness}/bin/notify-brightness");
+            action = spawn "bash" "-c" (
+              "${pkgs.systemd}/bin/busctl --user call rs.wl-gammarelay / rs.wl.gammarelay UpdateBrightness d -- 0.005; ${notifyBrightness}/bin/notify-brightness"
+            );
           };
           "Mod+Alt+TouchpadScrollUp" = {
             allow-when-locked = true;
-            action = spawn "bash" "-c" ("${pkgs.systemd}/bin/busctl --user call rs.wl-gammarelay / rs.wl.gammarelay UpdateBrightness d -- -0.005; ${notifyBrightness}/bin/notify-brightness");
+            action = spawn "bash" "-c" (
+              "${pkgs.systemd}/bin/busctl --user call rs.wl-gammarelay / rs.wl.gammarelay UpdateBrightness d -- -0.005; ${notifyBrightness}/bin/notify-brightness"
+            );
           };
 
           # FIXME: tracked in https://github.com/sodiboo/niri-flake/issues/922
@@ -334,9 +342,21 @@ in
         prefer-no-csd = true;
         hotkey-overlay.skip-at-startup = true;
         spawn-at-startup = [
-          { argv = [ "${pkgs.brightnessctl}/bin/brightnessctl" "set" "80%" ]; }
+          {
+            argv = [
+              "${pkgs.brightnessctl}/bin/brightnessctl"
+              "set"
+              "80%"
+            ];
+          }
           { argv = [ "${pkgs.wl-gammarelay-rs}/bin/wl-gammarelay-rs" ]; }
-          { argv = [ "bash" "-c" "for i in {1..20}; do if ${pkgs.systemd}/bin/busctl --user set-property rs.wl-gammarelay / rs.wl.gammarelay Brightness d 0.7 && ${pkgs.systemd}/bin/busctl --user set-property rs.wl-gammarelay / rs.wl.gammarelay Temperature q 4500; then break; fi; sleep 0.5; done" ]; }
+          {
+            argv = [
+              "bash"
+              "-c"
+              "for i in {1..20}; do if ${pkgs.systemd}/bin/busctl --user set-property rs.wl-gammarelay / rs.wl.gammarelay Brightness d 0.7 && ${pkgs.systemd}/bin/busctl --user set-property rs.wl-gammarelay / rs.wl.gammarelay Temperature q 4500; then break; fi; sleep 0.5; done"
+            ];
+          }
           { argv = [ "kitty" ]; }
           {
             argv = [
@@ -349,10 +369,9 @@ in
           }
           {
             argv = [
-              "niri"
-              "msg"
-              "output"
-              "DP-2"
+              "sudo"
+              "~/.config/scripts/power.sh"
+              "screenpad"
               "off"
             ];
           }
