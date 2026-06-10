@@ -364,7 +364,7 @@ in
               "-i"
               "${wallpaper}"
               "-m"
-              "fill"
+              "center"
             ];
           }
           {
