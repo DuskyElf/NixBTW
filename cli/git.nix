@@ -47,7 +47,7 @@ in
     settings = {
       user = {
         name = "DuskyElf";
-        email = "91879372+DuskyElf@users.noreply.github.com";
+        email = "duskyelf.dev+git@gmail.com";
       };
       init.defaultBranch = "main";
     };
