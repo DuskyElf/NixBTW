@@ -16,6 +16,7 @@
         (readonly "/nix/store")
         (readonly "/run/current-system/sw/bin")
         (readonly "/home/duskyelf/.nix-profile/bin")
+        (readonly "/home/duskyelf/.deploy-system/")
         (set-env "PATH" "/run/current-system/sw/bin:/home/duskyelf/.nix-profile/bin")
 
         (set-env "EDITOR" "vim")
