@@ -1,28 +1,12 @@
 {
   config,
   pkgs,
+  lib,
   inputs,
   pkgs-unstable,
   ...
 }:
 let
-  niriNativeOverlay =
-    final: prev:
-    let
-      niriOverlay = inputs.niri.overlays.niri;
-      base = niriOverlay final prev;
-    in
-    base
-    // {
-      niri-unstable = base.niri-unstable.overrideAttrs (old: {
-        env = (old.env or { }) // {
-          RUSTFLAGS = (old.env.RUSTFLAGS or "") + " -C target-cpu=native";
-        };
-      });
-    };
-
-  niri-native-pkgs = pkgs.extend niriNativeOverlay;
-
   wallpaper = ../wallpapers/linux_fuck_nvidia.jpeg;
 
   notif =
@@ -109,7 +93,7 @@ in
     fuzzel.enable = true;
 
     niri = {
-      package = niri-native-pkgs.niri-unstable;
+      package = inputs.niri.packages.${pkgs.system}.niri-unstable;
 
       settings = {
         input = {
@@ -379,4 +363,10 @@ in
       };
     };
   };
+
+  # Override the niri-flake's validated config source to skip validation,
+  # which avoids triggering builtins.fetchGit for the smithay Cargo dependency.
+  xdg.configFile."niri-config".source = lib.mkForce (
+    pkgs.writeText "config.kdl" config.programs.niri.finalConfig
+  );
 }
