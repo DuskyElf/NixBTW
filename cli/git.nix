@@ -7,36 +7,36 @@
 }:
 let
   home = config.home.homeDirectory;
-  git-pkg = (
-    jail "git" pkgs.git (
-      c: with c; [
-        network
-        (ro-bind "/home/duskyelf/.config/git/config" "/home/duskyelf/.gitconfig")
+  #git-pkg = (
+  #  jail "git" pkgs.git (
+  #    c: with c; [
+  #      network
+  #      (ro-bind "/home/duskyelf/.config/git/config" "/home/duskyelf/.gitconfig")
 
-        (readwrite "/home/duskyelf/Projects")
-        (readwrite "/home/duskyelf/dotfiles/")
-        (readwrite "/home/duskyelf/.deploy-system/")
+  #      (readwrite "/home/duskyelf/Projects")
+  #      (readwrite "/home/duskyelf/dotfiles/")
+  #      (readwrite "/home/duskyelf/.deploy-system/")
 
-        (readonly "/home/duskyelf/.ssh/")
-        (fwd-env "SSH_AUTH_SOCK")
-        (readonly (noescape "\"$SSH_AUTH_SOCK\""))
+  #      (readonly "/home/duskyelf/.ssh/")
+  #      (fwd-env "SSH_AUTH_SOCK")
+  #      (readonly (noescape "\"$SSH_AUTH_SOCK\""))
 
-        (set-env "EDITOR" "vim")
+  #      (set-env "EDITOR" "vim")
 
-        (add-pkg-deps [
-          pkgs.less
-          pkgs.openssh
-          pkgs.gnupg
-          pkgs.vim
-        ])
-      ]
-    )
-  );
+  #      (add-pkg-deps [
+  #        pkgs.less
+  #        pkgs.openssh
+  #        pkgs.gnupg
+  #        pkgs.vim
+  #      ])
+  #    ]
+  #  )
+  #);
 in
 {
   programs.git = {
     enable = true;
-    package = git-pkg;
+    #package = git-pkg;
 
     signing = {
       key = "~/.ssh/id_ed25519_signing";
@@ -68,14 +68,14 @@ in
           network
           mount-cwd
           (xdg-app home "gh")
-          (add-pkg-deps [ git-pkg ])
+          (add-pkg-deps [ pkgs.git ])
         ]
       )
     )
     (jail "worktrunk" pkgs-unstable.worktrunk (
       c: with c; [
         (readwrite "/home/duskyelf/Projects")
-        (add-pkg-deps [ git-pkg ])
+        (add-pkg-deps [ pkgs.git ])
         (xdg-app home "worktrunk")
       ]
     ))
