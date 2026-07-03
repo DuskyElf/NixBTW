@@ -152,6 +152,7 @@
           X86_NATIVE_CPU = yes;
           X86_INTEL_PSTATE = yes;
           PREEMPT = lib.mkForce yes;
+          PREEMPT_LAZY = lib.mkForce no;
           PREEMPT_DYNAMIC = yes;
           CPU_IDLE = yes;
           INTEL_IDLE = yes;
