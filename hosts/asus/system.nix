@@ -133,7 +133,7 @@
     #kernelPackages = pkgs.linuxPackages_latest;
 
     kernelPackages = pkgs-fast-release.linuxPackagesFor (
-      pkgs-fast-release.linuxKernel.kernels.linux_7_0.override {
+      pkgs-fast-release.linuxKernel.kernels.linux_7_1.override {
         ignoreConfigErrors = true;
 
         # Start with an all-no config.  It is slightly easiler to pull together
@@ -158,9 +158,6 @@
           SCHED_SMT = yes;
           SCHED_MC = yes;
           SCHED_MC_PRIO = yes;
-          # Clang options require a lot of extra config
-          CC_IS_CLANG = lib.mkForce yes;
-          LTO_CLANG_FULL = lib.mkForce yes;
         };
       }
     ];
