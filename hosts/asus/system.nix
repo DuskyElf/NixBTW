@@ -125,7 +125,6 @@
       # nits (83%), green cast below ~428 nits (81%).
       "i915.enable_dpcd_backlight=3"
     ];
-    ];
     initrd = {
       availableKernelModules = [
         "xhci_pci"
@@ -173,6 +172,22 @@
         };
       }
     ];
+  };
+
+  # Screenpad (secondary display, DP-2): the asus_screenpad backlight device probes
+  # late in boot, so niri's spawn-time "power.sh screenpad off" races it and fails
+  # silently, leaving the panel lit with no niri output. This service waits for the
+  # device (max 30s) and powers it off. Note: screenpad bl_power is inverted —
+  # 0 = off, 4 = on.
+  systemd.services.screenpad-off = {
+    description = "Turn off the screenpad panel after boot";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "systemd-udevd.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStartPre = "${pkgs.bash}/bin/bash -c 'for i in {1..150}; do [ -e /sys/class/backlight/asus_screenpad/bl_power ] && exit 0; sleep 0.2; done; exit 1'";
+      ExecStart = "${pkgs.bash}/bin/bash -c 'echo 0 > /sys/class/backlight/asus_screenpad/bl_power'";
+    };
   };
 
   # auto-generated stuff
