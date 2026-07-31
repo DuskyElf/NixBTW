@@ -114,7 +114,18 @@
   };
 
   boot = {
-    kernelParams = [ "mem_sleep_default=deep" ];
+    kernelParams = [
+      "mem_sleep_default=deep"
+      # OLED backlight (2026-07) — SOLVED, keep =3. Full writeup in .handoff.md
+      # Intel HDR interface is the ONLY one that works on this panel (eDP 1.3;
+      # VBT lies about PWM; VESA probe fails; PWM register path is a no-op).
+      # Nits-based: max 528 = panel's 528-nit EDID rating. Auto mode gates Intel
+      # HDR on EDID HDR metadata and behaved inconsistently; force keeps it explicit.
+      # Panel-native quirks (not driver-fixable): slight luminance dip above ~440
+      # nits (83%), green cast below ~428 nits (81%).
+      "i915.enable_dpcd_backlight=3"
+    ];
+    ];
     initrd = {
       availableKernelModules = [
         "xhci_pci"
