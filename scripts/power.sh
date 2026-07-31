@@ -21,9 +21,9 @@ run_user_cmd() {
 if [ "$MODE" = "screenpad" ]; then
     STATE=${2:-}
     if [ "$STATE" = "off" ]; then
-        echo 4 > /sys/class/backlight/asus_screenpad/bl_power
-    elif [ "$STATE" = "on" ]; then
         echo 0 > /sys/class/backlight/asus_screenpad/bl_power
+    elif [ "$STATE" = "on" ]; then
+        echo 4 > /sys/class/backlight/asus_screenpad/bl_power
     else
         echo "Usage: $0 screenpad <on|off>"
         exit 1
