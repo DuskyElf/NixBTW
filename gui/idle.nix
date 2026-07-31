@@ -5,34 +5,44 @@
 }:
 
 let
+  bt = "${pkgs.brightnessctl}/bin/brightnessctl";
+
   dim60 = pkgs.writeShellScriptBin "dim60" ''
     if pidof swaylock > /dev/null; then
-      OLD_B=$(${pkgs.systemd}/bin/busctl --user get-property rs.wl-gammarelay / rs.wl.gammarelay Brightness | awk '{print $2}')
-      echo "$OLD_B" > /tmp/wl_gamma_brightness_60
-      ${pkgs.systemd}/bin/busctl --user set-property rs.wl-gammarelay / rs.wl.gammarelay Brightness d 0.0
-      touch /tmp/dimmed_by_60
+      OLD_B=$(${bt} get 2>/dev/null || echo "")
+      if [ -n "$OLD_B" ]; then
+        echo "$OLD_B" > /tmp/brightness_before_60
+        ${bt} set 0% > /dev/null 2>&1
+        touch /tmp/dimmed_by_60
+      fi
     fi
   '';
   resume60 = pkgs.writeShellScriptBin "resume60" ''
     if [ -f /tmp/dimmed_by_60 ]; then
-      OLD_B=$(cat /tmp/wl_gamma_brightness_60 || echo 1.0)
-      ${pkgs.systemd}/bin/busctl --user set-property rs.wl-gammarelay / rs.wl.gammarelay Brightness d "$OLD_B"
+      OLD_B=$(cat /tmp/brightness_before_60 2>/dev/null || ${bt} max 2>/dev/null || echo "")
+      if [ -n "$OLD_B" ]; then
+        ${bt} set "$OLD_B" > /dev/null 2>&1
+      fi
       rm -f /tmp/dimmed_by_60
     fi
   '';
   dim120 = pkgs.writeShellScriptBin "dim120" ''
     if [ ! -f /tmp/dimmed_by_60 ]; then
-      OLD_B=$(${pkgs.systemd}/bin/busctl --user get-property rs.wl-gammarelay / rs.wl.gammarelay Brightness | awk '{print $2}')
-      echo "$OLD_B" > /tmp/wl_gamma_brightness_120
-      ${pkgs.systemd}/bin/busctl --user set-property rs.wl-gammarelay / rs.wl.gammarelay Brightness d 0.0
-      touch /tmp/dimmed_by_120
+      OLD_B=$(${bt} get 2>/dev/null || echo "")
+      if [ -n "$OLD_B" ]; then
+        echo "$OLD_B" > /tmp/brightness_before_120
+        ${bt} set 0% > /dev/null 2>&1
+        touch /tmp/dimmed_by_120
+      fi
     fi
     ${pkgs.systemd}/bin/systemctl --user stop break-timer.service
   '';
   resume120 = pkgs.writeShellScriptBin "resume120" ''
     if [ -f /tmp/dimmed_by_120 ]; then
-      OLD_B=$(cat /tmp/wl_gamma_brightness_120 || echo 1.0)
-      ${pkgs.systemd}/bin/busctl --user set-property rs.wl-gammarelay / rs.wl.gammarelay Brightness d "$OLD_B"
+      OLD_B=$(cat /tmp/brightness_before_120 2>/dev/null || ${bt} max 2>/dev/null || echo "")
+      if [ -n "$OLD_B" ]; then
+        ${bt} set "$OLD_B" > /dev/null 2>&1
+      fi
       rm -f /tmp/dimmed_by_120
     fi
     ${pkgs.systemd}/bin/systemctl --user start break-timer.service

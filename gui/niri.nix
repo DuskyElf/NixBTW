@@ -19,10 +19,23 @@ let
   };
 
   notifyBrightness = pkgs.writeShellScriptBin "notify-brightness" ''
-    VAL=$(${pkgs.systemd}/bin/busctl --user get-property rs.wl-gammarelay / rs.wl.gammarelay Brightness | ${pkgs.gawk}/bin/awk '{print $2}')
-    VAL=''${VAL:-1}
-    PCT=$(${pkgs.gawk}/bin/awk "BEGIN {printf \"%.0f\", $VAL * 100}")
+    VAL=$(${pkgs.brightnessctl}/bin/brightnessctl get 2>/dev/null || echo 0)
+    MAX=$(${pkgs.brightnessctl}/bin/brightnessctl max 2>/dev/null || echo 1)
+    PCT=$(${pkgs.gawk}/bin/awk "BEGIN {printf \"%.0f\", $VAL / $MAX * 100}")
     notify-send "Brightness" "$PCT%" --expire-time=500 -p --replace-id=$(cat '/tmp/niri-Brightness' 2>/dev/null || echo 0) > '/tmp/niri-Brightness' || notify-send "Brightness" "$PCT%" --expire-time=500 -p > '/tmp/niri-Brightness'
+  '';
+
+  notifyScreenpadBrightness = pkgs.writeShellScriptBin "notify-screenpad-brightness" ''
+    VAL=$(${pkgs.brightnessctl}/bin/brightnessctl -d asus_screenpad get 2>/dev/null || echo 0)
+    MAX=$(cat /sys/class/backlight/asus_screenpad/max_brightness 2>/dev/null || echo 1)
+    PCT=$(${pkgs.gawk}/bin/awk "BEGIN {printf \"%.0f\", $VAL / $MAX * 100}")
+    notify-send "Screenpad Brightness" "$PCT%" --expire-time=500 -p --replace-id=$(cat '/tmp/niri-screenpad-brightness' 2>/dev/null || echo 0) > '/tmp/niri-screenpad-brightness' || notify-send "Screenpad Brightness" "$PCT%" --expire-time=500 -p > '/tmp/niri-screenpad-brightness'
+  '';
+
+  notifyTemperature = pkgs.writeShellScriptBin "notify-temperature" ''
+    VAL=$(${pkgs.systemd}/bin/busctl --user get-property rs.wl-gammarelay / rs.wl.gammarelay Temperature 2>/dev/null | ${pkgs.gawk}/bin/awk '{print $2}')
+    VAL=''${VAL:-6500}
+    notify-send "Temperature" "$VAL K" --expire-time=500 -p --replace-id=$(cat '/tmp/niri-Temperature' 2>/dev/null || echo 0) > '/tmp/niri-Temperature' || notify-send "Temperature" "$VAL K" --expire-time=500 -p > '/tmp/niri-Temperature'
   '';
 in
 {
@@ -35,6 +48,7 @@ in
     swaybg
     wtype
     wl-gammarelay-rs
+    brightnessctl
   ];
 
   systemd.user.services.voxtype = {
@@ -241,13 +255,26 @@ in
           "XF86MonBrightnessUp" = {
             allow-when-locked = true;
             action = spawn "bash" "-c" (
-              "${pkgs.systemd}/bin/busctl --user call rs.wl-gammarelay / rs.wl.gammarelay UpdateBrightness d -- 0.05; ${notifyBrightness}/bin/notify-brightness"
+              "${pkgs.brightnessctl}/bin/brightnessctl set +10% > /dev/null 2>&1; ${notifyBrightness}/bin/notify-brightness"
             );
           };
           "XF86MonBrightnessDown" = {
             allow-when-locked = true;
             action = spawn "bash" "-c" (
-              "${pkgs.systemd}/bin/busctl --user call rs.wl-gammarelay / rs.wl.gammarelay UpdateBrightness d -- -0.05; ${notifyBrightness}/bin/notify-brightness"
+              "${pkgs.brightnessctl}/bin/brightnessctl set 10%- > /dev/null 2>&1; ${notifyBrightness}/bin/notify-brightness"
+            );
+          };
+
+          "Shift+XF86MonBrightnessUp" = {
+            allow-when-locked = true;
+            action = spawn "bash" "-c" (
+              "${pkgs.brightnessctl}/bin/brightnessctl -d asus_screenpad set +10% > /dev/null 2>&1; ${notifyScreenpadBrightness}/bin/notify-screenpad-brightness"
+            );
+          };
+          "Shift+XF86MonBrightnessDown" = {
+            allow-when-locked = true;
+            action = spawn "bash" "-c" (
+              "${pkgs.brightnessctl}/bin/brightnessctl -d asus_screenpad set 10%- > /dev/null 2>&1; ${notifyScreenpadBrightness}/bin/notify-screenpad-brightness"
             );
           };
 
@@ -263,13 +290,40 @@ in
           "Mod+Alt+TouchpadScrollDown" = {
             allow-when-locked = true;
             action = spawn "bash" "-c" (
-              "${pkgs.systemd}/bin/busctl --user call rs.wl-gammarelay / rs.wl.gammarelay UpdateBrightness d -- 0.005; ${notifyBrightness}/bin/notify-brightness"
+              "${pkgs.brightnessctl}/bin/brightnessctl set +1% > /dev/null 2>&1; ${notifyBrightness}/bin/notify-brightness"
             );
           };
           "Mod+Alt+TouchpadScrollUp" = {
             allow-when-locked = true;
             action = spawn "bash" "-c" (
-              "${pkgs.systemd}/bin/busctl --user call rs.wl-gammarelay / rs.wl.gammarelay UpdateBrightness d -- -0.005; ${notifyBrightness}/bin/notify-brightness"
+              "${pkgs.brightnessctl}/bin/brightnessctl set 1%- > /dev/null 2>&1; ${notifyBrightness}/bin/notify-brightness"
+            );
+          };
+
+          "Mod+Shift+TouchpadScrollDown" = {
+            allow-when-locked = true;
+            action = spawn "bash" "-c" (
+              "${pkgs.brightnessctl}/bin/brightnessctl -d asus_screenpad set +1% > /dev/null 2>&1; ${notifyScreenpadBrightness}/bin/notify-screenpad-brightness"
+            );
+          };
+          "Mod+Shift+TouchpadScrollUp" = {
+            allow-when-locked = true;
+            action = spawn "bash" "-c" (
+              "${pkgs.brightnessctl}/bin/brightnessctl -d asus_screenpad set 1%- > /dev/null 2>&1; ${notifyScreenpadBrightness}/bin/notify-screenpad-brightness"
+            );
+          };
+
+          # Temperature (gamma LUT only — brightness is hardware backlight)
+          "Alt+TouchpadScrollDown" = {
+            allow-when-locked = true;
+            action = spawn "bash" "-c" (
+              "${pkgs.systemd}/bin/busctl --user -- call rs.wl-gammarelay / rs.wl.gammarelay UpdateTemperature n -200; ${notifyTemperature}/bin/notify-temperature"
+            );
+          };
+          "Alt+TouchpadScrollUp" = {
+            allow-when-locked = true;
+            action = spawn "bash" "-c" (
+              "${pkgs.systemd}/bin/busctl --user -- call rs.wl-gammarelay / rs.wl.gammarelay UpdateTemperature n 200; ${notifyTemperature}/bin/notify-temperature"
             );
           };
 
@@ -287,21 +341,23 @@ in
           "Mod+1" = {
             allow-when-locked = true;
             action = spawn "bash" "-c" ''
-              STATE_FILE="/tmp/dp2_state"
-              if [ ! -f "$STATE_FILE" ]; then
-                echo "off" > "$STATE_FILE"
-              fi
-              STATE=$(cat "$STATE_FILE")
-              if [ "$STATE" = "off" ]; then
-                niri msg output DP-2 on
-                sudo ~/.config/scripts/power.sh screenpad on || true
-                echo "on" > "$STATE_FILE"
-                notify-send "Secondary Display" "Turned ON" -t 1000 -p > /tmp/niri-dp2-notif
-              else
+              if niri msg -j outputs 2>/dev/null | grep -q '"DP-2".*"logical":{'; then
+                # turn OFF: niri output first, then backlight
                 niri msg output DP-2 off
-                sudo ~/.config/scripts/power.sh screenpad off || true
-                echo "off" > "$STATE_FILE"
+                sudo ~/.config/scripts/power.sh screenpad off
                 notify-send "Secondary Display" "Turned OFF" -t 1000 -p > /tmp/niri-dp2-notif
+              else
+                # turn ON: backlight first (wakes up the display), then poll for niri output
+                sudo ~/.config/scripts/power.sh screenpad on
+                for i in 1 2 3 4 5 6 7 8; do
+                  if niri msg -j outputs 2>/dev/null | grep -q '"DP-2".*"logical":{'; then
+                    notify-send "Secondary Display" "Already on" -t 1000 -p > /tmp/niri-dp2-notif
+                    exit 0
+                  fi
+                  niri msg output DP-2 on 2>/dev/null && break
+                  sleep 0.3
+                done
+                notify-send "Secondary Display" "Turned ON" -t 1000 -p > /tmp/niri-dp2-notif
               fi
             '';
           };
@@ -334,13 +390,6 @@ in
             ];
           }
           { argv = [ "${pkgs.wl-gammarelay-rs}/bin/wl-gammarelay-rs" ]; }
-          {
-            argv = [
-              "bash"
-              "-c"
-              "for i in {1..20}; do if ${pkgs.systemd}/bin/busctl --user set-property rs.wl-gammarelay / rs.wl.gammarelay Brightness d 0.7 && ${pkgs.systemd}/bin/busctl --user set-property rs.wl-gammarelay / rs.wl.gammarelay Temperature q 4500; then break; fi; sleep 0.5; done"
-            ];
-          }
           { argv = [ "kitty" ]; }
           {
             argv = [
@@ -349,6 +398,13 @@ in
               "${wallpaper}"
               "-m"
               "center"
+            ];
+          }
+          {
+            argv = [
+              "bash"
+              "-c"
+              "niri msg output DP-2 off || true"
             ];
           }
           {

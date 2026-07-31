@@ -1,7 +1,6 @@
 { ... }:
 {
   imports = [
-    ./bluelight.nix
     ./niri.nix
     ./idle.nix
     ./kitty.nix
