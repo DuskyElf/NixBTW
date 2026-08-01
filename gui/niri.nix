@@ -379,10 +379,30 @@ in
             argv = [
               "${pkgs.brightnessctl}/bin/brightnessctl"
               "set"
-              "80%"
+              "10%"
             ];
           }
           { argv = [ "${pkgs.wl-gammarelay-rs}/bin/wl-gammarelay-rs" ]; }
+          {
+            # Wait for the gamma daemon to register its D-Bus name, then set
+            # the startup color temperature (absolute, not a delta).
+            # Signature is q (uint16), NOT n: a wrong signature panics the
+            # daemon (rustbus UnVariant.get returns WrongSignature, setter
+            # unwraps), killing gamma control until the session restarts.
+            argv = [
+              "bash"
+              "-c"
+              ''
+                i=0
+                while ! ${pkgs.systemd}/bin/busctl --user get-property rs.wl-gammarelay / rs.wl.gammarelay Temperature > /dev/null 2>&1; do
+                  i=$((i + 1))
+                  [ "$i" -ge 50 ] && exit 1
+                  sleep 0.1
+                done
+                ${pkgs.systemd}/bin/busctl --user set-property rs.wl-gammarelay / rs.wl.gammarelay Temperature q 5700
+              ''
+            ];
+          }
           { argv = [ "kitty" ]; }
           {
             argv = [
