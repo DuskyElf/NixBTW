@@ -85,8 +85,12 @@
       PartOf = [ "graphical-session.target" ];
     };
     Timer = {
-      OnCalendar = "daily";
-      Persistent = true;
+      # Monotonic, not calendar: suspend pauses the monotonic clock, so this
+      # runs 15min after boot then every 12h of awake use, not at midnight
+      # when the laptop is asleep. Persistent= would only help at boot anyway.
+      OnBootSec = "15min";
+      OnUnitActiveSec = "12h";
+      RandomizedDelaySec = "30min";
     };
     Install.WantedBy = [ "timers.target" ];
   };
