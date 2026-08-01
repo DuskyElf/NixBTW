@@ -116,7 +116,7 @@
   boot = {
     kernelParams = [
       "mem_sleep_default=deep"
-      # OLED backlight (2026-07) — SOLVED, keep =3. Full writeup in .handoff.md
+      # OLED backlight (2026-07): SOLVED, keep =3.
       # Intel HDR interface is the ONLY one that works on this panel (eDP 1.3;
       # VBT lies about PWM; VESA probe fails; PWM register path is a no-op).
       # Nits-based: max 528 = panel's 528-nit EDID rating. Auto mode gates Intel
