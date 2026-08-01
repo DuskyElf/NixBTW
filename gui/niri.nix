@@ -341,23 +341,16 @@ in
           "Mod+1" = {
             allow-when-locked = true;
             action = spawn "bash" "-c" ''
-              if niri msg -j outputs 2>/dev/null | grep -q '"DP-2".*"logical":{'; then
-                # turn OFF: niri output first, then backlight
-                niri msg output DP-2 off
-                sudo ~/.config/scripts/power.sh screenpad off
-                notify-send "Secondary Display" "Turned OFF" -t 1000 -p > /tmp/niri-dp2-notif
+              # Toggle screenpad (bl_power: 0 = off, 4 = on). No waits, no
+              # retries. Press again if the attach does not stick.
+              if [ "$(cat /sys/class/backlight/asus_screenpad/bl_power 2>/dev/null)" = "4" ]; then
+                niri msg output DP-2 off || true
+                sudo ~/.config/scripts/power.sh screenpad off || true
+                notify-send "Secondary Display" "Turned OFF" -t 1000
               else
-                # turn ON: backlight first (wakes up the display), then poll for niri output
-                sudo ~/.config/scripts/power.sh screenpad on
-                for i in 1 2 3 4 5 6 7 8; do
-                  if niri msg -j outputs 2>/dev/null | grep -q '"DP-2".*"logical":{'; then
-                    notify-send "Secondary Display" "Already on" -t 1000 -p > /tmp/niri-dp2-notif
-                    exit 0
-                  fi
-                  niri msg output DP-2 on 2>/dev/null && break
-                  sleep 0.3
-                done
-                notify-send "Secondary Display" "Turned ON" -t 1000 -p > /tmp/niri-dp2-notif
+                sudo ~/.config/scripts/power.sh screenpad on || true
+                niri msg output DP-2 on || true
+                notify-send "Secondary Display" "Turned ON" -t 1000
               fi
             '';
           };
