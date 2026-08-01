@@ -33,7 +33,7 @@ elif [ "$MODE" = "ultra-powersave" ]; then
     run_user_cmd systemctl --user stop voxtype
     auto-cpufreq --force powersave
     undervolt -t 70
-    modprobe -r nvidia_uvm nvidia_drm nvidia_modeset nvidia
+    "$MODPROBE" -r nvidia_uvm nvidia_drm nvidia_modeset nvidia
     sh -c 'echo 1 > /sys/bus/pci/devices/0000:01:00.0/remove' || true
     run_user_cmd notify-send "Power Mode" "Switched to ultra-powersave mode" --expire-time=500
 elif [ "$MODE" = "powersave" ]; then
@@ -41,7 +41,7 @@ elif [ "$MODE" = "powersave" ]; then
     run_user_cmd systemctl --user stop voxtype
     auto-cpufreq --force reset
     undervolt -t 93
-    modprobe -r nvidia_uvm nvidia_drm nvidia_modeset nvidia
+    "$MODPROBE" -r nvidia_uvm nvidia_drm nvidia_modeset nvidia
     sh -c 'echo 1 > /sys/bus/pci/devices/0000:01:00.0/remove' || true
     run_user_cmd notify-send "Power Mode" "Switched to powersave mode" --expire-time=500
 elif [ "$MODE" = "performance" ]; then

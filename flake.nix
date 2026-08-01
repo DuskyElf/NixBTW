@@ -50,11 +50,6 @@
 
     neovimBTW.url = ./neovimBTW;
 
-    voxtype = {
-      url = "github:peteonrails/voxtype";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     zen-browser = {
       url = "github:0xc000022070/zen-browser-flake/beta";
       inputs.nixpkgs.follows = "nixpkgs-unstable";
@@ -172,7 +167,6 @@
           inputs.niri.homeModules.config
           inputs.niri.homeModules.stylix
           inputs.stylix.homeModules.stylix
-          inputs.voxtype.homeManagerModules.default
           inputs.zen-browser.homeModules.beta
         ];
         extraSpecialArgs = {

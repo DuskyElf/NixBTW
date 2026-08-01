@@ -34,7 +34,7 @@ replies "not connected, will apply when connected" and still exits 0, never trus
 in `~/.deploy-system`, then `home-manager switch`, then commits `flake.lock` in the private repo.
 Consequences for agents:
 - The running machine drifts from this repo by design. Only those 3 inputs auto-update; niri, stylix,
-  home-manager, voxtype, jail-nix stay pinned until manually updated.
+  home-manager, jail-nix stay pinned until manually updated.
 - This repo's `flake.lock` is gitignored and never committed, so the public repo has NO canonical pins.
   `~/.deploy-system` is the only lock source of truth. Treat the public repo as a source tree, not a deploy unit.
 - A mismatch between observed machine behavior and repo state is usually the daily update, not a local edit.

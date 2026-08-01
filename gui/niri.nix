@@ -51,58 +51,6 @@ in
     brightnessctl
   ];
 
-  systemd.user.services.voxtype = {
-    Unit = {
-      Description = "VoxType push-to-talk voice-to-text daemon";
-      Documentation = "https://voxtype.io";
-      PartOf = [ "graphical-session.target" ];
-      After = [
-        "graphical-session.target"
-        "pipewire.service"
-        "pipewire-pulse.service"
-      ];
-    };
-
-    Service = {
-      Type = "simple";
-      # Wait for the Wayland environment variable to be exported by the compositor
-      ExecStartPre = "${pkgs.bash}/bin/bash -c 'while ! ${pkgs.systemd}/bin/systemctl --user show-environment | ${pkgs.gnugrep}/bin/grep -q WAYLAND_DISPLAY; do ${pkgs.coreutils}/bin/sleep 1; done'";
-      # Fetch the latest environment variables right before execution to ensure they are picked up
-      ExecStart = "${pkgs.bash}/bin/bash -c 'export WAYLAND_DISPLAY=$(${pkgs.systemd}/bin/systemctl --user show-environment | ${pkgs.gnugrep}/bin/grep ^WAYLAND_DISPLAY= | ${pkgs.coreutils}/bin/cut -d= -f2-); exec ${config.programs.voxtype.package}/bin/voxtype daemon'";
-      Restart = "always";
-      RestartSec = 3;
-    };
-
-    Install = {
-      WantedBy = [ "graphical-session.target" ];
-    };
-  };
-
-  programs.voxtype = {
-    enable = true;
-    package = pkgs-unstable.voxtype-vulkan;
-    model.name = "base.en";
-
-    # All config options go in settings (converted to config.toml)
-    settings = {
-      state_file = "auto";
-      hotkey.enabled = false; # Use compositor keybindings instead
-      audio = {
-        device = "default";
-        sample_rate = 16000;
-        max_duration_secs = 60;
-
-        feedback = {
-          enabled = true;
-          theme = "default";
-          volume = 0.7;
-        };
-      };
-      output.mode = "type";
-      whisper.language = "en";
-    };
-  };
-
   programs = {
     fuzzel.enable = true;
 
@@ -355,15 +303,6 @@ in
             '';
           };
 
-          "Mod+semicolon" = {
-            repeat = false;
-            action = spawn "voxtype" "record" "start";
-          };
-
-          "Mod+apostrophe" = {
-            repeat = false;
-            action = spawn "voxtype" "record" "stop";
-          };
         };
 
         # explicitly only use iGPU and leave the dGPU alone
