@@ -22,7 +22,13 @@ function rel(s, mark) {
     // drop the space between value and unit ("2 d" -> "2d")
     .replace(/(\d) ([a-zA-Z])/g, "$1$2")
     .trim();
-  return mark === "left" ? `in ${out}` : `${out} ago`;
+  // Sub-minute (pure seconds or ms) reads as <1m. The output goes into Qt
+  // RichText, so a raw `<` would be parsed as a malformed tag and corrupt the
+  // table layout: escape it as &lt;.
+  const body = /^(\d+ms|\d+s)$/.test(out)
+    ? "&lt;1m"
+    : out.replace(/\d+ms(?:\s+|$)/g, "").replace(/\d+s(?:\s+|$)/g, "").trim();
+  return mark === "left" ? `in ${body}` : `${body} ago`;
 }
 
 // One timer line from `systemctl [--user] list-timers --all --no-pager`.
