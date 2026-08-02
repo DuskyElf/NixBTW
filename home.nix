@@ -38,7 +38,8 @@
     };
     Service = {
       Type = "oneshot";
-      RemainAfterExit = true;
+      # No RemainAfterExit: it keeps the unit active after exit, which breaks
+      # this timer's re-arm on this system (next elapse sticks at infinity).
       ExecStart = "${pkgs.writeShellScript "flake-update-script" ''
         trap 'echo "Caught SIGTERM, exiting..."; exit 143' TERM
 
@@ -48,7 +49,6 @@
 
         echo "Starting flake auto-update at $(date)"
 
-        # Update the inputs
         echo "Updating flake inputs..."
         if nix flake update nixpkgs nixpkgs-unstable-small zen-browser; then
           echo "Private flake update successful"
@@ -58,16 +58,19 @@
           exit 1
         fi
 
-        # Switch home-manager using the PRIVATE wrapper
-        echo "Switching home-manager configuration..."
-        if home-manager switch --flake ~/.deploy-system --cores 2; then
+        # Switch home-manager using the PRIVATE wrapper. The live-tree override
+        # keeps it consistent with manual rebuilds (AGENTS.md): the pinned
+        # my-dotfiles rev in the deploy lock goes stale whenever dotfiles commits
+        # (e.g. the voxtype removal), and without the override the switch
+        # evaluates that stale rev and fails to resolve its inputs.
+        if home-manager switch --flake ~/.deploy-system --override-input my-dotfiles path:/home/duskyelf/dotfiles --cores 2; then
           echo "Home-manager switch successful"
           ${pkgs.libnotify}/bin/notify-send "Update successful" "Successfully updated and switched privately"
 
-          # Commit the flake.lock changes PRIVATELY
           echo "Committing flake.lock..."
           git add flake.lock
-          git commit -m "chore: private auto-update" --no-gpg-sign
+          git commit -m "chore: private auto-update" --no-gpg-sign \
+            || echo "flake.lock unchanged, nothing to commit"
         else
           echo "Home-manager switch failed"
           ${pkgs.libnotify}/bin/notify-send -u critical "Update failed" "Failed to switch configuration"
@@ -85,11 +88,11 @@
       PartOf = [ "graphical-session.target" ];
     };
     Timer = {
-      # Monotonic, not calendar: suspend pauses the monotonic clock, so this
-      # runs 15min after boot then every 12h of awake use, not at midnight
-      # when the laptop is asleep. Persistent= would only help at boot anyway.
-      OnBootSec = "15min";
-      OnUnitActiveSec = "12h";
+      # Native wall-clock timer: fires daily at 08:30 and, with Persistent=true,
+      # catches up shortly after wake if the machine was asleep at 08:30. The
+      # simple systemd answer to "update once a day even when suspended".
+      OnCalendar = "*-*-* 08:30:00";
+      Persistent = true;
       RandomizedDelaySec = "30min";
     };
     Install.WantedBy = [ "timers.target" ];
