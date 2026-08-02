@@ -202,7 +202,7 @@ in
 
           "Mod+B".action =
             spawn "bash" "-c"
-              "systemctl --user restart break-timer.service; makoctl dismiss -n $(cat /tmp/break_timer_id) || true; rm -f /tmp/break_timer_id";
+              "systemctl --user stop break-timer.service || true; systemctl --user restart break-timer.timer; makoctl dismiss -n $(cat /tmp/break_timer_id) || true; rm -f /tmp/break_timer_id";
 
           "Mod+P" = {
             repeat = false;

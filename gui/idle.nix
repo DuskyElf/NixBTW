@@ -35,7 +35,8 @@ let
         touch /tmp/dimmed_by_120
       fi
     fi
-    ${pkgs.systemd}/bin/systemctl --user stop break-timer.service
+    ${pkgs.systemd}/bin/systemctl --user stop break-timer.timer || true
+    ${pkgs.systemd}/bin/systemctl --user stop break-timer.service || true
   '';
   resume120 = pkgs.writeShellScriptBin "resume120" ''
     if [ -f /tmp/dimmed_by_120 ]; then
@@ -45,7 +46,7 @@ let
       fi
       rm -f /tmp/dimmed_by_120
     fi
-    ${pkgs.systemd}/bin/systemctl --user start break-timer.service
+    ${pkgs.systemd}/bin/systemctl --user start break-timer.timer
   '';
 
   skipBreak = pkgs.writeShellScriptBin "skip-break" ''
@@ -53,14 +54,12 @@ let
       ${pkgs.mako}/bin/makoctl dismiss -n $(cat /tmp/break_timer_id) || true
       rm -f /tmp/break_timer_id
     fi
-    # Restarting the service will kill the current sleep and start the 20m timer again
-    ${pkgs.systemd}/bin/systemctl --user restart break-timer.service
+    # Cancel an in-progress pre-lock pause, then push the next break 20min out
+    ${pkgs.systemd}/bin/systemctl --user stop break-timer.service || true
+    ${pkgs.systemd}/bin/systemctl --user restart break-timer.timer
   '';
 
   breakTimer = pkgs.writeShellScriptBin "break-timer" ''
-    # Wait for 20 minutes (1200 seconds)
-    sleep 1200
-
     # Notify and save the notification ID
     NOTIFY_ID=$(${pkgs.libnotify}/bin/notify-send -p "Break Time!" "Look away for 20 seconds. Locking in 10s. Press Mod+B to skip." -u critical)
     echo "$NOTIFY_ID" > /tmp/break_timer_id
@@ -81,14 +80,23 @@ in
 {
   systemd.user.services.break-timer = {
     Unit = {
-      Description = "20-minute break timer";
+      Description = "20-minute break action (notify + lock)";
       PartOf = [ "graphical-session.target" ];
       After = [ "graphical-session.target" ];
     };
     Service = {
-      Type = "simple";
+      Type = "oneshot";
       ExecStart = "${breakTimer}/bin/break-timer";
-      Restart = "always";
+    };
+  };
+
+  # Fires every 20 minutes. The service is started only by this timer (it is
+  # NOT auto-enabled) so a break does not trigger at login.
+  systemd.user.timers.break-timer = {
+    Unit.Description = "20-minute break timer";
+    Timer = {
+      OnActiveSec = "20min";
+      OnUnitActiveSec = "20min";
     };
     Install = {
       WantedBy = [ "graphical-session.target" ];
