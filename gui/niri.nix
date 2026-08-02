@@ -53,7 +53,7 @@ in
         "PATH=/run/current-system/sw/bin:%h/.nix-profile/bin"
         "WAYLAND_DISPLAY=wayland-1"
       ];
-      ExecStart = "%h/.config/scripts/wallpaper.sh fetch";
+      ExecStart = "%h/.config/scripts/wallpaper.mjs fetch";
     };
   };
 
@@ -82,7 +82,7 @@ in
         "PATH=/run/current-system/sw/bin:%h/.nix-profile/bin"
         "WAYLAND_DISPLAY=wayland-1"
       ];
-      ExecStart = "%h/.config/scripts/wallpaper.sh next";
+      ExecStart = "%h/.config/scripts/wallpaper.mjs next";
     };
   };
 
@@ -103,13 +103,14 @@ in
         "PATH=/run/current-system/sw/bin:%h/.nix-profile/bin"
         "WAYLAND_DISPLAY=wayland-1"
       ];
-      ExecStart = "%h/.config/scripts/wallpaper.sh next";
+      ExecStart = "%h/.config/scripts/wallpaper.mjs next";
     };
     Install.WantedBy = [ "sleep.target" ];
   };
 
   home.packages = with pkgs; [
     awww
+    quickshell
     wtype
     wl-gammarelay-rs
     brightnessctl
@@ -247,7 +248,7 @@ in
           "Mod+T".action = spawn "kitty";
           "Mod+O".action = spawn "fuzzel";
 
-          "Mod+Shift+W".action = spawn "bash" "-c" "~/.config/scripts/wallpaper.sh next";
+          "Mod+Shift+W".action = spawn "bash" "-c" "~/.config/scripts/wallpaper.mjs next";
 
           "Mod+8".action = spawn "bash" "-c" ("sudo /usr/local/sbin/power.sh powersave");
           "Mod+9".action = spawn "bash" "-c" ("sudo /usr/local/sbin/power.sh performance");
@@ -413,11 +414,16 @@ in
             argv = [ "${pkgs.awww}/bin/awww-daemon" ];
           }
           {
+            # Wallpaper overlay: clock, caption, timers (loads
+            # ~/.config/quickshell/shell.qml).
+            argv = [ "${pkgs.quickshell}/bin/quickshell" ];
+          }
+          {
             # Guardian photos-of-the-day slideshow; fetches the pool on first run
             argv = [
               "bash"
               "-c"
-              "~/.config/scripts/wallpaper.sh next"
+              "~/.config/scripts/wallpaper.mjs next"
             ];
           }
           {

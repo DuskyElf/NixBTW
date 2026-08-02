@@ -22,6 +22,10 @@ in
     recursive = true;
     source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/dotfiles/scripts";
   };
+  xdg.configFile."quickshell" = {
+    recursive = true;
+    source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/dotfiles/quickshell";
+  };
   home.packages = with pkgs; [
     lm_sensors
     gnugrep
