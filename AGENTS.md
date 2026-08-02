@@ -99,7 +99,7 @@ Each individual setting is discoverable; the pattern is not. Respect these when 
 
 - The agent shell runs in a jailed sandbox (hostname "jail"), NOT the real machine: no niri, no /sys, no DRM, no sudo, no systemctl, no bash network (curl fails with bwrap errors). Anything needing system access must be given to the user as a command block, then their pasted output interpreted: rebuilds, DRM/backlight inspection, journalctl, niri msg, udevadm, systemctl. The user is the only bridge to system state; code edits happen in the jail, system verification happens on the machine.
 - Network in the jail: web_search works but ONE call per turn with 2-4 queries; fetch_content works for raw.githubusercontent.com at any rev and the GitHub API.
-- sudo NOPASSWD is scoped to `/home/duskyelf/.config/scripts/power.sh` ONLY (root system.nix). Any root action from a keybind must route through power.sh, or sudo will prompt and hang the keybind.
-- scripts/ is symlinked into ~/.config via mkOutOfStoreSymlink: edits to scripts/ are live immediately, no rebuild needed.
+- sudo NOPASSWD is scoped to `/usr/local/sbin/power.sh` ONLY (root system.nix). power.sh is store-pinned: content is read from scripts/power.sh at eval time and the activation script symlinks the immutable store copy into /usr/local/sbin. Repo edits to power.sh take effect only on the next nixos-rebuild. Any root action from a keybind must route through power.sh, or sudo will prompt and hang the keybind.
+- scripts/ is symlinked into ~/.config via mkOutOfStoreSymlink: edits to scripts/ are live immediately, no rebuild needed. Exception: power.sh is NOT live (store-pinned, see the sudo bullet above), so edit it and run a nixos-rebuild for it to take effect.
 - piBTW and opencodeBTW are agent submodules; their dirty states are noise, never commit them.
 - niri 26.04 source is unpacked at /nix/store/k2nfl71r8lfxzgzj2yhfxycjkbqxx3im-source if internals are needed.

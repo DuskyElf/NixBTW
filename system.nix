@@ -1,8 +1,24 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }:
+let
+  # power.sh runs as root via NOPASSWD sudo, so it must never be writable by
+  # the user. Content is read from scripts/power.sh at eval time and the
+  # activation script symlinks the immutable store copy into /usr/local/sbin.
+  # Repo edits only take effect on the next nixos-rebuild, and tampering with
+  # the writable ~/.config/scripts copy is useless because sudo only matches
+  # the path below.
+  powerScript = pkgs.writeTextFile {
+    name = "power.sh";
+    executable = true;
+    text =
+      "#!${pkgs.bash}/bin/bash\n"
+      + lib.removePrefix "#!/usr/bin/env bash\n" (builtins.readFile ./scripts/power.sh);
+  };
+in
 {
   options.hostOptions = {
     hostName = lib.mkOption {
@@ -92,12 +108,17 @@
       LC_TIME = "en_IN";
     };
 
+    system.activationScripts.powerScript = ''
+      mkdir -p /usr/local/sbin
+      ln -sfn ${powerScript} /usr/local/sbin/power.sh
+    '';
+
     security.sudo.extraRules = [
       {
         users = [ "duskyelf" ];
         commands = [
           {
-            command = "/home/duskyelf/.config/scripts/power.sh";
+            command = "/usr/local/sbin/power.sh";
             options = [ "NOPASSWD" ];
           }
         ];

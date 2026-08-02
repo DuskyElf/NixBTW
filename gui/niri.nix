@@ -183,9 +183,9 @@ in
           "Mod+T".action = spawn "kitty";
           "Mod+O".action = spawn "fuzzel";
 
-          "Mod+8".action = spawn "bash" "-c" ("sudo ~/.config/scripts/power.sh powersave");
-          "Mod+9".action = spawn "bash" "-c" ("sudo ~/.config/scripts/power.sh performance");
-          "Mod+0".action = spawn "bash" "-c" ("sudo ~/.config/scripts/power.sh ultra-powersave");
+          "Mod+8".action = spawn "bash" "-c" ("sudo /usr/local/sbin/power.sh powersave");
+          "Mod+9".action = spawn "bash" "-c" ("sudo /usr/local/sbin/power.sh performance");
+          "Mod+0".action = spawn "bash" "-c" ("sudo /usr/local/sbin/power.sh ultra-powersave");
 
           "XF86AudioMute" = {
             allow-when-locked = true;
@@ -293,10 +293,10 @@ in
               # retries. Press again if the attach does not stick.
               if [ "$(cat /sys/class/backlight/asus_screenpad/bl_power 2>/dev/null)" = "4" ]; then
                 niri msg output DP-2 off || true
-                sudo ~/.config/scripts/power.sh screenpad off || true
+                sudo /usr/local/sbin/power.sh screenpad off || true
                 notify-send "Secondary Display" "Turned OFF" -t 1000
               else
-                sudo ~/.config/scripts/power.sh screenpad on || true
+                sudo /usr/local/sbin/power.sh screenpad on || true
                 niri msg output DP-2 on || true
                 notify-send "Secondary Display" "Turned ON" -t 1000
               fi
@@ -362,7 +362,7 @@ in
           {
             argv = [
               "sudo"
-              "~/.config/scripts/power.sh"
+              "/usr/local/sbin/power.sh"
               "screenpad"
               "off"
             ];
