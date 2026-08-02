@@ -15,7 +15,6 @@ in
   home.shellAliases = {
     btw = "echo I use NixOS, btw";
     get-nob = "curl -o nob.h https://raw.githubusercontent.com/tsoding/nob.h/main/nob.h";
-    opencode = "opencode attach http://127.0.0.1:4096 --dir .";
     review-vm = "nix run /home/duskyelf/dotfiles#nixosConfigurations.review-vm.config.microvm.declaredRunner";
   };
 
