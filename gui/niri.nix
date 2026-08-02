@@ -35,6 +35,21 @@ let
     VAL=''${VAL:-6500}
     notify-send "Temperature" "$VAL K" --expire-time=500 -p --replace-id=$(cat '/tmp/niri-Temperature' 2>/dev/null || echo 0) > '/tmp/niri-Temperature' || notify-send "Temperature" "$VAL K" --expire-time=500 -p > '/tmp/niri-Temperature'
   '';
+
+  setStartupTemperature = pkgs.writeShellScriptBin "set-startup-temperature" ''
+    BUSCTL=${pkgs.systemd}/bin/busctl
+    # Wait for the gamma daemon's D-Bus name (systemd reports a simple-type
+    # service "started" before the name registers), then set the startup
+    # color temperature. Signature is q (uint16), NOT n: a wrong signature
+    # panics the daemon, killing gamma control until the session restarts.
+    i=0
+    while ! $BUSCTL --user get-property rs.wl-gammarelay / rs.wl.gammarelay Temperature > /dev/null 2>&1; do
+      i=$((i + 1))
+      [ "$i" -ge 50 ] && exit 1
+      sleep 0.1
+    done
+    $BUSCTL --user set-property rs.wl-gammarelay / rs.wl.gammarelay Temperature q 5700
+  '';
 in
 {
   services = {
@@ -106,6 +121,83 @@ in
       ExecStart = "%h/.config/scripts/wallpaper.mjs next";
     };
     Install.WantedBy = [ "sleep.target" ];
+  };
+
+  # Daemons that niri used to spawn at startup, now owned by systemd so they
+  # start/stop with the graphical session and restart independently of niri.
+  systemd.user.services.wl-gammarelay = {
+    Unit = {
+      Description = "Wayland color temperature daemon";
+      PartOf = [ "graphical-session.target" ];
+    };
+    Service = {
+      Environment = "WAYLAND_DISPLAY=wayland-1";
+      ExecStart = "${pkgs.wl-gammarelay-rs}/bin/wl-gammarelay-rs";
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
+  };
+
+  # One-shot bootstrap: wait for the gamma daemon's D-Bus name (simple-type
+  # service is "started" before the name registers), then set the startup color
+  # temperature. Signature is q (uint16), NOT n: a wrong signature panics the
+  # daemon, killing gamma control until the session restarts.
+  systemd.user.services.gamma-temperature = {
+    Unit = {
+      Description = "Set startup color temperature";
+      PartOf = [ "graphical-session.target" ];
+      After = [ "wl-gammarelay.service" ];
+    };
+    Service = {
+      Type = "oneshot";
+      Environment = "WAYLAND_DISPLAY=wayland-1";
+      ExecStart = "${setStartupTemperature}/bin/set-startup-temperature";
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
+  };
+
+  systemd.user.services.awww-daemon = {
+    Unit = {
+      Description = "Wallpaper daemon";
+      PartOf = [ "graphical-session.target" ];
+    };
+    Service = {
+      Environment = "WAYLAND_DISPLAY=wayland-1";
+      ExecStart = "${pkgs.awww}/bin/awww-daemon";
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
+  };
+
+  systemd.user.services.quickshell = {
+    Unit = {
+      Description = "Wallpaper overlay shell";
+      PartOf = [ "graphical-session.target" ];
+      # Keep the pre-systemd ordering: awww up before the overlay renders.
+      After = [ "awww-daemon.service" ];
+    };
+    Service = {
+      Environment = "WAYLAND_DISPLAY=wayland-1";
+      ExecStart = "${pkgs.quickshell}/bin/quickshell";
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
+  };
+
+  # Initial wallpaper apply. Must run after awww-daemon so applier.ensure()
+  # finds the daemon instead of spawning a duplicate detached copy.
+  systemd.user.services.wallpaper-startup = {
+    Unit = {
+      Description = "Apply initial wallpaper at session start";
+      PartOf = [ "graphical-session.target" ];
+      After = [ "awww-daemon.service" ];
+    };
+    Service = {
+      Type = "oneshot";
+      Environment = [
+        "PATH=/run/current-system/sw/bin:%h/.nix-profile/bin"
+        "WAYLAND_DISPLAY=wayland-1"
+      ];
+      ExecStart = "%h/.config/scripts/wallpaper.mjs next";
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
   };
 
   home.packages = with pkgs; [
@@ -388,44 +480,7 @@ in
               "10%"
             ];
           }
-          { argv = [ "${pkgs.wl-gammarelay-rs}/bin/wl-gammarelay-rs" ]; }
-          {
-            # Wait for the gamma daemon to register its D-Bus name, then set
-            # the startup color temperature (absolute, not a delta).
-            # Signature is q (uint16), NOT n: a wrong signature panics the
-            # daemon (rustbus UnVariant.get returns WrongSignature, setter
-            # unwraps), killing gamma control until the session restarts.
-            argv = [
-              "bash"
-              "-c"
-              ''
-                i=0
-                while ! ${pkgs.systemd}/bin/busctl --user get-property rs.wl-gammarelay / rs.wl.gammarelay Temperature > /dev/null 2>&1; do
-                  i=$((i + 1))
-                  [ "$i" -ge 50 ] && exit 1
-                  sleep 0.1
-                done
-                ${pkgs.systemd}/bin/busctl --user set-property rs.wl-gammarelay / rs.wl.gammarelay Temperature q 5700
-              ''
-            ];
-          }
           { argv = [ "kitty" ]; }
-          {
-            argv = [ "${pkgs.awww}/bin/awww-daemon" ];
-          }
-          {
-            # Wallpaper overlay: clock, caption, timers (loads
-            # ~/.config/quickshell/shell.qml).
-            argv = [ "${pkgs.quickshell}/bin/quickshell" ];
-          }
-          {
-            # Guardian photos-of-the-day slideshow; fetches the pool on first run
-            argv = [
-              "bash"
-              "-c"
-              "~/.config/scripts/wallpaper.mjs next"
-            ];
-          }
           {
             argv = [
               "bash"
