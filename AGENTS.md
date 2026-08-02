@@ -44,6 +44,14 @@ Consequences for agents:
 curl, wget, gh, worktrunk, opencode, and pi itself are built through the `jail` function in flake.nix
 (jail-nix input, `xdg-app` combinator). All get network + mount-cwd + their own config dirs, nothing more.
 - curl and wget cannot read arbitrary files (bwrap errors). That is the sandbox design, not a broken setup.
+- The jail curl cannot WRITE files with `-o` (exits 23, CURLE_WRITE_ERROR): curl opens the target through
+  its sandboxed mount view, which is read-only. A shell redirect (`curl ... > file`) works instead, because
+  the shell opens the file in the real filesystem and passes the already-open fd into the sandbox. Any script
+  that calls the jail curl to download must use `> file`, never `-o`. (bit by wallpaper.sh.)
+- A daemon backgrounded while a flock is held inherits the lock fd and keeps the flock forever, so every
+  later run reports "another run is in progress" with no live process holding it. Close the fd on the spawn
+  (e.g. `daemon ... 9>&- &` for an `exec 9>lock`) or the lock never releases. (bit by wallpaper.sh's
+  awww-daemon.)
 - The agent shell runs inside `jail "pi"`: readwrite on `~/.pi` (symlinked to the piBTW submodule),
   readonly on /nix/store and the PATH dirs, PATH restricted to `/run/current-system/sw/bin` and
   `~/.nix-profile/bin`. Only binaries under those paths are callable.
