@@ -113,6 +113,12 @@ in
       ln -sfn ${powerScript} /usr/local/sbin/power.sh
     '';
 
+    # Disable the credential cache: a fresh sudo timestamp (e.g. from a
+    # rebuild) would otherwise let anything running as duskyelf
+    # `sudo -n <anything>` within the window. NOPASSWD keybind rule is
+    # unaffected, but every other sudo now prompts fresh.
+    security.sudo.extraConfig = "Defaults timestamp_timeout=0";
+
     security.sudo.extraRules = [
       {
         users = [ "duskyelf" ];
