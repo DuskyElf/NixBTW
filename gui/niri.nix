@@ -7,8 +7,6 @@
   ...
 }:
 let
-  wallpaper = ../wallpapers/linux_fuck_nvidia.jpeg;
-
   notif =
     { title, message }:
     "notify-send \"${title}\" \"${message}\" --expire-time=500 -p --replace-id=$(cat '/tmp/niri-${title}') > '/tmp/niri-${title}' || notify-send \"${title}\" \"${message}\" --expire-time=500 -p > '/tmp/niri-${title}'";
@@ -44,8 +42,74 @@ in
     polkit-gnome.enable = true;
   };
 
+  systemd.user.services.wallpaper-fetch = {
+    Unit = {
+      Description = "Fetch Guardian photos of the day into the wallpaper pool";
+      PartOf = [ "graphical-session.target" ];
+    };
+    Service = {
+      Type = "oneshot";
+      Environment = [
+        "PATH=/run/current-system/sw/bin:%h/.nix-profile/bin"
+        "WAYLAND_DISPLAY=wayland-1"
+      ];
+      ExecStart = "%h/.config/scripts/wallpaper.sh fetch";
+    };
+  };
+
+  systemd.user.timers.wallpaper-fetch = {
+    Unit.Description = "Guardian wallpaper pool fetch";
+    # Runs 15min after boot then every 12h of awake use, not at a fixed
+    # 08:30. The laptop is suspended at odd hours; OnUnitActiveSec uses the
+    # monotonic clock so sleep time does not count and the fetch fires shortly
+    # after wake if the 12h boundary passed while asleep. Persistent= would
+    # only help at boot anyway (known systemd regression on resume).
+    Timer = {
+      OnBootSec = "15min";
+      OnUnitActiveSec = "12h";
+    };
+    Install.WantedBy = [ "timers.target" ];
+  };
+
+  systemd.user.services.wallpaper-rotate = {
+    Unit = {
+      Description = "Rotate Guardian wallpaper";
+      PartOf = [ "graphical-session.target" ];
+    };
+    Service = {
+      Type = "oneshot";
+      Environment = [
+        "PATH=/run/current-system/sw/bin:%h/.nix-profile/bin"
+        "WAYLAND_DISPLAY=wayland-1"
+      ];
+      ExecStart = "%h/.config/scripts/wallpaper.sh next";
+    };
+  };
+
+  systemd.user.timers.wallpaper-rotate = {
+    Unit.Description = "Rotate Guardian wallpaper every 15 minutes";
+    Timer.OnCalendar = "*:0/15";
+    Install.WantedBy = [ "timers.target" ];
+  };
+
+  systemd.user.services.wallpaper-resume = {
+    Unit = {
+      Description = "Re-apply wallpaper after suspend";
+      After = [ "sleep.target" ];
+    };
+    Service = {
+      Type = "oneshot";
+      Environment = [
+        "PATH=/run/current-system/sw/bin:%h/.nix-profile/bin"
+        "WAYLAND_DISPLAY=wayland-1"
+      ];
+      ExecStart = "%h/.config/scripts/wallpaper.sh next";
+    };
+    Install.WantedBy = [ "sleep.target" ];
+  };
+
   home.packages = with pkgs; [
-    swaybg
+    awww
     wtype
     wl-gammarelay-rs
     brightnessctl
@@ -182,6 +246,8 @@ in
           };
           "Mod+T".action = spawn "kitty";
           "Mod+O".action = spawn "fuzzel";
+
+          "Mod+Shift+W".action = spawn "bash" "-c" "~/.config/scripts/wallpaper.sh next";
 
           "Mod+8".action = spawn "bash" "-c" ("sudo /usr/local/sbin/power.sh powersave");
           "Mod+9".action = spawn "bash" "-c" ("sudo /usr/local/sbin/power.sh performance");
@@ -344,12 +410,14 @@ in
           }
           { argv = [ "kitty" ]; }
           {
+            argv = [ "${pkgs.awww}/bin/awww-daemon" ];
+          }
+          {
+            # Guardian photos-of-the-day slideshow; fetches the pool on first run
             argv = [
-              "${pkgs.swaybg}/bin/swaybg"
-              "-i"
-              "${wallpaper}"
-              "-m"
-              "center"
+              "bash"
+              "-c"
+              "~/.config/scripts/wallpaper.sh next"
             ];
           }
           {
