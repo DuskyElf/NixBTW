@@ -106,12 +106,23 @@ async function main() {
           return;
         }
         const cur = pool.current();
-        // shuffle, pick a photo other than the current one
-        for (let i = files.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [files[i], files[j]] = [files[j], files[i]];
+        // Deck order: never pick a photo already shown this cycle. On
+        // exhaustion, start a fresh cycle seeded with the current photo, so
+        // the just-shown one can't repeat until the next full pass. That
+        // makes every poolSize consecutive picks a distinct permutation.
+        let used = pool.used();
+        let candidates = files.filter((f) => !used.includes(f));
+        if (candidates.length === 0) {
+          pool.resetUsed();
+          used = cur ? [cur] : [];
+          if (cur) pool.markUsed(cur);
+          candidates = files.filter((f) => !used.includes(f));
         }
-        await apply(files.find((f) => f !== cur) || files[0]);
+        // Degenerate: pool holds only the current photo. Fall back to it.
+        if (candidates.length === 0) candidates = files;
+        const pick = candidates[Math.floor(Math.random() * candidates.length)];
+        pool.markUsed(pick);
+        await apply(pick);
       }, { log });
     case "apply":
       return apply(process.argv[3]);

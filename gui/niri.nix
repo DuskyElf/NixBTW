@@ -87,8 +87,8 @@ in
   };
 
   systemd.user.timers.wallpaper-rotate = {
-    Unit.Description = "Rotate Guardian wallpaper every 15 minutes";
-    Timer.OnCalendar = "*:0/15";
+    Unit.Description = "Rotate Guardian wallpaper every 6 minutes";
+    Timer.OnCalendar = "*:0/6";
     Install.WantedBy = [ "timers.target" ];
   };
 
@@ -248,7 +248,7 @@ in
           "Mod+T".action = spawn "kitty";
           "Mod+O".action = spawn "fuzzel";
 
-          "Mod+Shift+W".action = spawn "bash" "-c" "~/.config/scripts/wallpaper.mjs next";
+          "Mod+N".action = spawn "bash" "-c" "~/.config/scripts/wallpaper.mjs next";
 
           "Mod+8".action = spawn "bash" "-c" ("sudo /usr/local/sbin/power.sh powersave");
           "Mod+9".action = spawn "bash" "-c" ("sudo /usr/local/sbin/power.sh performance");

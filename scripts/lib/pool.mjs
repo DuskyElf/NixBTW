@@ -73,6 +73,27 @@ export function openPool(dir, { minWidth = 600, download = fetchBuffer, log = ()
     fs.writeFileSync(path.join(dir, "current"), f + "\n");
   }
 
+  // Full paths of photos shown since the last cycle reset, one per line. Lets
+  // `next` pick a fresh photo until every one has been shown (then resets).
+  function used() {
+    try {
+      return fs
+        .readFileSync(path.join(dir, "used"), "utf8")
+        .split("\n")
+        .filter(Boolean);
+    } catch {
+      return [];
+    }
+  }
+
+  function markUsed(f) {
+    fs.appendFileSync(path.join(dir, "used"), f + "\n");
+  }
+
+  function resetUsed() {
+    fs.writeFileSync(path.join(dir, "used"), "");
+  }
+
   // Write the captions.tsv index: one row per hash, first non-empty desc wins.
   // Rows: <hash>\t<loc>\t<desc>.
   function indexMeta(photos) {
@@ -123,5 +144,5 @@ export function openPool(dir, { minWidth = 600, download = fetchBuffer, log = ()
   }
 
   void log;
-  return { save, list, count, prune, current, setCurrent, indexMeta, meta, writeCaptionFor };
+  return { save, list, count, prune, current, setCurrent, indexMeta, meta, writeCaptionFor, used, markUsed, resetUsed };
 }
