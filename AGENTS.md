@@ -1,113 +1,62 @@
 # AGENTS.md
 
-Operational wisdom for this dotfiles repo. Non-obvious facts a fresh agent will otherwise get wrong. Dense on purpose. No em dashes in edits.
+Operational wisdom for this dotfiles repo. Only non-obvious facts a fresh agent would otherwise get wrong; anything readable from the config is omitted. Dense on purpose. No em dashes in edits.
 
-## Deploy flake is private
+## Rebuild model: source tree, not a deploy unit
 
-This repo is NOT the deploy flake. `~/.deploy-system` is a private flake that pins this repo as the `my-dotfiles` input. Its flake.lock stays private so pinned software versions never appear in this public repo (avoids CVE scanning of the versions in use).
+This repo is NOT the deploy flake. `~/.deploy-system` is a private flake pinning this repo as `my-dotfiles`; its flake.lock is never committed here (avoids CVE-scanning pinned versions), so the public repo has no canonical pins and the private repo is the only lock source of truth.
 
-All rebuilds go through it with the live-tree override, which makes uncommitted changes apply immediately:
+All rebuilds go through the private repo with the live-tree override so uncommitted edits apply immediately:
 
-- System level (root system.nix, hosts/): `sudo nixos-rebuild switch --flake ~/.deploy-system --override-input my-dotfiles path:/home/duskyelf/dotfiles --cores 16`
-- Home-manager level (gui/, cli/): `home-manager switch --flake ~/.deploy-system --override-input my-dotfiles path:/home/duskyelf/dotfiles --cores 16`
+- System (root system.nix, hosts/): `sudo nixos-rebuild switch --flake ~/.deploy-system --override-input my-dotfiles path:/home/duskyelf/dotfiles --cores 16`
+- Home (gui/, cli/): `home-manager switch --flake ~/.deploy-system --override-input my-dotfiles path:/home/duskyelf/dotfiles --cores 16`
+- gui/niri.nix is home-manager only.
 
-Pick the command by what changed: gui/* and cli/* are home-manager modules, root system.nix and hosts/* are system modules. gui/niri.nix in particular is home-manager only.
+The private repo is a read-only btrfs mount inside the jail (EROFS): the user edits it. Its `my-dotfiles.inputs.stylix.follows` overrides the repo's stylix url, so a repo flake.nix pin edit alone is inert.
 
-## Screenpad (DP-2): the toggle is deliberately bare
+scripts/ lifecycle: `scripts/` is symlinked into `~/.config` via mkOutOfStoreSymlink, so edits go live immediately, no rebuild. Exception: `power.sh` is store-pinned (content read at eval time, symlinked into /usr/local/sbin), so editing it needs a nixos-rebuild. Also, sudo NOPASSWD is scoped to `/usr/local/sbin/power.sh` ONLY: any root action from a keybind must route through power.sh, or sudo prompts and hangs the keybind.
 
-Mod+1 is instant `power.sh screenpad on` + `niri msg output DP-2 on` (reverse for off), no sleeps,
-no retries, no flock. That bareness is the fix, not a simplification: the DP link trains marginal,
-i915 rejects the modeset while it is degraded (atomic test EINVAL, niri logs "error creating DRM
-compositor"), and only a fresh bl_power cycle re-trains it. The instant `output on` misses the link
-harmlessly; the kernel's own hotplug uevent about 1.5s later triggers niri's auto-connect when the
-link is stable. Delays and retry loops land mid-training and churn the link further. If tempted to
-"improve" it: don't, the correct retry is another Mod+1 press.
+## Machine drifts from this repo by design
 
-Facts: bl_power inverted (0 = off, 4 = on). `niri msg output DP-2 on` on an unmapped connector
-replies "not connected, will apply when connected" and still exits 0, never trust its exit code.
-`niri msg -j outputs` is compact single-line JSON; `current_mode` is a mode index (`Option<usize>`),
-`logical` appears only when the output is really active.
+A daily user timer runs `nix flake update nixpkgs nixpkgs-unstable-small zen-browser` in `~/.deploy-system`, switches home-manager, and commits that flake.lock. Only those 3 inputs auto-update; the rest stay pinned until manually bumped. A mismatch between observed machine behavior and repo state is usually this drift, not a local edit.
 
-## The system updates itself (daily)
+## Agent shell runs inside a jail
 
-`home.nix` defines a user timer: daily it runs `nix flake update nixpkgs nixpkgs-unstable-small zen-browser`
-in `~/.deploy-system`, then `home-manager switch`, then commits `flake.lock` in the private repo.
-Consequences for agents:
-- The running machine drifts from this repo by design. Only those 3 inputs auto-update; niri, stylix,
-  home-manager, jail-nix stay pinned until manually updated.
-- This repo's `flake.lock` is gitignored and never committed, so the public repo has NO canonical pins.
-  `~/.deploy-system` is the only lock source of truth. Treat the public repo as a source tree, not a deploy unit.
-- A mismatch between observed machine behavior and repo state is usually the daily update, not a local edit.
+PATH is `/run/current-system/sw/bin` and `~/.nix-profile/bin` only; /nix/store and PATH dirs are readonly. No niri, /sys, DRM, sudo, systemctl, or bash network (curl fails with bwrap errors). The user is the only bridge to system state: hand them command blocks, interpret their pasted output. web_search works (one call per turn, 2-4 queries); fetch_content covers raw.githubusercontent.com and the GitHub API.
 
-## Many commands are jail wrappers
+## Many commands are jail wrappers (trust boundary)
 
-curl, wget, gh, worktrunk, opencode, and pi itself are built through the `jail` function in flake.nix
-(jail-nix input, `xdg-app` combinator). All get network + mount-cwd + their own config dirs, nothing more.
-- curl and wget cannot read arbitrary files (bwrap errors). That is the sandbox design, not a broken setup.
-- The jail curl cannot WRITE files with `-o` (exits 23, CURLE_WRITE_ERROR): curl opens the target through
-  its sandboxed mount view, which is read-only. A shell redirect (`curl ... > file`) works instead, because
-  the shell opens the file in the real filesystem and passes the already-open fd into the sandbox. Any script
-  that calls the jail curl to download must use `> file`, never `-o`. (bit by wallpaper.sh.)
-- A daemon backgrounded while a flock is held inherits the lock fd and keeps the flock forever, so every
-  later run reports "another run is in progress" with no live process holding it. Close the fd on the spawn
-  (e.g. `daemon ... 9>&- &` for an `exec 9>lock`) or the lock never releases. (bit by wallpaper.sh's
-  awww-daemon.)
-- The agent shell runs inside `jail "pi"`: readwrite on `~/.pi` (symlinked to the piBTW submodule),
-  readonly on /nix/store and the PATH dirs, PATH restricted to `/run/current-system/sw/bin` and
-  `~/.nix-profile/bin`. Only binaries under those paths are callable.
-- piBTW and opencodeBTW submodules hold agent state; dirty submodule entries are normal noise.
+curl, wget, gh, worktrunk, opencode, pi go through flake.nix's `jail` (jail-nix, `xdg-app`): network + mount-cwd + own config dirs, nothing more. This is a deliberate trust boundary; never widen their access. Gotchas:
+- Jail curl can't WRITE with `-o` (exits 23, CURLE_WRITE_ERROR). Use a shell redirect (`curl ... > file`) so the shell opens the target outside the sandbox.
+- A daemon backgrounded while holding a flock inherits the fd and holds the lock forever; every later run reports "another run is in progress". Close it on spawn (`daemon ... 9>&- &`). Bitten by scripts/wallpaper.mjs via lib/lock.mjs.
+- piBTW / opencodeBTW submodules hold agent state; dirty entries are noise, never commit.
 
 ## Load-bearing oddities, do not "clean up"
 
-- The perl overlay in flake.nix (ModuleCPANTS-Analyse `doCheck = false`) is required for gnucash to build.
-  The long comment explains why overrideScope is needed; removing the overlay breaks gnucash.
-- hosts/asus/system.nix compiles its own kernel: linux_7_1 from nixpkgs-fast-release (release-26.05, not
-  cached by default substituters) with march-native + LLVM LTO. Kernel changes mean a long local compile.
-  `PREEMPT_LAZY = lib.mkForce no` resolves a config choice conflict (commit a2b03f7); touching it breaks the build.
-- nixpkgs inputs are deliberately mixed: system nixpkgs = nixos-26.05, niri follows nixos-unstable,
-  stylix = release-25.11 code following 26.05 nixpkgs (hence `enableReleaseChecks = false` in home.nix).
-  Aligning them is not a fix.
-- dGPU (NVIDIA) is prime OFFLOAD and optional: power.sh powersave/ultra-powersave remove the PCI device
-  and unload nvidia modules; performance re-scans the bus and reloads them. niri ignores the nvidia render
-  node via config. A missing nvidia module is a power mode, not a bug.
+- Perl overlay in flake.nix (ModuleCPANTS-Analyse `doCheck = false`) is required for gnucash to build; its comment explains the overrideScope.
+- hosts/asus/system.nix compiles its own kernel (march-native + LLVM LTO) from nixpkgs-fast-release; changes mean a long local compile. `PREEMPT_LAZY = lib.mkForce no` resolves a config conflict (commit a2b03f7).
+- nixpkgs inputs are deliberately mixed (system release, niri unstable, stylix aligned with system); aligning them is not a fix.
+- Zen and other apps read light/dark from the portal's `org.freedesktop.appearance`, mapped to dconf `org/gnome/desktop/interface.color-scheme`. home.nix pins `prefer-dark`; unset, zen renders light despite `stylix.polarity = "dark"`. `stylix.targets.zen-browser.enable = false` only gates CSS, not dark/light. (niri issue #2878)
+- Stylix's gtk target sets `gtk.gtk4.theme` internally; a manual `gtk.gtk4.theme` line duplicates the definition and fails home-manager.
+- dGPU (NVIDIA) is prime OFFLOAD and optional: powersave/ultra-powersave remove the PCI device and unload modules; performance re-scans the bus. niri ignores the nvidia render node. A missing nvidia module is a power mode, not a bug.
 
-## Brightness and temperature
+## Screenpad (DP-2): the toggle is deliberately bare
 
-Two independent mechanisms, do not mix:
-- Backlight: brightnessctl only. `-d asus_screenpad` for the screenpad, default device for the main panel.
-- Color temperature: wl-gammarelay-rs only, via D-Bus: `busctl --user call rs.wl-gammarelay / rs.wl.gammarelay UpdateTemperature n <delta>`. The interface argument is required, and use `--` before `call` for negative values.
-- No day/night timers anywhere.
-- Kernel param `i915.enable_dpcd_backlight=3` is required for the OLED backlight to work; removing it breaks brightness.
+Mod+1 runs `power.sh screenpad on` + `niri msg output DP-2 on`, no sleeps/retries/flock. That bareness is the fix: the DP link trains marginal, i915 rejects the modeset mid-training (EINVAL), and only a fresh bl_power cycle re-trains it; the kernel's own hotplug uevent ~1.5s later triggers auto-connect. Delays and retries churn the link. Do not "improve" it; the retry is another Mod+1. Details: bl_power is inverted (0 off, 4 on); `niri msg output DP-2 on` on an unmapped connector still exits 0, never trust its exit code.
 
-## Taste: user preferences (visible only at zoom-out)
+## Brightness and temperature: two independent mechanisms, do not mix
 
-Each individual setting is discoverable; the pattern is not. Respect these when changing config.
+Backlight via brightnessctl only (`-d asus_screenpad` for the screenpad). Color temperature via wl-gammarelay-rs D-Bus only (`busctl --user call rs.wl-gammarelay / rs.wl.gammarelay UpdateTemperature n <delta>`; interface arg required, `--` before negative deltas). No day/night timers. Kernel param `i915.enable_dpcd_backlight=3` is required for the OLED backlight; removing it breaks brightness.
 
-- Desktop: content-first, zero chrome. gaps 0, no borders, no focus rings, no shadows, tab indicator
-  hidden, single centered column at full width. Do not "improve" the minimalism.
-- Touchpad is the primary input surface: volume, brightness, screenpad brightness, and color temperature
-  are all Mod/Alt + TouchpadScroll variants. Physical keys are secondary.
-- Notifications are transient (500-1000ms) and replace themselves, never stack. The Vim Mode / Visual
-  Mode indicators are notification-based (Ctrl+Return family). Keep notifications quiet.
-- Vim everywhere: zsh vi-mode, EDITOR=vim in every jail. Do not introduce modal editing conflicts.
-- Network tools (curl, wget, gh, worktrunk, opencode, pi) run jailed by design. That is a trust
-  boundary, not an oversight; never widen their access.
-- Battery-first laptop: 80% charge threshold, powersave governor, turbo never on battery, deep sleep.
-  Performance is opt-in: custom march-native kernel, prime-offload dGPU (CUDA only), Mod+9 power mode.
-- Aesthetic: gruvbox-material-dark-hard (stylix), JetBrainsMono Nerd Font, kitty, fuzzel, swaybg with
-  linux_fuck_nvidia.jpeg. The dGPU is a compute tool, not a display card.
-- Prompt minimalism: starship with all git info off, zoxide as `cd`, one persistent tmux session named
-  "main" auto-attached on shell start.
-- Media keys work while locked (allow-when-locked on volume, brightness, temperature, screenpad toggle).
-- Locale: en_US messages with en_IN number/date formats, Asia/Kolkata. Do not switch fully to en_IN.
-- Commits: conventional-commit prefixes (fix:/feat:/chore:/docs:), signed with the SSH key by default,
-  and no em dashes anywhere in messages or docs.
+## Design of this laptop: the pattern, not the settings
 
-## Environment constraints
+The settings live in the config; the pattern behind them is what to respect when changing config.
 
-- The agent shell runs in a jailed sandbox (hostname "jail"), NOT the real machine: no niri, no /sys, no DRM, no sudo, no systemctl, no bash network (curl fails with bwrap errors). Anything needing system access must be given to the user as a command block, then their pasted output interpreted: rebuilds, DRM/backlight inspection, journalctl, niri msg, udevadm, systemctl. The user is the only bridge to system state; code edits happen in the jail, system verification happens on the machine.
-- Network in the jail: web_search works but ONE call per turn with 2-4 queries; fetch_content works for raw.githubusercontent.com at any rev and the GitHub API.
-- sudo NOPASSWD is scoped to `/usr/local/sbin/power.sh` ONLY (root system.nix). power.sh is store-pinned: content is read from scripts/power.sh at eval time and the activation script symlinks the immutable store copy into /usr/local/sbin. Repo edits to power.sh take effect only on the next nixos-rebuild. Any root action from a keybind must route through power.sh, or sudo will prompt and hang the keybind.
-- scripts/ is symlinked into ~/.config via mkOutOfStoreSymlink: edits to scripts/ are live immediately, no rebuild needed. Exception: power.sh is NOT live (store-pinned, see the sudo bullet above), so edit it and run a nixos-rebuild for it to take effect.
-- piBTW and opencodeBTW are agent submodules; their dirty states are noise, never commit them.
-- niri 26.04 source is unpacked at /nix/store/k2nfl71r8lfxzgzj2yhfxycjkbqxx3im-source if internals are needed.
+- **Content-first minimalism.** Zero chrome: no gaps, borders, focus rings, shadows, or tab indicator; single centered full-width column. Do not "improve" the minimalism.
+- **Touchpad is the primary input.** Volume, brightness, screenpad brightness, and color temperature are Mod/Alt + scroll variants; physical keys are secondary. Media keys stay allow-when-locked.
+- **Battery-first, performance opt-in.** 80% charge cap, powersave governor, no turbo on battery, deep sleep. Perf = custom march-native kernel + prime-offload dGPU (CUDA only) via power mode. The dGPU is a compute tool, not a display card.
+- **Vim everywhere.** zsh vi-mode, EDITOR=vim in every jail. No modal-editing conflicts.
+- **Quiet transient UI.** Notifications last 500-1000ms and replace themselves, never stack; Vim/Visual-mode indicators are notification-based (Ctrl+Return family). Keep notifications quiet.
+- **Systemd-first background work.** Lifecycle belongs to user timers/services, not shell daemons or niri spawn-at-startup (wallpaper fetch/rotate/resume/startup, awww-daemon, wl-gammarelay, gamma-temperature, break-timer, flake-auto-update). Reach for a `systemd.user.timer`/`service` before a backgrounded script.
+
+Commits: conventional prefixes (fix:/feat:/chore:/docs:), SSH-signed by default, no em dashes in messages or docs.
