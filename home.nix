@@ -17,13 +17,14 @@
       name = "JetBrainsMonoNerdFontMono";
     };
     base16Scheme = "${pkgs.base16-schemes}/share/themes/gruvbox-material-dark-hard.yaml";
-
-    # FIXME: remove when stylix releases a 26.05 branch
-    enableReleaseChecks = false;
     targets.gnome.enable = false;
   };
 
-  gtk.gtk4.theme = config.gtk.theme;
+  # Zen-browser (and other apps) read light/dark from the portal's
+  # org.freedesktop.appearance interface, which maps to this GNOME dconf key.
+  # Unset, the portal reports light and zen renders light despite polarity=dark.
+  # (niri issue #2878)
+  dconf.settings."org/gnome/desktop/interface".color-scheme = "prefer-dark";
 
   # Don't change
   home.stateVersion = "25.11";
