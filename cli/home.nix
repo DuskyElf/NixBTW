@@ -5,7 +5,6 @@
     ./git.nix
     ./tmux.nix
     ./nvim.nix
-    ./opencode.nix
     ./pi-coding-agent.nix
   ];
 }

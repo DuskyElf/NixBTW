@@ -26,10 +26,10 @@ PATH is `/run/current-system/sw/bin` and `~/.nix-profile/bin` only; /nix/store a
 
 ## Many commands are jail wrappers (trust boundary)
 
-curl, wget, gh, worktrunk, opencode, pi go through flake.nix's `jail` (jail-nix, `xdg-app`): network + mount-cwd + own config dirs, nothing more. This is a deliberate trust boundary; never widen their access. Gotchas:
+curl, wget, gh, worktrunk, pi go through flake.nix's `jail` (jail-nix, `xdg-app`): network + mount-cwd + own config dirs, nothing more. This is a deliberate trust boundary; never widen their access. Gotchas:
 - Jail curl can't WRITE with `-o` (exits 23, CURLE_WRITE_ERROR). Use a shell redirect (`curl ... > file`) so the shell opens the target outside the sandbox.
 - A daemon backgrounded while holding a flock inherits the fd and holds the lock forever; every later run reports "another run is in progress". Close it on spawn (`daemon ... 9>&- &`). Bitten by scripts/wallpaper.mjs via lib/lock.mjs.
-- piBTW / opencodeBTW submodules hold agent state; dirty entries are noise, never commit.
+- piBTW submodule holds agent state; dirty entries are noise, never commit.
 
 ## Load-bearing oddities, do not "clean up"
 
