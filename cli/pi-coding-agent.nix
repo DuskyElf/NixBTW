@@ -5,6 +5,7 @@
   ...
 }:
 {
+  services.ollama.enable = true;
   home.packages = [
     (jail "pi" pkgs-unstable-small.pi-coding-agent (
       c: with c; [

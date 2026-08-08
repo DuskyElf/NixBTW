@@ -3,7 +3,6 @@
   pkgs,
   lib,
   inputs,
-  pkgs-unstable,
   ...
 }:
 let
