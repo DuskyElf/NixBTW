@@ -3,12 +3,20 @@
   home.packages = with pkgs; [
     inputs.neovimBTW.packages.${pkgs.stdenv.hostPlatform.system}.nvim
 
-    nil # nix LSP
     nodejs
-    stylua
+
+    nil
+    rust-analyzer
     lua-language-server
-    vscode-langservers-extracted
+    svelte-language-server
     luajitPackages.luacheck
+    typescript-language-server
+    tailwindcss-language-server
+    vscode-langservers-extracted
+
+    stylua
+    rustfmt
+    prettierd
   ];
 
   home.sessionVariables = {
