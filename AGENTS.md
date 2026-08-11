@@ -42,7 +42,9 @@ curl, wget, gh, worktrunk, pi go through flake.nix's `jail` (jail-nix, `xdg-app`
 
 ## Screenpad (DP-2): the toggle is deliberately bare
 
-Mod+1 runs `power.sh screenpad on` + `niri msg output DP-2 on`, no sleeps/retries/flock. That bareness is the fix: the DP link trains marginal, i915 rejects the modeset mid-training (EINVAL), and only a fresh bl_power cycle re-trains it; the kernel's own hotplug uevent ~1.5s later triggers auto-connect. Delays and retries churn the link. Do not "improve" it; the retry is another Mod+1. Details: bl_power is inverted (0 off, 4 on); `niri msg output DP-2 on` on an unmapped connector still exits 0, never trust its exit code.
+Mod+1 is a state-reading toggle: it reads bl_power (4 = on) and either turns off (`niri msg output DP-2 off` + `power.sh screenpad off`) or on (`power.sh screenpad on` + `niri msg output DP-2 on`), no sleeps/retries/flock. That bareness is the fix: the DP link trains marginal, i915 rejects the modeset mid-training (EINVAL), and only a fresh bl_power cycle re-trains it; the kernel's own hotplug uevent ~1.5s later triggers auto-connect. Delays and retries churn the link. Do not "improve" it; the retry is another Mod+1. Details: bl_power is inverted (0 off, 4 on); `niri msg output DP-2 on` on an unmapped connector still exits 0, never trust its exit code.
+
+At boot, the power-off is done by the `screenpad-off` systemd service (hosts/asus/system.nix), not niri: the asus_screenpad backlight probes late, so niri's spawn-at-startup `power.sh screenpad off` races and fails silently, leaving the panel lit. The service waits up to 30s for the device before writing 0 to bl_power.
 
 ## Brightness and temperature: two independent mechanisms, do not mix
 
@@ -57,6 +59,6 @@ The settings live in the config; the pattern behind them is what to respect when
 - **Battery-first, performance opt-in.** 80% charge cap, powersave governor, no turbo on battery, deep sleep. Perf = custom march-native kernel + prime-offload dGPU (CUDA only) via power mode. The dGPU is a compute tool, not a display card.
 - **Vim everywhere.** zsh vi-mode, EDITOR=vim in every jail. No modal-editing conflicts.
 - **Quiet transient UI.** Notifications last 500-1000ms and replace themselves, never stack; Vim/Visual-mode indicators are notification-based (Ctrl+Return family). Keep notifications quiet.
-- **Systemd-first background work.** Lifecycle belongs to user timers/services, not shell daemons or niri spawn-at-startup (wallpaper fetch/rotate/resume/startup, awww-daemon, wl-gammarelay, gamma-temperature, break-timer, flake-auto-update). Reach for a `systemd.user.timer`/`service` before a backgrounded script.
+- **Systemd-first background work.** Lifecycle belongs to user timers/services, not shell daemons or niri spawn-at-startup (wallpaper fetch/rotate/resume/startup, awww-daemon, quickshell, wl-gammarelay, gamma-temperature, break-timer, flake-auto-update). Reach for a `systemd.user.timer`/`service` before a backgrounded script.
 
 Commits: conventional prefixes (fix:/feat:/chore:/docs:), SSH-signed by default, no em dashes in messages or docs.
