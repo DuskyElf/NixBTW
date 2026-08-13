@@ -132,6 +132,8 @@ in
     Service = {
       Environment = "WAYLAND_DISPLAY=wayland-1";
       ExecStart = "${pkgs.wl-gammarelay-rs}/bin/wl-gammarelay-rs";
+      Restart = "on-failure";
+      RestartSec = "1s";
     };
     Install.WantedBy = [ "graphical-session.target" ];
   };
@@ -150,6 +152,8 @@ in
       Type = "oneshot";
       Environment = "WAYLAND_DISPLAY=wayland-1";
       ExecStart = "${setStartupTemperature}/bin/set-startup-temperature";
+      Restart = "on-failure";
+      RestartSec = "1s";
     };
     Install.WantedBy = [ "graphical-session.target" ];
   };
@@ -162,6 +166,8 @@ in
     Service = {
       Environment = "WAYLAND_DISPLAY=wayland-1";
       ExecStart = "${pkgs.awww}/bin/awww-daemon";
+      Restart = "on-failure";
+      RestartSec = "1s";
     };
     Install.WantedBy = [ "graphical-session.target" ];
   };
@@ -176,6 +182,8 @@ in
     Service = {
       Environment = "WAYLAND_DISPLAY=wayland-1";
       ExecStart = "${pkgs.quickshell}/bin/quickshell";
+      Restart = "on-failure";
+      RestartSec = "1s";
     };
     Install.WantedBy = [ "graphical-session.target" ];
   };
