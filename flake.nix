@@ -28,8 +28,6 @@
       url = "sourcehut:~alexdavid/jail.nix";
     };
 
-    microvm = {
-      url = "github:astro/microvm.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -83,11 +81,15 @@
           # (Test-Kwalitee, Finance-Quote, etc.) will use the overridden version internally.
           (final: prev: {
             perl5 = prev.perl5.override {
-              overrides = _: prev.perl5.pkgs.overrideScope (finalself: prevself: {
-                ModuleCPANTSAnalyse = prevself.ModuleCPANTSAnalyse.overrideAttrs (old: {
-                  doCheck = false;
-                });
-              });
+              overrides =
+                _:
+                prev.perl5.pkgs.overrideScope (
+                  finalself: prevself: {
+                    ModuleCPANTSAnalyse = prevself.ModuleCPANTSAnalyse.overrideAttrs (old: {
+                      doCheck = false;
+                    });
+                  }
+                );
             };
           })
         ];
@@ -145,17 +147,6 @@
         ];
       };
 
-      nixosConfigurations.review-vm = nixpkgs.lib.nixosSystem {
-        inherit system;
-        specialArgs = {
-          inherit inputs pkgs-unstable;
-        };
-        modules = [
-          inputs.microvm.nixosModules.microvm
-          ./cli/review-vm.nix
-        ];
-      };
-
       homeConfigurations."duskyelf@asus" = home-manager.lib.homeManagerConfiguration {
         inherit pkgs;
         modules = [
@@ -170,7 +161,12 @@
           inputs.zen-browser.homeModules.beta
         ];
         extraSpecialArgs = {
-          inherit inputs pkgs-unstable pkgs-unstable-small jail;
+          inherit
+            inputs
+            pkgs-unstable
+            pkgs-unstable-small
+            jail
+            ;
         };
       };
 
