@@ -28,6 +28,8 @@
       url = "sourcehut:~alexdavid/jail.nix";
     };
 
+    neovimBTW = {
+      url = ./neovimBTW;
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -45,8 +47,6 @@
       url = "github:sodiboo/niri-flake";
       inputs.nixpkgs.follows = "nixpkgs-unstable";
     };
-
-    neovimBTW.url = ./neovimBTW;
 
     zen-browser = {
       url = "github:0xc000022070/zen-browser-flake/beta";
