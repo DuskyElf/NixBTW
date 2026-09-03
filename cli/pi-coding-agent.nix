@@ -1,6 +1,7 @@
 {
   config,
   jail,
+  pkgs,
   pkgs-unstable-small,
   ...
 }:
@@ -21,6 +22,22 @@
         (set-env "PATH" "/run/current-system/sw/bin:/home/duskyelf/.nix-profile/bin")
 
         (set-env "EDITOR" "vim")
+
+        # done-bell: system notification + audio + media pause (mirrors gui/idle.nix break-timer)
+        notifications
+        pipewire
+        (dbus {
+          talk = [
+            "org.mpris.MediaPlayer2.*"
+            "org.freedesktop.DBus"
+          ];
+        })
+        (add-pkg-deps [
+          pkgs.playerctl
+          pkgs.mako
+          pkgs.libnotify
+          pkgs.sound-theme-freedesktop
+        ])
       ]
     ))
   ];
