@@ -207,12 +207,15 @@ in
     Install.WantedBy = [ "graphical-session.target" ];
   };
 
+  # X11 support: niri 25.08+ spawns xwayland-satellite on demand when the
+  # binary is in PATH, so no spawn-at-startup or systemd service is needed.
   home.packages = with pkgs; [
     awww
     quickshell
     wtype
     wl-gammarelay-rs
     brightnessctl
+    xwayland-satellite
   ];
 
   programs = {
