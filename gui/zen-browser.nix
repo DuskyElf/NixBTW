@@ -18,6 +18,7 @@ in
         network
         notifications
         (xdg-app home "zen")
+        (readwrite "/home/duskyelf/Downloads/")
         (dbus {
           talk = [
             "org.freedesktop.portal.Desktop"
