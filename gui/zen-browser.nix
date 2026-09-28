@@ -11,7 +11,7 @@ let
 in
 {
   home.packages = [
-    (jail "zen-browser" zen-browser (
+    (jail "zen-beta" zen-browser (
       c: with c; [
         gui
         gpu
