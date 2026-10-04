@@ -81,6 +81,24 @@
 
     nvidia = {
       open = true;
+
+      # 595.x (what 26.05 ships) predates Linux 7.2 and cannot compile against it:
+      # 7.2 removed include/linux/platform/ outright, which is the header
+      # nv-ipc-soc.c probes for, and NVIDIA only added 7.2 support in 610.57.04.
+      # So the driver is 615.71.09, built against our kernel via mkDriver.
+      # Hashes copied from nvidia-x11 (new_feature) at nixpkgs-unstable-small rev
+      # 5b7b3c13; bump by hand. Cost: this exact driver closure is not in any binary
+      # cache, so the userspace build happens locally once, then stays in the store.
+      # (The kernel module always builds locally anyway, custom kernel.)
+      package = config.boot.kernelPackages.nvidiaPackages.mkDriver {
+        version = "615.71.09";
+        sha256_64bit = "sha256-zc7tIrvrYSSNGm3qvCWWZz46ZQFpjucayNL9wo87cP4=";
+        sha256_aarch64 = "sha256-IbekQhE7cFfmnPZaLY9NDYcF7CoNZ+2Qb7sRd4EOgWM=";
+        openSha256 = "sha256-3gByMYIwFzRaLdDG+roCEOuKRRJDrljG9AlLnRZTirM=";
+        settingsSha256 = "sha256-LK1LU8mDkM/XVRKPBtuOZh9nIP/lGFLAJnmasEX8jhg=";
+        persistencedSha256 = "sha256-qPRb+3d88+2RcpUkoBTbjIaImnQ+jX+/6p1vXcJ5geE=";
+      };
+
       modesetting.enable = true;
       powerManagement.enable = true;
       powerManagement.finegrained = true;
@@ -108,8 +126,10 @@
 
   environment.sessionVariables = {
     CUDA_PATH = "${pkgs.cudatoolkit}";
-    LD_LIBRARY_PATH = "${config.boot.kernelPackages.nvidiaPackages.stable}/lib";
-    EXTRA_LDFLAGS = "-L/lib -L${config.boot.kernelPackages.nvidiaPackages.stable}/lib";
+    # The driver we actually built, not nvidiaPackages.stable: kernel module and
+    # userspace libs must be the same version or CUDA refuses to load.
+    LD_LIBRARY_PATH = "${config.hardware.nvidia.package}/lib";
+    EXTRA_LDFLAGS = "-L/lib -L${config.hardware.nvidia.package}/lib";
 
     LIBVA_DRIVER_NAME = "iHD"; # for iGPU support from some applicaptions
   };
@@ -144,7 +164,7 @@
     #kernelPackages = pkgs.linuxPackages_latest;
 
     kernelPackages = pkgs-fast-release.linuxPackagesFor (
-      pkgs-fast-release.linuxKernel.kernels.linux_7_1.override {
+      pkgs-fast-release.linuxKernel.kernels.linux_7_2.override {
         ignoreConfigErrors = true;
 
         # Start with an all-no config.  It is slightly easiler to pull together
