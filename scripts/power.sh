@@ -38,7 +38,6 @@ if [ "$MODE" = "screenpad" ]; then
 elif [ "$MODE" = "ultra-powersave" ]; then
     # Switch to ultra-powersave mode (force-remove dGPU)
     auto-cpufreq --force powersave
-    undervolt -t 70
     # Remove PCI device first, then unload modules. set -e would abort on
     # "nvidia_drm is in use" when zen's RDD holds renderD129/nvidia0
     # (invisible to nvidia-smi), so use || true and retry after killing holders.
@@ -59,7 +58,6 @@ elif [ "$MODE" = "ultra-powersave" ]; then
 elif [ "$MODE" = "powersave" ]; then
     # Switch to powersave mode (reset CPU, force-remove dGPU like ultra)
     auto-cpufreq --force reset
-    undervolt -t 93
     sh -c 'echo 1 > /sys/bus/pci/devices/0000:01:00.0/remove' || true
     "$MODPROBE" -r nvidia_uvm nvidia_drm nvidia_modeset nvidia || true
     if lsmod | grep -q "^nvidia"; then
@@ -76,7 +74,6 @@ elif [ "$MODE" = "powersave" ]; then
 elif [ "$MODE" = "performance" ]; then
     # Switch to performance mode
     auto-cpufreq --force reset
-    undervolt -t 93
     echo 1 | sudo tee /sys/bus/pci/rescan
     "$MODPROBE" nvidia nvidia_modeset nvidia_drm
     run_user_cmd notify-send "Power Mode" "Switched to performance mode" --expire-time=500

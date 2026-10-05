@@ -6,6 +6,22 @@
   modulesPath,
   ...
 }:
+let
+  # setup_var.efi version pinned from upstream releases.
+  # Bump version + hash together. Prefetch new hash with:
+  # nix-prefetch-url --type sha256 https://github.com/datasone/setup_var.efi/releases/download/<version>/setup_var.efi
+  setupVarVersion = "0.3.1";
+  setupVarEfi = pkgs.fetchurl {
+    url = "https://github.com/datasone/setup_var.efi/releases/download/${setupVarVersion}/setup_var.efi";
+    hash = "sha256-y+V3e2EnbT81BqKLNIRTJukvbBcb/1kXfjkS/iD0mEA=";
+  };
+  # UX581GV BIOS v309 offsets in Setup(0x1). Single source for the entries below.
+  biosUnlockVars = {
+    varstore = "Setup(0x1)";
+    overclockingLock = "0x78C";
+    cfgLock = "0x6F0";
+  };
+in
 {
   hostOptions.hostName = "asus";
   nixpkgs.hostPlatform = "x86_64-linux";
@@ -61,6 +77,46 @@
         "fmask=0077"
         "dmask=0077"
       ];
+    };
+  };
+
+  # systemd-boot entries for unlocking undervolting (UX581GV BIOS v309).
+  # The .efi is pinned above and installed to the ESP, no manual copy needed.
+  boot.loader.systemd-boot.extraFiles."EFI/tools/setup_var.efi" = setupVarEfi;
+
+  boot.loader.systemd-boot.extraEntries = {
+    "bios-read-locks.conf" = ''
+      title   BIOS Unlock: Read Current Lock Status
+      efi     /EFI/tools/setup_var.efi
+      options ${biosUnlockVars.varstore}:${biosUnlockVars.overclockingLock} ${biosUnlockVars.varstore}:${biosUnlockVars.cfgLock}
+    '';
+
+    "bios-final-unlock.conf" = ''
+      title   BIOS Unlock: DISABLE Overclocking & CFG Locks (0x00)
+      efi     /EFI/tools/setup_var.efi
+      options ${biosUnlockVars.varstore}:${biosUnlockVars.overclockingLock}=0x00 ${biosUnlockVars.varstore}:${biosUnlockVars.cfgLock}=0x00
+    '';
+
+    "bios-reset-lock.conf" = ''
+      title   BIOS Lock: ENABLE Overclocking & CFG Locks (0x01 - Stock)
+      efi     /EFI/tools/setup_var.efi
+      options ${biosUnlockVars.varstore}:${biosUnlockVars.overclockingLock}=0x01 ${biosUnlockVars.varstore}:${biosUnlockVars.cfgLock}=0x01
+    '';
+  };
+
+  services.undervolt = {
+    enable = true;
+
+    coreOffset = -134;
+    gpuOffset = -130;
+
+    p1 = {
+      window = 28;
+      limit = 62;
+    };
+    p2 = {
+      window = 10;
+      limit = 75;
     };
   };
 
