@@ -23,6 +23,9 @@
 
         (set-env "EDITOR" "vim")
 
+        # clipboard: wl-copy/wl-paste need the Wayland socket
+        wayland
+
         # done-bell: system notification + audio + media pause (mirrors gui/idle.nix break-timer)
         notifications
         pipewire
@@ -37,6 +40,7 @@
           pkgs.mako
           pkgs.libnotify
           pkgs.sound-theme-freedesktop
+          pkgs.wl-clipboard
         ])
       ]
     ))
