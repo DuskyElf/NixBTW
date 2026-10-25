@@ -23,7 +23,9 @@ in
           talk = [
             "org.freedesktop.portal.Desktop"
             "org.freedesktop.portal.Documents"
+            "org.mpris.MediaPlayer2.*"
           ];
+          own = [ "org.mpris.MediaPlayer2.*" ];
         })
       ]
     ))
