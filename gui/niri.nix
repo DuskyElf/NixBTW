@@ -304,7 +304,7 @@ in
 
           "Mod+B".action =
             spawn "bash" "-c"
-              "systemctl --user stop break-timer.service || true; systemctl --user restart break-timer.timer; makoctl dismiss -n $(cat /tmp/break_timer_id) || true; rm -f /tmp/break_timer_id";
+              "systemctl --user stop break-timer.service || true; systemctl --user restart break-timer.timer; id=$(cat /tmp/break_timer_id 2>/dev/null); [ -n \"$id\" ] && makoctl dismiss -n \"$id\" 2>/dev/null; rm -f /tmp/break_timer_id /tmp/break-timer-notify-id";
 
           "Mod+P" = {
             repeat = false;

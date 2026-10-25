@@ -50,7 +50,10 @@ let
     exec 200>${tmp}/break-timer.lock
     ${pkgs.util-linux}/bin/flock -n 200 || exit 0
 
-    ${pkgs.libnotify}/bin/notify-send -p "Break Time!" "Look away for 20 seconds. Locking in 10s. Press Mod+B to skip." -u critical > ${tmp}/break-timer-notify-id
+    NOTIFY_ID=$(${pkgs.libnotify}/bin/notify-send -p "Break Time!" "Look away for 20 seconds. Locking in 10s. Press Mod+B to skip." -u critical)
+    echo "$NOTIFY_ID" > /tmp/break_timer_id
+    echo "$NOTIFY_ID" > ${tmp}/break-timer-notify-id
+
     ${pkgs.playerctl}/bin/playerctl -a pause 2>/dev/null || true
     ${pkgs.pipewire}/bin/pw-play ${pkgs.sound-theme-freedesktop}/share/sounds/freedesktop/stereo/message-new-instant.oga >/dev/null 2>&1 &
 
