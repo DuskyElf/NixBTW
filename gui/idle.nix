@@ -1,86 +1,68 @@
-{
-  config,
-  pkgs,
-  ...
-}:
+{ pkgs, ... }:
 
 let
   bt = "${pkgs.brightnessctl}/bin/brightnessctl";
+  tmp = "/tmp";
 
-  dim60 = pkgs.writeShellScriptBin "dim60" ''
-    if pidof swaylock > /dev/null; then
-      OLD_B=$(${bt} get 2>/dev/null || echo "")
-      if [ -n "$OLD_B" ]; then
-        echo "$OLD_B" > /tmp/brightness_before_60
-        ${bt} set 0% > /dev/null 2>&1
-        touch /tmp/dimmed_by_60
-      fi
-    fi
-  '';
-  resume60 = pkgs.writeShellScriptBin "resume60" ''
-    if [ -f /tmp/dimmed_by_60 ]; then
-      OLD_B=$(cat /tmp/brightness_before_60 2>/dev/null || ${bt} max 2>/dev/null || echo "")
-      if [ -n "$OLD_B" ]; then
-        ${bt} set "$OLD_B" > /dev/null 2>&1
-      fi
-      rm -f /tmp/dimmed_by_60
-    fi
-  '';
-  dim120 = pkgs.writeShellScriptBin "dim120" ''
-    if [ ! -f /tmp/dimmed_by_60 ]; then
-      OLD_B=$(${bt} get 2>/dev/null || echo "")
-      if [ -n "$OLD_B" ]; then
-        echo "$OLD_B" > /tmp/brightness_before_120
-        ${bt} set 0% > /dev/null 2>&1
-        touch /tmp/dimmed_by_120
-      fi
-    fi
-    ${pkgs.systemd}/bin/systemctl --user stop break-timer.timer || true
-    ${pkgs.systemd}/bin/systemctl --user stop break-timer.service || true
-  '';
-  resume120 = pkgs.writeShellScriptBin "resume120" ''
-    if [ -f /tmp/dimmed_by_120 ]; then
-      OLD_B=$(cat /tmp/brightness_before_120 2>/dev/null || ${bt} max 2>/dev/null || echo "")
-      if [ -n "$OLD_B" ]; then
-        ${bt} set "$OLD_B" > /dev/null 2>&1
-      fi
-      rm -f /tmp/dimmed_by_120
-    fi
-    ${pkgs.systemd}/bin/systemctl --user start break-timer.timer
+  dimIfLocked = pkgs.writeShellScriptBin "dimIfLocked" ''
+    ${pkgs.procps}/bin/pidof swaylock >/dev/null || exit 0
+    ${pkgs.systemd}/bin/systemctl --user stop break-timer.timer break-timer.service 2>/dev/null || true
+    old=$(${bt} get 2>/dev/null) || exit 0
+    [ -n "$old" ] || exit 0
+    echo "$old" > ${tmp}/brightness.before.lock
+    ${bt} set 0% >/dev/null 2>&1
+    : > ${tmp}/dimmed.lock
   '';
 
-  skipBreak = pkgs.writeShellScriptBin "skip-break" ''
-    if [ -f /tmp/break_timer_id ]; then
-      ${pkgs.mako}/bin/makoctl dismiss -n $(cat /tmp/break_timer_id) || true
-      rm -f /tmp/break_timer_id
-    fi
-    # Cancel an in-progress pre-lock pause, then push the next break 20min out
-    ${pkgs.systemd}/bin/systemctl --user stop break-timer.service || true
-    ${pkgs.systemd}/bin/systemctl --user restart break-timer.timer
+  resumeIfDimmed = pkgs.writeShellScriptBin "resumeIfDimmed" ''
+    [ -f ${tmp}/dimmed.lock ] || exit 0
+    old=$(cat ${tmp}/brightness.before.lock 2>/dev/null) || old=$(${bt} max 2>/dev/null)
+    [ -n "$old" ] && ${bt} set "$old" >/dev/null 2>&1
+    rm -f ${tmp}/dimmed.lock ${tmp}/brightness.before.lock
+    ${pkgs.systemd}/bin/systemctl --user restart break-timer.timer 2>/dev/null || true
+  '';
+
+  dimOnIdle = pkgs.writeShellScriptBin "dimOnIdle" ''
+    # if already dimmed by lock dimmer, don't touch
+    [ -f ${tmp}/dimmed.lock ] && exit 0
+    old=$(${bt} get 2>/dev/null) || exit 0
+    [ -n "$old" ] || exit 0
+    echo "$old" > ${tmp}/brightness.before.idle
+    ${bt} set 0% >/dev/null 2>&1
+    : > ${tmp}/dimmed.idle
+    ${pkgs.systemd}/bin/systemctl --user stop break-timer.timer break-timer.service 2>/dev/null || true
+  '';
+
+  resumeOnIdle = pkgs.writeShellScriptBin "resumeOnIdle" ''
+    [ -f ${tmp}/dimmed.idle ] || exit 0
+    old=$(cat ${tmp}/brightness.before.idle 2>/dev/null) || old=$(${bt} max 2>/dev/null)
+    [ -n "$old" ] && ${bt} set "$old" >/dev/null 2>&1
+    rm -f ${tmp}/dimmed.idle ${tmp}/brightness.before.idle
+    ${pkgs.systemd}/bin/systemctl --user restart break-timer.timer 2>/dev/null || true
   '';
 
   breakTimer = pkgs.writeShellScriptBin "break-timer" ''
-    # Notify and save the notification ID
-    NOTIFY_ID=$(${pkgs.libnotify}/bin/notify-send -p "Break Time!" "Look away for 20 seconds. Locking in 10s. Press Mod+B to skip." -u critical)
-    echo "$NOTIFY_ID" > /tmp/break_timer_id
+    ${pkgs.procps}/bin/pidof swaylock >/dev/null && exit 0
 
-    # Pause any running media
-    ${pkgs.playerctl}/bin/playerctl -a pause || true
+    sid=$(${pkgs.systemd}/bin/loginctl list-sessions --no-legend 2>/dev/null | ${pkgs.gawk}/bin/awk -v u="$(id -u)" '$3==u{print $1; exit}')
+    [ -n "$sid" ] && ${pkgs.systemd}/bin/loginctl show-session "$sid" -p LockedHint 2>/dev/null | ${pkgs.gnugrep}/bin/grep -q LockedHint=yes && exit 0
 
-    # Play notification sound (runs in background so it doesn't delay locking)
-    ${pkgs.pipewire}/bin/pw-play ${pkgs.sound-theme-freedesktop}/share/sounds/freedesktop/stereo/message-new-instant.oga &
+    exec 200>${tmp}/break-timer.lock
+    ${pkgs.util-linux}/bin/flock -n 200 || exit 0
 
-    # Wait 10 seconds before locking
+    ${pkgs.libnotify}/bin/notify-send -p "Break Time!" "Look away for 20 seconds. Locking in 10s. Press Mod+B to skip." -u critical > ${tmp}/break-timer-notify-id
+    ${pkgs.playerctl}/bin/playerctl -a pause 2>/dev/null || true
+    ${pkgs.pipewire}/bin/pw-play ${pkgs.sound-theme-freedesktop}/share/sounds/freedesktop/stereo/message-new-instant.oga >/dev/null 2>&1 &
+
     sleep 10
-
-    # Lock the screen via loginctl so swaylock isn't killed by systemd when the timer resets/stops
+    ${pkgs.procps}/bin/pidof swaylock >/dev/null && exit 0
     ${pkgs.systemd}/bin/loginctl lock-session
   '';
 in
 {
   systemd.user.services.break-timer = {
     Unit = {
-      Description = "20-minute break action (notify + lock)";
+      Description = "Break timer action";
       PartOf = [ "graphical-session.target" ];
       After = [ "graphical-session.target" ];
     };
@@ -90,40 +72,31 @@ in
     };
   };
 
-  # Fires every 20 minutes. The service is started only by this timer (it is
-  # NOT auto-enabled) so a break does not trigger at login.
   systemd.user.timers.break-timer = {
-    Unit.Description = "20-minute break timer";
+    Unit.Description = "Break timer (20min inactivity)";
     Timer = {
+      OnBootSec = "20min";
       OnActiveSec = "20min";
-      OnUnitActiveSec = "20min";
+      AccuracySec = "1s";
     };
-    Install = {
-      WantedBy = [ "graphical-session.target" ];
-    };
+    Install.WantedBy = [ "graphical-session.target" ];
   };
 
   services.hypridle = {
     enable = true;
     settings = {
-      general = {
-        lock_cmd = "pidof swaylock || ${pkgs.swaylock-effects}/bin/swaylock";
-      };
-
+      general.lock_cmd = "pidof swaylock || ${pkgs.swaylock-effects}/bin/swaylock";
       listener = [
-        # Listener 1: 60s - If locked, set brightness to 0
         {
           timeout = 60;
-          on-timeout = "${dim60}/bin/dim60";
-          on-resume = "${resume60}/bin/resume60";
+          on-timeout = "${dimIfLocked}/bin/dimIfLocked";
+          on-resume = "${resumeIfDimmed}/bin/resumeIfDimmed";
         }
-        # Listener 2: 2 minutes (120s) - If not already dimmed, set brightness to 0 and stop break timer
         {
           timeout = 120;
-          on-timeout = "${dim120}/bin/dim120";
-          on-resume = "${resume120}/bin/resume120";
+          on-timeout = "${dimOnIdle}/bin/dimOnIdle";
+          on-resume = "${resumeOnIdle}/bin/resumeOnIdle";
         }
-        # Listener 3: 3 minutes (180s) - Auto-lock
         {
           timeout = 180;
           on-timeout = "${pkgs.systemd}/bin/loginctl lock-session";
