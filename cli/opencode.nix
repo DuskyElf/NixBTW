@@ -14,6 +14,9 @@
 
         (xdg-app config.home.homeDirectory "opencode")
 
+        # cached git clone inspections
+        (readwrite "/home/duskyelf/.git-clones/")
+
         # can run any binary with limited file system access
         (readonly "/nix/store")
         (readonly "/run/current-system/sw/bin")
