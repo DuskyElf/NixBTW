@@ -41,11 +41,13 @@ in
     networking = {
       networkmanager.enable = true;
       hostName = config.hostOptions.hostName;
-      #firewall = {
-      #  enable = true;
-      #  allowedTCPPorts = [ 9000 ];
-      #  allowedUDPPorts = [ 9000 ];
-      #};
+      firewall = {
+        enable = true;
+        # t3code desktop server on 3773. The app's "Network access"
+        # toggle binds it to LAN; without this only loopback
+        # gets through.
+        allowedTCPPorts = [ 3773 ];
+      };
     };
 
     services.blueman.enable = true;
