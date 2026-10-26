@@ -15,7 +15,7 @@ let
 
   #      (readwrite "/home/duskyelf/Projects")
   #      (readwrite "/home/duskyelf/dotfiles/")
-  #      (readwrite "/home/duskyelf/.deploy-system/")
+  #      (readwrite "/home/duskyelf/dotfiles/deploy-system/")
 
   #      (readonly "/home/duskyelf/.ssh/")
   #      (fwd-env "SSH_AUTH_SOCK")

@@ -14,7 +14,7 @@ You steward the whole system. Keep each change small, reversible, and scoped to 
 
 ## Repo map
 
-Top level owns the machine: `flake.nix`, `home.nix`, `system.nix`, `cli/`, `gui/`, `hosts/`, `scripts/`, `quickshell/`, `hot-configs/`.
+Top level owns the machine: `flake.nix`, `home.nix`, `system.nix`, `cli/`, `gui/`, `hosts/`, `scripts/`, `quickshell/`, `hot-configs/`, plus `deploy-system/` (private wrapper flake, gitignored, never pushed).
 
 Subrepos own their domains. Read their docs when you work inside them and do not duplicate them here:
 
@@ -26,18 +26,18 @@ If a fact lives in config or a subrepo doc, point at it. Do not copy it here.
 
 ## Rebuild model: source tree, not a deploy unit
 
-This repo is NOT the deploy flake. `~/.deploy-system` is a private flake pinning this repo as `my-dotfiles`. Its flake.lock is never committed here, so it is the only lock source of truth. You may read it and propose edits to it. The user applies them.
+This repo is NOT the deploy flake. `deploy-system/` is a private wrapper flake pinning this repo as `my-dotfiles`. It is gitignored with its own nested git repo and never pushed, so its flake.lock is the only lock source of truth. You may read it and propose edits to it. The user applies them.
 
-All rebuilds go through the private repo with the live-tree override so uncommitted edits apply immediately:
+All rebuilds go through the wrapper with the live-tree override so uncommitted edits apply immediately:
 
-* System (`system.nix`, `hosts/`): `sudo nixos-rebuild switch --flake ~/.deploy-system --override-input my-dotfiles path:/home/duskyelf/dotfiles --cores 16`
-* Home (`gui/`, `cli/`): `home-manager switch --flake ~/.deploy-system --override-input my-dotfiles path:/home/duskyelf/dotfiles --cores 16`
+* System (`system.nix`, `hosts/`): `sudo nixos-rebuild switch --flake /home/duskyelf/dotfiles/deploy-system --override-input my-dotfiles path:/home/duskyelf/dotfiles --cores 16`
+* Home (`gui/`, `cli/`): `home-manager switch --flake /home/duskyelf/dotfiles/deploy-system --override-input my-dotfiles path:/home/duskyelf/dotfiles --cores 16`
 * `gui/niri.nix` is home-manager only.
 * `nixos-rebuild` needs sudo and you have no password: hand it to the user, prefilled, in a single command block. `home-manager switch` you can run yourself after confirming.
 
 `my-dotfiles.inputs.stylix.follows` in the private flake overrides this repo's stylix pin, so editing `flake.nix` here alone is inert for stylix.
 
-A daily user timer runs `nix flake update nixpkgs nixpkgs-unstable-small zen-browser` in `~/.deploy-system`, switches home-manager, and commits that lock. Only those 3 inputs auto-update. When the machine disagrees with this repo, suspect that drift first, not a local edit. Do not hand-edit pins the timer owns.
+A daily user timer runs `nix flake update nixpkgs nixpkgs-unstable-small zen-browser` in `deploy-system/`, switches home-manager, and commits that lock. Only those 3 inputs auto-update. When the machine disagrees with this repo, suspect that drift first, not a local edit. Do not hand-edit pins the timer owns.
 
 ## Liveness and shell
 

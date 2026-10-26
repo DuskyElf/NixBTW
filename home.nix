@@ -45,7 +45,7 @@
         trap 'echo "Caught SIGTERM, exiting..."; exit 143' TERM
 
         # Change to the PRIVATE wrapper repo
-        DEPLOY_DIR="/home/duskyelf/.deploy-system"
+        DEPLOY_DIR="/home/duskyelf/dotfiles/deploy-system"
         cd "$DEPLOY_DIR" || exit 1
 
         echo "Starting flake auto-update at $(date)"
@@ -64,7 +64,7 @@
         # my-dotfiles rev in the deploy lock goes stale whenever dotfiles commits
         # (e.g. the voxtype removal), and without the override the switch
         # evaluates that stale rev and fails to resolve its inputs.
-        if home-manager switch --flake ~/.deploy-system --override-input my-dotfiles path:/home/duskyelf/dotfiles --cores 2; then
+        if home-manager switch --flake /home/duskyelf/dotfiles/deploy-system --override-input my-dotfiles path:/home/duskyelf/dotfiles --cores 2; then
           echo "Home-manager switch successful"
           ${pkgs.libnotify}/bin/notify-send "Update successful" "Successfully updated and switched privately"
 

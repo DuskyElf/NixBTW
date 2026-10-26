@@ -2,3 +2,5 @@
 flake.lock
 scripts/node_modules/
 .tmp/
+# Private deploy wrapper (lock source of truth, never pushed)
+deploy-system/
