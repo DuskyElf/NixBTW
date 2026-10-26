@@ -1,3 +1,4 @@
 **/*.swp
 flake.lock
 scripts/node_modules/
+.tmp/
