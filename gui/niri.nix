@@ -286,19 +286,6 @@ in
         };
 
         binds = with config.lib.niri.actions; {
-          "Ctrl+Return".action =
-            spawn "bash" "-c"
-              "[ -f '/tmp/niri-vmn' ] || notify-send 'Vim Mode' --urgency=critical -p > /tmp/niri-vmn";
-          "Ctrl+Shift+Return".action =
-            spawn "bash" "-c"
-              "notify-send '' --replace-id=$(cat /tmp/niri-vmn) --expire-time=1; rm -f /tmp/niri-vmn";
-          "Ctrl+Alt+Return".action =
-            spawn "bash" "-c"
-              "notify-send 'Visual Mode' --replace-id=$(cat /tmp/niri-vmn)";
-          "Ctrl+Alt+Shift+Return".action =
-            spawn "bash" "-c"
-              "notify-send 'Vim Mode' --urgency=critical --replace-id=$(cat /tmp/niri-vmn)";
-
           "Mod+Shift+Slash".action = show-hotkey-overlay;
           "Super+Alt+L".action = spawn "swaylock";
 
