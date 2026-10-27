@@ -36,6 +36,10 @@
       Description = "Auto-update flakes and switch home-manager on login";
       IgnoreOnIsolate = true;
       X-SwitchMethod = "keep-old";
+      # Persistent timer fires right after login, often before wifi is up.
+      # Order after network-online so we don't fail on DNS on every boot.
+      Wants = [ "network-online.target" ];
+      After = [ "network-online.target" ];
     };
     Service = {
       Type = "oneshot";
@@ -49,6 +53,22 @@
         cd "$DEPLOY_DIR" || exit 1
 
         echo "Starting flake auto-update at $(date)"
+
+        # Wifi usually connects after login; the Persistent timer fires
+        # immediately, so wait for real connectivity instead of failing
+        # on the first DNS miss (channels.nixos.org unresolvable).
+        for i in $(seq 1 60); do
+          if ${pkgs.curl}/bin/curl -sf --max-time 5 -o /dev/null https://channels.nixos.org/flake-registry.json; then
+            break
+          fi
+          echo "No network yet ($i/60), waiting..."
+          sleep 5
+          if [ "$i" -eq 60 ]; then
+            echo "No network after 5min, aborting"
+            ${pkgs.libnotify}/bin/notify-send -u critical "Update failed" "No network after 5 minutes"
+            exit 1
+          fi
+        done
 
         echo "Updating flake inputs..."
         if nix flake update nixpkgs nixpkgs-unstable-small zen-browser; then
