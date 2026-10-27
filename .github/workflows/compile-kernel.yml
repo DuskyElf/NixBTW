@@ -243,6 +243,12 @@ jobs:
           done < ./kept-releases
           COUNT=$(find ./narinfos -name '*.narinfo' | wc -l)
           [ "$COUNT" -gt 0 ] || { echo "no narinfos in any kernel release" >&2; exit 1; }
+          # Nix reads this before it reads a single narinfo. keep_files: false
+          # wipes it every deploy, so it is written here rather than uploaded
+          # once. Priority 50 sits below cache.nixos.org (40) on purpose: for
+          # any path an upstream cache also has, upstream wins, so only what
+          # nobody else serves (our kernel) comes from us.
+          printf 'StoreDir: /nix/store\nWantMassQuery: 1\nPriority: 50\n' > ./narinfos/nix-cache-info
           echo "$COUNT narinfos from $(wc -l < ./kept-releases) release(s)"
 
       - name: Deploy Narinfos To GitHub Pages
@@ -289,6 +295,18 @@ jobs:
               || { REASON="nar is $actual bytes, narinfo says $size"; return 1; }
             echo "$p -> $url ($size bytes)"
           }
+
+          # The substituter handshake, checked before any path because nix asks
+          # for it first. Content is static, so one success is enough; the
+          # retries exist only because a fresh deploy can lag behind the step.
+          for attempt in $(seq 1 20); do
+            if curl -fsS "$CACHE_URL/nix-cache-info" 2>/dev/null | grep -qx 'StoreDir: /nix/store'; then
+              echo "nix-cache-info served"
+              break
+            fi
+            [ "$attempt" = "20" ] && { echo "$CACHE_URL/nix-cache-info never served StoreDir: /nix/store" >&2; exit 1; }
+            sleep 10
+          done
 
           mapfile -t PATHS < ./published-paths
           for p in "${PATHS[@]}"; do
