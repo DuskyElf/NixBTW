@@ -1,8 +1,0 @@
-StorePath: /nix/store/q3lhcbjc0bxxiqnhcp2vslmn9mh3f256-curl-8.22.0
-URL: https://github.com/DuskyElf/NixBTW/releases/download/kernel-7.2.13/01zqnlq485357ycb5ak4vwhjpcl54176ssc6wqvywjdlzhqdf6j7.nar.xz
-Compression: xz
-FileHash: sha256:01zqnlq485357ycb5ak4vwhjpcl54176ssc6wqvywjdlzhqdf6j7
-FileSize: 474696
-NarHash: sha256:1b84qqfz5fcszg19jzy42yv07pf7y357nfxnws4r4a8ihw4mx3fm
-NarSize: 1286232
-References: 5s4ahr76fzx3p4z0fyhphskham55nkhb-nghttp3-1.15.0 7zbzvm0bwa2mh5dp3p5gasix417lysxc-zstd-1.5.7 9csszq0cch2npq0flybqmvkabb1dj3r4-libssh2-1.11.1 drxakd25lbv35flbk8f01bqq417j9czw-nghttp2-1.69.0-lib fsd4vbp9zjd9iaicq2fb9lpc1h5j973y-glibc-2.42-100 g64gr9m6lhzp9aq393yv0sxlr5176jrc-brotli-1.2.0-lib k0fby92994cjcmj3npd562dy22qxnwdy-ngtcp2-1.22.1 kysvfcf8d8v26rr32xfqji8ri2lczlqk-openssl-3.6.5 l5y42bimjvvn8h3v5y40w13vv7y2p3k5-libidn2-2.3.8 q3lhcbjc0bxxiqnhcp2vslmn9mh3f256-curl-8.22.0 rcvnjiaywqlx4d6ra1z4z537jpw3jvwy-libpsl-0.21.5 yfvrxfh24kxshxsvgic60893sy8h4shc-krb5-1.22.2-lib

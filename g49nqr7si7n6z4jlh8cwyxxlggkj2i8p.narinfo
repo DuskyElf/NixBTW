@@ -1,8 +1,0 @@
-StorePath: /nix/store/g49nqr7si7n6z4jlh8cwyxxlggkj2i8p-publicsuffix-list-0-unstable-2026-05-13
-URL: https://github.com/DuskyElf/NixBTW/releases/download/kernel-7.2.13/0sc2d2jlxahlky11wsxh6k6f56sxscnjg8wwwvfml9i8nm6j4y5s.nar.xz
-Compression: xz
-FileHash: sha256:0sc2d2jlxahlky11wsxh6k6f56sxscnjg8wwwvfml9i8nm6j4y5s
-FileSize: 76388
-NarHash: sha256:0pp9f7acll5hcdmazj212amv2lj4whqffdazml0fjg3ija9jd1j6
-NarSize: 337752
-References: 

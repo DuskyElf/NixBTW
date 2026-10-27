@@ -1,8 +1,0 @@
-StorePath: /nix/store/k0fby92994cjcmj3npd562dy22qxnwdy-ngtcp2-1.22.1
-URL: https://github.com/DuskyElf/NixBTW/releases/download/kernel-7.2.13/0cnqlaa7ga1h1gv905c0lgrxqcnc9x0mhfbvfq2p72p3xd3fj5sk.nar.xz
-Compression: xz
-FileHash: sha256:0cnqlaa7ga1h1gv905c0lgrxqcnc9x0mhfbvfq2p72p3xd3fj5sk
-FileSize: 162628
-NarHash: sha256:1nxgv6iwc0pmgj36mhl3bp7gb1wf4zrw75w54xw3pwbz0nd2xbqr
-NarSize: 495896
-References: fsd4vbp9zjd9iaicq2fb9lpc1h5j973y-glibc-2.42-100 k0fby92994cjcmj3npd562dy22qxnwdy-ngtcp2-1.22.1 kysvfcf8d8v26rr32xfqji8ri2lczlqk-openssl-3.6.5

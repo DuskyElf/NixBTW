@@ -1,8 +1,0 @@
-StorePath: /nix/store/g64gr9m6lhzp9aq393yv0sxlr5176jrc-brotli-1.2.0-lib
-URL: https://github.com/DuskyElf/NixBTW/releases/download/kernel-7.2.13/0qhqm6pmlxlikj98k3vn7wy9zhyfi41djd4950fkbx968bbs4fy5.nar.xz
-Compression: xz
-FileHash: sha256:0qhqm6pmlxlikj98k3vn7wy9zhyfi41djd4950fkbx968bbs4fy5
-FileSize: 326820
-NarHash: sha256:1dsn04h45a5ikdbfbpbaszm0y4rw4dky2f5ajrah187xs87s19mf
-NarSize: 984976
-References: fsd4vbp9zjd9iaicq2fb9lpc1h5j973y-glibc-2.42-100 g64gr9m6lhzp9aq393yv0sxlr5176jrc-brotli-1.2.0-lib

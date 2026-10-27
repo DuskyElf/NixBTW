@@ -1,8 +1,0 @@
-StorePath: /nix/store/5s4ahr76fzx3p4z0fyhphskham55nkhb-nghttp3-1.15.0
-URL: https://github.com/DuskyElf/NixBTW/releases/download/kernel-7.2.13/1pak6nvagi40gv05ypjnjyh968wpqd3lplmn7vgbr2silrmh736m.nar.xz
-Compression: xz
-FileHash: sha256:1pak6nvagi40gv05ypjnjyh968wpqd3lplmn7vgbr2silrmh736m
-FileSize: 71768
-NarHash: sha256:1lv59zjg3gk7nmdnda9ip558mbhbn7iklrvcpw5iy4iw04qx6v4v
-NarSize: 233128
-References: fsd4vbp9zjd9iaicq2fb9lpc1h5j973y-glibc-2.42-100

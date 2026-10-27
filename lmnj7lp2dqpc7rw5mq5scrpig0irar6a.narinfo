@@ -1,8 +1,0 @@
-StorePath: /nix/store/lmnj7lp2dqpc7rw5mq5scrpig0irar6a-keyutils-1.6.3-lib
-URL: https://github.com/DuskyElf/NixBTW/releases/download/kernel-7.2.13/1s74v15hqpw4j93m8gz4284214djm07ll0jkrs2xif839wyi22ag.nar.xz
-Compression: xz
-FileHash: sha256:1s74v15hqpw4j93m8gz4284214djm07ll0jkrs2xif839wyi22ag
-FileSize: 8080
-NarHash: sha256:1g3lf9r2lqi31pv9xw70xr2gravamwrfmwyzr13nd3x7i8if7s1k
-NarSize: 42848
-References: fsd4vbp9zjd9iaicq2fb9lpc1h5j973y-glibc-2.42-100

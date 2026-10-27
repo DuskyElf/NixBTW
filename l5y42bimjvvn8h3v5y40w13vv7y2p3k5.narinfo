@@ -1,8 +1,0 @@
-StorePath: /nix/store/l5y42bimjvvn8h3v5y40w13vv7y2p3k5-libidn2-2.3.8
-URL: https://github.com/DuskyElf/NixBTW/releases/download/kernel-7.2.13/18184y84nckk09wrihay97g7pj6q9ykriyfrxpb7r5jghwbciixm.nar.xz
-Compression: xz
-FileHash: sha256:18184y84nckk09wrihay97g7pj6q9ykriyfrxpb7r5jghwbciixm
-FileSize: 91432
-NarHash: sha256:0fhjpd7lpggvjlda16pzw84bijdbyh41pwhc7nc7qi1m7ii41jsy
-NarSize: 368176
-References: g6mvl9ns7k52zfv9pcfw3dbh65z3j7id-libunistring-1.4.2 l5y42bimjvvn8h3v5y40w13vv7y2p3k5-libidn2-2.3.8
