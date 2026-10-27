@@ -97,7 +97,8 @@ jobs:
           git push -f origin kernel-bump
 
           if ! gh pr view kernel-bump --json number -q .number >/dev/null 2>&1; then
-            gh pr create --base main --head kernel-bump \
+            # Requesting review guarantees a GitHub notification for the merge gate.
+            gh pr create --base main --head kernel-bump --reviewer DuskyElf \
               --title "chore(kernel): build linux ${NEW_VER}" \
               --body "release-26.05 moved linux_7_2 ${OLD_VER} -> ${NEW_VER}.
 

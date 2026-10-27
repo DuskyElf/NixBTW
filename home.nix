@@ -119,9 +119,10 @@
     Install.WantedBy = [ "timers.target" ];
   };
 
-  # Daily kernel check: is a newer kernel staged upstream (kernel-bump PR) or
-  # already built and ready to download (CI run succeeded, local reboot
-  # pending)? Notifies only on actionable news; quiet otherwise.
+  # Daily kernel check: the pinned kernel is newer than the running one and
+  # CI already built it — time to pull, rebuild and reboot. Quiet otherwise.
+  # (Staged updates need no local check: the kernel-bump PR notifies via
+  # GitHub, with a review request.)
   systemd.user.services.kernel-update-check = {
     Unit = {
       Description = "Check for staged/ready kernel updates";
@@ -166,13 +167,6 @@
             ${pkgs.libnotify}/bin/notify-send -u critical "Kernel CI failed" "The compile-kernel run for $locked failed - check Actions"
           fi
           # in_progress/queued/unknown: quiet, CI still working or gh offline
-        fi
-
-        # A staged PR means the channel has a kernel we haven't merged yet.
-        pr=$(${pkgs.gh}/bin/gh pr list --head kernel-bump --state open --json number --jq '.[0].number // empty' 2>/dev/null || true)
-        if [ -n "$pr" ]; then
-          title=$(${pkgs.gh}/bin/gh pr view kernel-bump --json title --jq .title 2>/dev/null || echo "kernel update")
-          ${pkgs.libnotify}/bin/notify-send "Kernel update staged" "$title - merge the kernel-bump PR to build it"
         fi
 
         exit 0
