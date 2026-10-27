@@ -1,5 +1,5 @@
 StorePath: /nix/store/5f43mrilyf90ckxam3prxsw79cd9bs50-linux-config-7.2.13
-URL: nar/0xrbv4fsaxxfjaw8z3jck367xgn71pk0khffxh2c791pdwnj1jk2.nar.xz
+URL: https://github.com/DuskyElf/NixBTW/releases/download/kernel-7.2.13-smoke/0xrbv4fsaxxfjaw8z3jck367xgn71pk0khffxh2c791pdwnj1jk2.nar.xz
 Compression: xz
 FileHash: sha256:0xrbv4fsaxxfjaw8z3jck367xgn71pk0khffxh2c791pdwnj1jk2
 FileSize: 64480
