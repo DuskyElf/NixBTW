@@ -118,4 +118,78 @@
     };
     Install.WantedBy = [ "timers.target" ];
   };
+
+  # Daily kernel check: is a newer kernel staged upstream (kernel-bump PR) or
+  # already built and ready to download (CI run succeeded, local reboot
+  # pending)? Notifies only on actionable news; quiet otherwise.
+  systemd.user.services.kernel-update-check = {
+    Unit = {
+      Description = "Check for staged/ready kernel updates";
+      IgnoreOnIsolate = true;
+      X-SwitchMethod = "keep-old";
+      Wants = [ "network-online.target" ];
+      After = [ "network-online.target" ];
+    };
+    Service = {
+      Type = "oneshot";
+      ExecStart = "${pkgs.writeShellScript "kernel-update-check-script" ''
+        trap 'echo "Caught SIGTERM, exiting..."; exit 143' TERM
+
+        cd /home/duskyelf/dotfiles || exit 1
+        LOCK="hosts/asus/kernel-toolchain.lock"
+        [ -f "$LOCK" ] || exit 0
+
+        for i in $(seq 1 60); do
+          if ${pkgs.curl}/bin/curl -sf --max-time 5 -o /dev/null https://channels.nixos.org/flake-registry.json; then
+            break
+          fi
+          sleep 5
+          if [ "$i" -eq 60 ]; then
+            echo "No network after 5min, aborting"
+            exit 1
+          fi
+        done
+
+        locked=$(${pkgs.jq}/bin/jq -r .kernelVersion "$LOCK")
+        running=$(uname -r | cut -d- -f1)
+
+        newer_than() {
+          [ "$1" != "$2" ] && [ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | head -n1)" = "$2" ]
+        }
+
+        # Pinned kernel newer than the running one: is it downloadable yet?
+        if newer_than "$locked" "$running"; then
+          status=$(${pkgs.gh}/bin/gh run list --workflow "Compile Optimized Kernel" --branch main --limit 1 --json conclusion --jq '.[0].conclusion // "unknown"' 2>/dev/null || echo unknown)
+          if [ "$status" = "success" ]; then
+            ${pkgs.libnotify}/bin/notify-send "Kernel $locked ready" "Built and cached - run nixos-rebuild, then reboot"
+          elif [ "$status" = "failure" ]; then
+            ${pkgs.libnotify}/bin/notify-send -u critical "Kernel CI failed" "The compile-kernel run for $locked failed - check Actions"
+          fi
+          # in_progress/queued/unknown: quiet, CI still working or gh offline
+        fi
+
+        # A staged PR means the channel has a kernel we haven't merged yet.
+        pr=$(${pkgs.gh}/bin/gh pr list --head kernel-bump --state open --json number --jq '.[0].number // empty' 2>/dev/null || true)
+        if [ -n "$pr" ]; then
+          title=$(${pkgs.gh}/bin/gh pr view kernel-bump --json title --jq .title 2>/dev/null || echo "kernel update")
+          ${pkgs.libnotify}/bin/notify-send "Kernel update staged" "$title - merge the kernel-bump PR to build it"
+        fi
+
+        exit 0
+      ''}";
+    };
+  };
+
+  systemd.user.timers.kernel-update-check = {
+    Unit = {
+      Description = "Timer for kernel update check";
+      PartOf = [ "graphical-session.target" ];
+    };
+    Timer = {
+      OnCalendar = "*-*-* 09:15:00";
+      Persistent = true;
+      RandomizedDelaySec = "15min";
+    };
+    Install.WantedBy = [ "timers.target" ];
+  };
 }

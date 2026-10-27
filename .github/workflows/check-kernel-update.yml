@@ -1,0 +1,107 @@
+name: "Check Kernel Update"
+
+# Daily: if release-26.05 carries a newer linux_7_2 than our pin, stage the
+# toolchain bump (flake.nix pin + hosts/asus/kernel-toolchain.lock) on the
+# kernel-bump branch and open/update a PR to main.
+#
+# Nothing lands on main by itself: merging the PR is the manual gate.
+# The merge triggers compile-kernel (path filter), CI deploys the binary,
+# and the laptop's kernel-update-check timer notices the new cache entry.
+
+on:
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: check-kernel-update
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            accept-flake-config = true
+
+      - name: Compare Channel Kernel With Pinned Kernel
+        id: check
+        run: |
+          set -euo pipefail
+          PINNED_REV=$(grep -oP 'nixpkgs-fast-release\.url = "github:NixOS/nixpkgs/\K[0-9a-f]{40}' flake.nix)
+          [ -n "$PINNED_REV" ] || { echo "pin not found in flake.nix" >&2; exit 1; }
+          echo "pinned rev: $PINNED_REV"
+
+          PREFETCH=$(nix flake prefetch github:NixOS/nixpkgs/release-26.05 --json)
+          LATEST_REV=$(echo "$PREFETCH" | jq -r '.locked.rev // .rev')
+          LATEST_HASH=$(echo "$PREFETCH" | jq -r '.hash')
+          [ -n "$LATEST_REV" ] && [ "$LATEST_REV" != "null" ] || { echo "could not resolve channel rev" >&2; exit 1; }
+          echo "latest rev: $LATEST_REV"
+
+          ver_at() {
+            nix eval "github:NixOS/nixpkgs/$1#legacyPackages.x86_64-linux.linuxKernel.kernels.linux_7_2.version" --raw
+          }
+          PINNED_VER=$(ver_at "$PINNED_REV")
+          LATEST_VER=$(ver_at "$LATEST_REV")
+          echo "pinned kernel: $PINNED_VER, channel kernel: $LATEST_VER"
+
+          if [ "$PINNED_VER" = "$LATEST_VER" ]; then
+            echo "kernel $PINNED_VER still current, nothing to do"
+            exit 0
+          fi
+          echo "new kernel available: $PINNED_VER -> $LATEST_VER"
+          {
+            echo "new_version=$LATEST_VER"
+            echo "new_rev=$LATEST_REV"
+            echo "new_hash=$LATEST_HASH"
+            echo "old_version=$PINNED_VER"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Stage Toolchain Bump PR
+        if: steps.check.outputs.new_version != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NEW_REV: ${{ steps.check.outputs.new_rev }}
+          NEW_HASH: ${{ steps.check.outputs.new_hash }}
+          NEW_VER: ${{ steps.check.outputs.new_version }}
+          OLD_VER: ${{ steps.check.outputs.old_version }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin kernel-bump 2>/dev/null || true
+          git checkout -B kernel-bump
+
+          PINNED_REV=$(grep -oP 'nixpkgs-fast-release\.url = "github:NixOS/nixpkgs/\K[0-9a-f]{40}' flake.nix)
+          sed -i "s/${PINNED_REV}/${NEW_REV}/" flake.nix
+          # Caution: the pin must be the ONLY thing sed touched.
+          CHANGED=$(git diff --numstat flake.nix | awk '{print $1 + $2}')
+          [ "$CHANGED" = "2" ] || { echo "pin replacement touched $CHANGED lines, aborting" >&2; git diff flake.nix >&2; exit 1; }
+
+          jq -n --arg rev "$NEW_REV" --arg hash "$NEW_HASH" --arg ver "$NEW_VER" --arg date "$(date +%F)" \
+            '{input: "nixpkgs-fast-release", ref: "release-26.05", rev: $rev, narHash: $hash, kernelVersion: $ver, updated: $date}' \
+            > hosts/asus/kernel-toolchain.lock
+
+          git add flake.nix hosts/asus/kernel-toolchain.lock
+          git commit -m "chore(kernel): stage toolchain for linux ${OLD_VER} -> ${NEW_VER}" || echo "nothing new to commit"
+          git push -f origin kernel-bump
+
+          if ! gh pr view kernel-bump --json number -q .number >/dev/null 2>&1; then
+            gh pr create --base main --head kernel-bump \
+              --title "chore(kernel): build linux ${NEW_VER}" \
+              --body "release-26.05 moved linux_7_2 ${OLD_VER} -> ${NEW_VER}.
+
+          Merging this PR triggers the compile-kernel build; once CI deploys
+          the binary to gh-pages, run nixos-rebuild locally (cache hit, no
+          2h compile) and reboot."
+          fi

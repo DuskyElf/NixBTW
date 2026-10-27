@@ -4,9 +4,11 @@ name: "Compile Optimized Kernel"
 # Nix binary cache on gh-pages (https://duskyelf.github.io/NixBTW).
 #
 # Why this works (lessons from the May experiments):
-# - The kernel pins MSKYLAKE instead of X86_NATIVE_CPU, so a build on an AMD
-#   Actions runner is identical to one on the i9 laptop. Native-CPU sniffing
-#   gave same-store-path/different-bytes poison and endless local rebuilds.
+# - The kernel uses a fixed -march=skylake (skylake-march.patch) instead of
+#   X86_NATIVE_CPU, so a build on an AMD Actions runner is identical to one
+#   on the i9 laptop. Native-CPU sniffing gave same-store-path/different-bytes
+#   poison and endless local rebuilds. (Kernel 7.2 dropped the 64-bit family
+#   choice from Kconfig, so the Makefile patch is the only deterministic knob.)
 # - nixpkgs-fast-release is pinned by rev in flake.nix, so CI (which has no
 #   lock file) resolves the exact same toolchain as the laptop.
 # - All three kernel outputs (out, modules, dev) are copied. Copying only
@@ -22,11 +24,19 @@ on:
     paths:
       - "flake.nix"
       - "hosts/asus/system.nix"
+      - "hosts/asus/skylake-march.patch"
+      - "hosts/asus/kernel-toolchain.lock"
       - "system.nix"
       - ".github/workflows/compile-kernel.yml"
 
 permissions:
   contents: write
+
+# One kernel at a time: a newer run cancels a superseded one, so two quick
+# commits only ever build the newer kernel.
+concurrency:
+  group: compile-kernel
+  cancel-in-progress: true
 
 jobs:
   build:

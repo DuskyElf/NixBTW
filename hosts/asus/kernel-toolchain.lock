@@ -1,0 +1,8 @@
+{
+  "input": "nixpkgs-fast-release",
+  "ref": "release-26.05",
+  "rev": "2f11bb7ff83b556e035a5da06596c106ddba1311",
+  "narHash": "sha256-0OvylVIVvwK1DLmnTXXpRGKz2cK77yCpF75bI1kifLs=",
+  "kernelVersion": "7.2.11",
+  "updated": "2026-10-27"
+}
