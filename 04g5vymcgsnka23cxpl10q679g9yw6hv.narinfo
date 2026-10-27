@@ -1,0 +1,8 @@
+StorePath: /nix/store/04g5vymcgsnka23cxpl10q679g9yw6hv-pcre2-10.49
+URL: https://github.com/DuskyElf/NixBTW/releases/download/kernel-7.2.13/0xq3kyjqzz61dw84l97vv419x5h89diczzwmgqmrdgjjclyccyl0.nar.xz
+Compression: xz
+FileHash: sha256:0xq3kyjqzz61dw84l97vv419x5h89diczzwmgqmrdgjjclyccyl0
+FileSize: 515936
+NarHash: sha256:0dfq7gvp53r6lacncy65xvdmwl912p98cv7i938272yyvrqvcb61
+NarSize: 2096416
+References: 04g5vymcgsnka23cxpl10q679g9yw6hv-pcre2-10.49 fsd4vbp9zjd9iaicq2fb9lpc1h5j973y-glibc-2.42-100

@@ -1,0 +1,10 @@
+StorePath: /nix/store/3q0w0x48vvmka9h4flz5x5dnhljvw6b3-libevent-2.1.13
+URL: https://github.com/DuskyElf/NixBTW/releases/download/kernel-7.2.13/1xp1qlfanfjxfmf493xzbd7i3sxfzbhcq9l38knic8yiz8hxa7nk.nar.xz
+Compression: xz
+FileHash: sha256:1xp1qlfanfjxfmf493xzbd7i3sxfzbhcq9l38knic8yiz8hxa7nk
+FileSize: 189256
+NarHash: sha256:0sgpvknqanzjp1rzm062aqxpqhh2i5cpf61mx843nm32jpqwksph
+NarSize: 882576
+References: 3q0w0x48vvmka9h4flz5x5dnhljvw6b3-libevent-2.1.13 fsd4vbp9zjd9iaicq2fb9lpc1h5j973y-glibc-2.42-100
+Deriver: whck7gknqmchlc8ihg4dzq8m87rrf4fi-libevent-2.1.13.drv
+Sig: cache.nixos.org-1:4f4XT2iut1SiRznO1IriqOKZLo+WGri/I5OmQIzdfiEeqxUG/SgEdIExX3QO2I2ZiYMg8oXlfIAPbR2sD+tBBw==

@@ -1,0 +1,10 @@
+StorePath: /nix/store/f6haxbzaxb7v5d92wscfbrhip2l6l1m4-elfutils-0.194-dev
+URL: https://github.com/DuskyElf/NixBTW/releases/download/kernel-7.2.13/0jhr60ksqjc3nw8k4984455pvs16r32476s6mdhv4fsnsw14fwll.nar.xz
+Compression: xz
+FileHash: sha256:0jhr60ksqjc3nw8k4984455pvs16r32476s6mdhv4fsnsw14fwll
+FileSize: 46568
+NarHash: sha256:0r5p90kr6hxsrqw8iflpsjkb9bdl3ccwk3vhz9r4r7kr9hla50jf
+NarSize: 246152
+References: 0m76nciy4pxxn8w3arqrkwjk69j777nl-elfutils-0.194 8k2ghiwkdbcx27h6370l5sfm5g1qq8i3-elfutils-0.194-bin f6haxbzaxb7v5d92wscfbrhip2l6l1m4-elfutils-0.194-dev nc29b5nqv8n6dqdxp2dc6faxhq4p0mkq-setup-debug-info-dirs-hook
+Deriver: 2qghs36d1hvcz187kg4kj1pvjj3g54rh-elfutils-0.194.drv
+Sig: cache.nixos.org-1:6celChnY1bX+zLdx8n3kJFOaTjzKz7kNW+DmS8Rs3ERPJ/7j+FZ3CtLwRqASimSmLxdb+xgWdo2yBN6PqjWUBw==

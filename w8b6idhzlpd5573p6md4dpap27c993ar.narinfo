@@ -1,0 +1,8 @@
+StorePath: /nix/store/w8b6idhzlpd5573p6md4dpap27c993ar-libxml2-2.15.4
+URL: https://github.com/DuskyElf/NixBTW/releases/download/kernel-7.2.13/1f7rkjlhyh5af5bb9q52zngg1pxgaqp1fqwqwl1d1cdi4d3ccmns.nar.xz
+Compression: xz
+FileHash: sha256:1f7rkjlhyh5af5bb9q52zngg1pxgaqp1fqwqwl1d1cdi4d3ccmns
+FileSize: 513788
+NarHash: sha256:1z5474z8ycxs3b9a35z10ml1i2bq1knk05wd16k5yy4jycqpywf5
+NarSize: 1460576
+References: fsd4vbp9zjd9iaicq2fb9lpc1h5j973y-glibc-2.42-100 w8b6idhzlpd5573p6md4dpap27c993ar-libxml2-2.15.4

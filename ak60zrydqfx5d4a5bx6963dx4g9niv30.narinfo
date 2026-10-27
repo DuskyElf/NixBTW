@@ -1,0 +1,10 @@
+StorePath: /nix/store/ak60zrydqfx5d4a5bx6963dx4g9niv30-json-c-0.18
+URL: https://github.com/DuskyElf/NixBTW/releases/download/kernel-7.2.13/0l8jzg7nq3cdkrkji9f1zvrrzm8fd4c9i9z2x9w02dg6w05f1vfi.nar.xz
+Compression: xz
+FileHash: sha256:0l8jzg7nq3cdkrkji9f1zvrrzm8fd4c9i9z2x9w02dg6w05f1vfi
+FileSize: 45656
+NarHash: sha256:0gxhmdzcsx9zaqm6g5sx431084d968y51gbgwm95qzlxdcm3ksf4
+NarSize: 250712
+References: fsd4vbp9zjd9iaicq2fb9lpc1h5j973y-glibc-2.42-100
+Deriver: ispvwbjq7kmh2lyjvk9rp1dg8rmrrn06-json-c-0.18.drv
+Sig: cache.nixos.org-1:2zKROyXU52t8R3ud3elPnoy/+qbnywfVEvVdOL8YUVRgBlQaoivIv1p0ZR58IHKGFq5XpQbw17LNLd2SktIJAw==

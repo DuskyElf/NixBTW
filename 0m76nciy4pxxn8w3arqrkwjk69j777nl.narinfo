@@ -1,0 +1,10 @@
+StorePath: /nix/store/0m76nciy4pxxn8w3arqrkwjk69j777nl-elfutils-0.194
+URL: https://github.com/DuskyElf/NixBTW/releases/download/kernel-7.2.13/0nxmnxrwffagf0h34ncf2gxx7d68hscfjs0pv3xabdb200x3bhzj.nar.xz
+Compression: xz
+FileHash: sha256:0nxmnxrwffagf0h34ncf2gxx7d68hscfjs0pv3xabdb200x3bhzj
+FileSize: 566152
+NarHash: sha256:1s8cqdjaplpdalaxc8lsdim3fksfvdj0fa3747i79pp2s6l6gdf8
+NarSize: 4223752
+References: 0m76nciy4pxxn8w3arqrkwjk69j777nl-elfutils-0.194 6s4wm3zl2y0v5g998n2g88k1zh3vf2pr-zlib-1.3.2 7zbzvm0bwa2mh5dp3p5gasix417lysxc-zstd-1.5.7 ak60zrydqfx5d4a5bx6963dx4g9niv30-json-c-0.18 fsd4vbp9zjd9iaicq2fb9lpc1h5j973y-glibc-2.42-100 kysvfcf8d8v26rr32xfqji8ri2lczlqk-openssl-3.6.5 pddqhhpjip4p5l93nxdkvbmm23fp7fd9-bzip2-1.0.8 q3lhcbjc0bxxiqnhcp2vslmn9mh3f256-curl-8.22.0 v3imdn9s2021ssh45ps62kksg2d1k7xm-xz-5.8.4
+Deriver: 2qghs36d1hvcz187kg4kj1pvjj3g54rh-elfutils-0.194.drv
+Sig: cache.nixos.org-1:1yllvYMK/ZSccymcqBGde3wfYVV+Skl7atRaKukLyX7VMdyw9uNPUJdn3kEyMoqmWfKVRyBicN4vhmACxjJxCw==

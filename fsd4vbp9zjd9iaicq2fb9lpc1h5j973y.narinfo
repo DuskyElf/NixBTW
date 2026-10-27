@@ -1,0 +1,8 @@
+StorePath: /nix/store/fsd4vbp9zjd9iaicq2fb9lpc1h5j973y-glibc-2.42-100
+URL: https://github.com/DuskyElf/NixBTW/releases/download/kernel-7.2.13/0vnmdv8pdxwrbghcdn0qh6iclmvm9ss2w84wdslnsisi1r5q55vs.nar.xz
+Compression: xz
+FileHash: sha256:0vnmdv8pdxwrbghcdn0qh6iclmvm9ss2w84wdslnsisi1r5q55vs
+FileSize: 7316200
+NarHash: sha256:099m8pdr72cfrhpsfx3ka7f7pcvb75s24wkxvw3ycj5k8w3m7mbk
+NarSize: 35073208
+References: fsd4vbp9zjd9iaicq2fb9lpc1h5j973y-glibc-2.42-100 l1n6wi2lyzglvgzbwzw9n9w2pzkcj41i-xgcc-15.3.0-libgcc l5y42bimjvvn8h3v5y40w13vv7y2p3k5-libidn2-2.3.8

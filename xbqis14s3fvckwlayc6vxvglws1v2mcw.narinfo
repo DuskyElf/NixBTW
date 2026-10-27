@@ -1,0 +1,10 @@
+StorePath: /nix/store/xbqis14s3fvckwlayc6vxvglws1v2mcw-gawk-5.4.1
+URL: https://github.com/DuskyElf/NixBTW/releases/download/kernel-7.2.13/0754caxgrkg1wml6v5iyvif9d24h2h1bvsnp0y9l5n1338k7lbsl.nar.xz
+Compression: xz
+FileHash: sha256:0754caxgrkg1wml6v5iyvif9d24h2h1bvsnp0y9l5n1338k7lbsl
+FileSize: 680828
+NarHash: sha256:0r7c404pzi4g4by0hfxqx64dfxfqqn4zv9yn8g187rq525iq4lgy
+NarSize: 3571936
+References: fsd4vbp9zjd9iaicq2fb9lpc1h5j973y-glibc-2.42-100 xbqis14s3fvckwlayc6vxvglws1v2mcw-gawk-5.4.1
+Deriver: rhzphgfkssxcyy6iaizjj8cjr5agx0ml-gawk-5.4.1.drv
+Sig: cache.nixos.org-1:/Z4CWmoaV1XQhliJ5YUnZ4gcnL844mT4WptJfh/MHqq6JBOMfa/QyTNwx1By0gMda2YS2IQJ7c8J0e3YugX7CQ==

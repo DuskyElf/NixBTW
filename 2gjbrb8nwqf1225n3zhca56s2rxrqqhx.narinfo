@@ -1,0 +1,10 @@
+StorePath: /nix/store/2gjbrb8nwqf1225n3zhca56s2rxrqqhx-binutils-wrapper-2.46
+URL: https://github.com/DuskyElf/NixBTW/releases/download/kernel-7.2.13/1z81six8grzwfgjzwfkl7fmka7wzbdbs4f2ggz9s2114kib5lx8j.nar.xz
+Compression: xz
+FileHash: sha256:1z81six8grzwfgjzwfkl7fmka7wzbdbs4f2ggz9s2114kib5lx8j
+FileSize: 8236
+NarHash: sha256:0665qak61qlbzwn4nl1vqzjb3yxc1gl1dbac8bhyhpwd69xcali8
+NarSize: 56632
+References: 2gjbrb8nwqf1225n3zhca56s2rxrqqhx-binutils-wrapper-2.46 bhv6xyvqw6gjs3j488gi1z6wdv18bdpa-coreutils-9.11 fsd4vbp9zjd9iaicq2fb9lpc1h5j973y-glibc-2.42-100 g2i5zxslx9msaqjy14hdp2af064i9pbv-binutils-2.46 jnyfsf2mp08d1xyz2m72ic2vz2kcx0sd-bash-5.3p9 kgd806ssw99qaxwiislhfx5dwnc8k893-glibc-2.42-100-bin sr08dm9x0fsa1mrzjrlb3csdcmilsraz-glibc-2.42-100-dev vamvnrq8rdxgfqrqky2qlfwwldwkg8mx-expand-response-params
+Deriver: lhyghwyrh7gdmsca5jb5xcyf546n4zhh-binutils-wrapper-2.46.drv
+Sig: cache.nixos.org-1:Ts0CLbn61h0IcYAY4D6qjg6PjB5Aua30ZLRV4448pETtcw85V/VsX9P8SA9dMrinfSO2MKBdrCQzCHgLe8EAAw==

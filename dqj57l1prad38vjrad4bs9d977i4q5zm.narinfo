@@ -1,0 +1,8 @@
+StorePath: /nix/store/dqj57l1prad38vjrad4bs9d977i4q5zm-gcc-15.3.0-lib
+URL: https://github.com/DuskyElf/NixBTW/releases/download/kernel-7.2.13/18lrwhhy8prnff60cbczsmp2633z7s6lgsk7fia6pry6dqb4l7bx.nar.xz
+Compression: xz
+FileHash: sha256:18lrwhhy8prnff60cbczsmp2633z7s6lgsk7fia6pry6dqb4l7bx
+FileSize: 2097364
+NarHash: sha256:0b5fdjfivrhnild65fvzkhifacd64xcqz07hdisw0xr8x241zmap
+NarSize: 10317392
+References: 0vw7gvcazcjqc762x7vg3l31cpx65l7i-gcc-15.3.0-libgcc dqj57l1prad38vjrad4bs9d977i4q5zm-gcc-15.3.0-lib fsd4vbp9zjd9iaicq2fb9lpc1h5j973y-glibc-2.42-100

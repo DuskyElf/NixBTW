@@ -1,0 +1,10 @@
+StorePath: /nix/store/dy6j7267wrgjlr2z748sbx83zj16vs3c-gcc-wrapper-15.3.0
+URL: https://github.com/DuskyElf/NixBTW/releases/download/kernel-7.2.13/09a7kr3rs9cxxd9kjz9a5qiqqr2ivl3hw438b3mvznmbj27hzaph.nar.xz
+Compression: xz
+FileHash: sha256:09a7kr3rs9cxxd9kjz9a5qiqqr2ivl3hw438b3mvznmbj27hzaph
+FileSize: 11044
+NarHash: sha256:1gxc77ls8fj440x0s6rxk4hkyhdjhb2igg5vxjpwkqbw3z6srvqz
+NarSize: 69648
+References: 2gjbrb8nwqf1225n3zhca56s2rxrqqhx-binutils-wrapper-2.46 bhv6xyvqw6gjs3j488gi1z6wdv18bdpa-coreutils-9.11 cqhgy07rpxdwk9kd2qlc3cw4s9ajzm9f-gnugrep-3.12 dqj57l1prad38vjrad4bs9d977i4q5zm-gcc-15.3.0-lib dy6j7267wrgjlr2z748sbx83zj16vs3c-gcc-wrapper-15.3.0 fsd4vbp9zjd9iaicq2fb9lpc1h5j973y-glibc-2.42-100 jnyfsf2mp08d1xyz2m72ic2vz2kcx0sd-bash-5.3p9 kgd806ssw99qaxwiislhfx5dwnc8k893-glibc-2.42-100-bin s2f0mfx0iiap9yxmlfvq0psn26jsbind-gcc-15.3.0 sr08dm9x0fsa1mrzjrlb3csdcmilsraz-glibc-2.42-100-dev vamvnrq8rdxgfqrqky2qlfwwldwkg8mx-expand-response-params
+Deriver: xv2y3sfvlgay9nrai47mcnag847pyk6l-gcc-wrapper-15.3.0.drv
+Sig: cache.nixos.org-1:LhXvO+m+nIhEhOEf4/vJoQPo+4F/R+dr8zbkoEBj7n8u+eaLzdyoprWzHdtz+lpnHp4DCIBuzNyhZwWLwjycAA==

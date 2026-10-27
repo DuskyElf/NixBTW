@@ -1,0 +1,10 @@
+StorePath: /nix/store/llas6flzd2875r7zzhhvwnynwqi349jb-perl-5.42.3
+URL: https://github.com/DuskyElf/NixBTW/releases/download/kernel-7.2.13/0h16w292jpva6c5izy91947pki0azfp6q2kdjb8786wpjv6xrb83.nar.xz
+Compression: xz
+FileHash: sha256:0h16w292jpva6c5izy91947pki0azfp6q2kdjb8786wpjv6xrb83
+FileSize: 9539428
+NarHash: sha256:0n9pqsmqkvrjhz0xamnjmas06wr82bxlmh8x5gphzmv8wynadhz4
+NarSize: 57803920
+References: 6s4wm3zl2y0v5g998n2g88k1zh3vf2pr-zlib-1.3.2 bhv6xyvqw6gjs3j488gi1z6wdv18bdpa-coreutils-9.11 cb53sk2xsxfwsjbfkrdyz2kbi4p0f49n-libxcrypt-4.5.2 fsd4vbp9zjd9iaicq2fb9lpc1h5j973y-glibc-2.42-100 llas6flzd2875r7zzhhvwnynwqi349jb-perl-5.42.3
+Deriver: j62q08zzqxsbm1bnb9jf6bz320wkld38-perl-5.42.3.drv
+Sig: cache.nixos.org-1:Wocw9Mi/mURE63sGhaVGich3D9ka5ULLS3evqSzwKTr8u+RS3cJ3J+iBVFjkeKOBFaWKrpY94ulUJjmNuMZNCA==

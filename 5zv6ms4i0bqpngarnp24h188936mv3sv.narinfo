@@ -1,0 +1,10 @@
+StorePath: /nix/store/5zv6ms4i0bqpngarnp24h188936mv3sv-llvm-21.1.8-lib
+URL: https://github.com/DuskyElf/NixBTW/releases/download/kernel-7.2.13/10iy918mmw7w30lm1mvh8sjcr6qawd470nj7zsfz9qlyl1ilknvr.nar.xz
+Compression: xz
+FileHash: sha256:10iy918mmw7w30lm1mvh8sjcr6qawd470nj7zsfz9qlyl1ilknvr
+FileSize: 97319448
+NarHash: sha256:0wvg24krj0ryky8gyjpwzh746cx2digqcjlvg7lv8vxif6v5y7i0
+NarSize: 566508088
+References: 5zv6ms4i0bqpngarnp24h188936mv3sv-llvm-21.1.8-lib 6s4wm3zl2y0v5g998n2g88k1zh3vf2pr-zlib-1.3.2 dqj57l1prad38vjrad4bs9d977i4q5zm-gcc-15.3.0-lib fsd4vbp9zjd9iaicq2fb9lpc1h5j973y-glibc-2.42-100 hf8a95j1jr8bjmxb93np94xlqwqr492x-libffi-3.8.0 w8b6idhzlpd5573p6md4dpap27c993ar-libxml2-2.15.4
+Deriver: acwvs8kwgclz8wk6vxfzxkird1pz1l74-llvm-21.1.8.drv
+Sig: cache.nixos.org-1:48jSHaaBbB3wdQ+QvnnF1wZngqm3guWYAb1kgoqscv1zQ36qjtl+kgqtp0oqgor+zvMUhIFFY2rIaNxqS0YhDQ==

@@ -1,0 +1,8 @@
+StorePath: /nix/store/yfvrxfh24kxshxsvgic60893sy8h4shc-krb5-1.22.2-lib
+URL: https://github.com/DuskyElf/NixBTW/releases/download/kernel-7.2.13/05wh18rx6wf32phw0bqdiiw78n0grr1k1nd4kz5qsfgd9p7n8cia.nar.xz
+Compression: xz
+FileHash: sha256:05wh18rx6wf32phw0bqdiiw78n0grr1k1nd4kz5qsfgd9p7n8cia
+FileSize: 821584
+NarHash: sha256:11v1k1lilyjsnx1fagni0vdwjc7gc66llixq3rmdrpzpikwlld93
+NarSize: 2879776
+References: fsd4vbp9zjd9iaicq2fb9lpc1h5j973y-glibc-2.42-100 kysvfcf8d8v26rr32xfqji8ri2lczlqk-openssl-3.6.5 lmnj7lp2dqpc7rw5mq5scrpig0irar6a-keyutils-1.6.3-lib yfvrxfh24kxshxsvgic60893sy8h4shc-krb5-1.22.2-lib

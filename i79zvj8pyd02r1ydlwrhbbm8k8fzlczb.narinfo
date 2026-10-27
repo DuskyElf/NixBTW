@@ -1,0 +1,10 @@
+StorePath: /nix/store/i79zvj8pyd02r1ydlwrhbbm8k8fzlczb-linux-7.2.13-dev
+URL: https://github.com/DuskyElf/NixBTW/releases/download/kernel-7.2.13/0p0hnk1hm16pc1pppc50fvc6h9l7bpxppbmmysqk8bzxczpm76h7.nar.xz
+Compression: xz
+FileHash: sha256:0p0hnk1hm16pc1pppc50fvc6h9l7bpxppbmmysqk8bzxczpm76h7
+FileSize: 157735696
+NarHash: sha256:0k4557chy0fi9b3idpcvg856x854w5yfzzmf7kpn1v9mwzl4y6hy
+NarSize: 714482976
+References: 0m76nciy4pxxn8w3arqrkwjk69j777nl-elfutils-0.194 0s17nja4n8b63by0nlg1m31mxn2bq1g1-gnused-4.10 2gjbrb8nwqf1225n3zhca56s2rxrqqhx-binutils-wrapper-2.46 2k9dj65vyanlvq863ks3ii7cjx82kfng-zlib-1.3.2-dev 6s4wm3zl2y0v5g998n2g88k1zh3vf2pr-zlib-1.3.2 bhv6xyvqw6gjs3j488gi1z6wdv18bdpa-coreutils-9.11 dqj57l1prad38vjrad4bs9d977i4q5zm-gcc-15.3.0-lib dy6j7267wrgjlr2z748sbx83zj16vs3c-gcc-wrapper-15.3.0 f6haxbzaxb7v5d92wscfbrhip2l6l1m4-elfutils-0.194-dev fsd4vbp9zjd9iaicq2fb9lpc1h5j973y-glibc-2.42-100 fxkblyql61smqv7pqg3493k6v9igag79-python3-minimal-3.13.15 g2i5zxslx9msaqjy14hdp2af064i9pbv-binutils-2.46 i79zvj8pyd02r1ydlwrhbbm8k8fzlczb-linux-7.2.13-dev jnyfsf2mp08d1xyz2m72ic2vz2kcx0sd-bash-5.3p9 khz08fcmpq1rp5lhpkzvqv8icnfykv79-rustc-1.95.0 ki1a5505hr71d6mcczm9j4617mwbr28x-linux-7.2.13 llas6flzd2875r7zzhhvwnynwqi349jb-perl-5.42.3 q5wf35q7dabb5m8mszqjn3d55ff5c1pl-gnumake-4.4.1 s2f0mfx0iiap9yxmlfvq0psn26jsbind-gcc-15.3.0 sr08dm9x0fsa1mrzjrlb3csdcmilsraz-glibc-2.42-100-dev xbqis14s3fvckwlayc6vxvglws1v2mcw-gawk-5.4.1 y3naha70rpjj3kl4grbz3ixpxj14kzwn-rust-lib-src
+Deriver: zkl9gnhmsa957x9hz8bay6djsv9dbqs8-linux-7.2.13.drv
+Sig: i9-kernel-cache:M/82CS0iRVx/5bBdbCu2iXqqaFyVTPS6AgKFttIjja+hi5IzSLMwtlnXA6OuMheVX+KS8zMTH69pcRFbPUBFDw==

@@ -1,0 +1,10 @@
+StorePath: /nix/store/9licwzbc8pzhrh43vz5wg137gky9anz3-linux-headers-6.18.7
+URL: https://github.com/DuskyElf/NixBTW/releases/download/kernel-7.2.13/0m14li4qqsa1lxwjg8f4g7qaz2wh2a2cdm7viy1g5ydbifhyxasq.nar.xz
+Compression: xz
+FileHash: sha256:0m14li4qqsa1lxwjg8f4g7qaz2wh2a2cdm7viy1g5ydbifhyxasq
+FileSize: 1428436
+NarHash: sha256:1jxkc6p4am8yxk7md79w56hd4yk3s4zcn5bb151zizwki1j69164
+NarSize: 7328040
+References: 
+Deriver: w376i23z7amwhpjgffq12gs0fad1vphr-linux-headers-6.18.7.drv
+Sig: cache.nixos.org-1:+9inzkVVKLKWzdrf8zr6r3/IQE8aNHT5Z/huUYeQ64J1YJ3itAyyNazavtycv6HQ2qYIYGQN4UQsuAOzUc+JCg==

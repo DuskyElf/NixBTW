@@ -1,0 +1,10 @@
+StorePath: /nix/store/nc29b5nqv8n6dqdxp2dc6faxhq4p0mkq-setup-debug-info-dirs-hook
+URL: https://github.com/DuskyElf/NixBTW/releases/download/kernel-7.2.13/04lzii49fcz42hwqizwkqc5wyv8pdnxw8c1p4ql4r5cqycwl6jrn.nar.xz
+Compression: xz
+FileHash: sha256:04lzii49fcz42hwqizwkqc5wyv8pdnxw8c1p4ql4r5cqycwl6jrn
+FileSize: 280
+NarHash: sha256:087bvqxgdh0xdggqydi8ssxj22r128r4xd13ryyx5glg1mj0plgd
+NarSize: 592
+References: 
+Deriver: cld4rrjmcfh8n3g7ccq39m1z8c2pzrcs-setup-debug-info-dirs-hook.drv
+Sig: cache.nixos.org-1:6F+xKlczwSbW/QliNURY56hXNFSl5jMYIw986ICosesdDP/bwAVxVUzIuzexdLJXs1agdhMBQ5JsxyMC3U56CQ==
