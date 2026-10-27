@@ -1,30 +1,45 @@
 name: "Compile Optimized Kernel"
 
-# Builds the custom skylake kernel from this flake and publishes it as a
-# Nix binary cache on gh-pages (https://duskyelf.github.io/NixBTW).
+# Builds the custom skylake kernel from this flake and serves it to this laptop
+# as a Nix binary cache, so nixos-rebuild substitutes instead of compiling.
 #
-# Which kernel gets built is never named here. hosts/asus/stable-kernel.nix
-# picks the newest series with a stable patch release and this workflow builds
-# whatever that resolves to, so a new series arrives as an ordinary pin bump.
-# Naming a series below would publish a kernel the laptop is not running.
+# Two hosts, because the pieces have different size limits:
 #
-# Why this works (lessons from the May experiments):
-# - The kernel uses a fixed -march=skylake (skylake-march.patch) instead of
-#   X86_NATIVE_CPU, so a build on an AMD Actions runner is identical to one
-#   on the i9 laptop. Native-CPU sniffing gave same-store-path/different-bytes
-#   poison and endless local rebuilds. (Kernel 7.2 dropped the 64-bit family
-#   choice from Kconfig, so the Makefile patch is the only deterministic knob.)
-# - nixpkgs-fast-release is pinned by rev in flake.nix, so CI (which has no
-#   lock file) resolves the exact same toolchain as the laptop.
-# - A real run copies all three kernel outputs (out, modules, dev). Copying
-#   only `out` left the modules uncached, which is most of the compile. A
-#   smoke_test run copies the configfile instead, which costs seconds.
-# - The deploy keeps existing files. keep_files:false wiped the cache every run.
-# - The trusted-public-key name must match the NIX_SECRET_KEY signer or the
+#   gh-pages serves the narinfo files only, a few KB each. No branch of a
+#   GitHub repo may hold a file over 100 MB and a Pages site is capped at 1 GB,
+#   while the kernel nars are 90 to 210 MB. An earlier version copied the nars
+#   here and the pre-receive hook rejected the push.
+#
+#   GitHub releases hold the nars, as assets under the tag kernel-<version>.
+#   Release assets allow 2 GB per file and are free on public repos. Every
+#   narinfo's URL line is rewritten to an absolute release URL, and nix follows
+#   the redirect to the storage backend: verified by pointing a cache root at a
+#   release asset and watching nix copy --from download the nar from github.com.
+#
+# A kernel is built at most once. The release carries a PACKAGED manifest, and
+# the plan step checks for it before spending two hours, so a re-run after a
+# failed publish only re-publishes narinfos and verifies.
+#
+# A binary cache must be closed under references (nix refuses to add a path
+# whose dependencies are absent), so each release carries the whole build
+# closure, not just the kernel outputs. Prune old kernel-* releases by hand with
+# `gh release delete` once no generation uses them.
+#
+# Which kernel gets built is never named here: hosts/asus/stable-kernel.nix
+# picks the newest series with a stable patch release.
+#
+# Why the artifact is deterministic at all (lessons from the May experiments):
+# - fixed -march=skylake (skylake-march.patch), never X86_NATIVE_CPU, so a build
+#   on an AMD runner is identical to one on the i9 laptop. Native-CPU sniffing
+#   gave same-store-path/different-bytes poison and endless local rebuilds.
+# - nixpkgs-fast-release is pinned by rev in flake.nix, so CI resolves the exact
+#   same toolchain as the laptop.
+# - the trusted-public-key name must match the NIX_SECRET_KEY signer, or the
 #   laptop silently rejects every lookup and builds the kernel itself.
 
 env:
   CACHE_URL: https://duskyelf.github.io/NixBTW
+  RELEASE_REPO: DuskyElf/NixBTW
   # The signer name. system.nix holds the public half the laptop trusts; the
   # name there and here must be identical, so keep them in one place each.
   CACHE_KEY_NAME: i9-kernel-cache
@@ -35,8 +50,9 @@ on:
   workflow_dispatch:
     inputs:
       # Publishes the kernel configfile instead of the kernel: seconds instead
-      # of hours. Exercises signing, deploy and substitutability on their own,
-      # so a publish bug never costs another full compile to discover.
+      # of hours. Exercises rewrite, release upload, deploy and verify, so a
+      # publish bug never costs another full compile to discover. Uses its own
+      # release tag, so it can never satisfy a real run's manifest check.
       smoke_test:
         description: "Publish only the kernel configfile (no compile)"
         type: boolean
@@ -79,42 +95,83 @@ jobs:
             experimental-features = nix-command flakes
             accept-flake-config = true
 
-      - name: Build Kernel
+      - name: Plan
+        id: plan
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Fail fast: confirm NATIVE_CPU stayed out of .config before
-          # spending ~2h compiling. (The skylake tuning itself lives in
-          # skylake-march.patch; a bad patch fails the build in seconds.)
+          set -euo pipefail
+          VER=$(nix eval --raw .#kernelVersion)
+          TAG="kernel-$VER"
+          if [ "${{ inputs.smoke_test }}" = "true" ]; then
+            TAG="$TAG-smoke"
+          fi
+
+          # Paths come from the derivation, which costs seconds. Building them
+          # costs hours. These are the only paths this workflow must publish;
+          # the rest of the closure comes along because a cache cannot be
+          # partial, but nothing else ever asks the laptop to trust it.
+          # One eval, because --raw would run it four times and concatenate the
+          # results into a single line.
+          if [ "${{ inputs.smoke_test }}" = "true" ]; then
+            nix eval --json --apply 'k: [ k.configfile ]' "$KERNEL" \
+              | jq -r '.[]' > ./published-paths
+          else
+            nix eval --json --apply 'k: [ k.out k.modules k.dev k.configfile ]' "$KERNEL" \
+              | jq -r '.[]' > ./published-paths
+          fi
+
+          # PACKAGED is uploaded last, so its presence means every nar and
+          # narinfo in the release made it. Anything less and we build again.
+          need_build=true
+          if gh release view "$TAG" --repo "$RELEASE_REPO" --json assets \
+               -q '.assets[].name' 2>/dev/null | grep -qx PACKAGED; then
+            need_build=false
+          fi
+
+          echo "kernel $VER, release $TAG, need_build=$need_build"
+          cat ./published-paths
+          {
+            echo "version=$VER"
+            echo "tag=$TAG"
+            echo "need_build=$need_build"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build And Upload Nars
+        if: steps.plan.outputs.need_build == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NIX_SECRET_KEY: ${{ secrets.NIX_SECRET_KEY }}
+          TAG: ${{ steps.plan.outputs.tag }}
+        run: |
+          set -euo pipefail
+          mapfile -t PATHS < ./published-paths
+
+          # Fail fast: keep NATIVE_CPU out of .config before spending ~2h. The
+          # skylake tuning itself lives in skylake-march.patch, so a bad patch
+          # fails the build in seconds.
           nix build "$KERNEL.configfile" --out-link ./result-config
           if grep -q '^CONFIG_X86_NATIVE_CPU=y' ./result-config; then
             echo "X86_NATIVE_CPU leaked into kernel .config" >&2
             exit 1
           fi
-          # --print-out-paths, never --out-link: nix appends the output name to
-          # the link (result-modules-modules), so ./result-modules would not
-          # exist and the copy step would have nothing to read. The smoke test
-          # reuses the configfile just built, so it stays a seconds-long job.
-          if [ "${{ inputs.smoke_test }}" = "true" ]; then
-            echo "smoke test: publishing the configfile only, no kernel build" >&2
-            readlink -f ./result-config > ./kernel-paths
-          else
+          if [ "${{ inputs.smoke_test }}" != "true" ]; then
             nix build --no-link --print-out-paths \
-              "$KERNEL^out" "$KERNEL^modules" "$KERNEL^dev" > ./kernel-paths
+              "$KERNEL^out" "$KERNEL^modules" "$KERNEL^dev" > /dev/null
           fi
-          cat ./kernel-paths
+          for p in "${PATHS[@]}"; do
+            [ -e "$p" ] || { echo "planned path $p is missing after the build" >&2; exit 1; }
+          done
 
-      - name: Publish Signed Closure To File Cache
-        env:
-          NIX_SECRET_KEY: ${{ secrets.NIX_SECRET_KEY }}
-        run: |
-          mapfile -t PATHS < ./kernel-paths
+          # Sign before copying: a file cache only exports signatures already
+          # recorded on the path, and `nix copy` has no --secret-key-files flag.
           printf '%s' "$NIX_SECRET_KEY" > ./nix-secret-key
           chmod 600 ./nix-secret-key
           mkdir -p ./public-cache
-          # Sign first: a file cache only exports signatures already recorded
-          # on the path, and `nix copy` has no --secret-key-files flag.
           nix store sign --key-file ./nix-secret-key "${PATHS[@]}"
-          nix copy --to "file://$PWD/public-cache" "${PATHS[@]}"
           rm -f ./nix-secret-key
+          nix copy --to "file://$PWD/public-cache" "${PATHS[@]}"
+
           # Fail loudly if a path is not signed by our own key: that is exactly
           # the "cache never hits" failure mode. Per path, and by signer name,
           # because dependencies arrive signed by cache.nixos.org and a bare
@@ -127,27 +184,62 @@ jobs:
               exit 1
             fi
           done
-          find ./public-cache -maxdepth 1 -name '*.narinfo' | sort | head -n 20
 
-      - name: Deploy Cache to GitHub Pages
+          # Point every narinfo at its release asset. gh-pages holds the
+          # narinfos, the nars live in the release, and this URL is the bridge.
+          ASSET_BASE="https://github.com/$RELEASE_REPO/releases/download/$TAG"
+          mkdir -p ./narinfos
+          for n in ./public-cache/*.narinfo; do
+            out="./narinfos/$(basename "$n")"
+            sed "s|^URL: nar/|URL: $ASSET_BASE/|" "$n" > "$out"
+            grep -q "^URL: $ASSET_BASE/" "$out" \
+              || { echo "narinfo $n still points at a relative URL" >&2; exit 1; }
+          done
+
+          # Upload before anything else can fail, and upload PACKAGED last so a
+          # half-finished upload never looks complete to the next run.
+          gh release view "$TAG" --repo "$RELEASE_REPO" >/dev/null 2>&1 \
+            || gh release create "$TAG" --repo "$RELEASE_REPO" \
+                 --title "Kernel ${{ steps.plan.outputs.version }} nar cache" \
+                 --notes "Nar assets for the signed kernel cache at $CACHE_URL, mirrored as narinfos on gh-pages. Read by .github/workflows/compile-kernel.yml. Do not delete while a generation still runs this kernel."
+          gh release upload "$TAG" ./public-cache/nar/*.nar.xz --repo "$RELEASE_REPO" --clobber
+          gh release upload "$TAG" ./narinfos/*.narinfo --repo "$RELEASE_REPO" --clobber
+          printf '%s\n' "${PATHS[@]}" > ./PACKAGED
+          gh release upload "$TAG" ./PACKAGED --repo "$RELEASE_REPO" --clobber
+          echo "uploaded $(find ./public-cache/nar -name '*.nar.xz' | wc -l) nars to $TAG"
+
+      - name: Reuse Narinfos From The Release
+        if: steps.plan.outputs.need_build != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.plan.outputs.tag }}
+        run: |
+          set -euo pipefail
+          mkdir -p ./narinfos
+          gh release download "$TAG" --repo "$RELEASE_REPO" \
+            --pattern '*.narinfo' --dir ./narinfos
+          COUNT=$(find ./narinfos -name '*.narinfo' | wc -l)
+          [ "$COUNT" -gt 0 ] || { echo "release $TAG has no narinfos" >&2; exit 1; }
+          echo "restored $COUNT narinfos from $TAG"
+
+      - name: Deploy Narinfos To GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./public-cache
+          publish_dir: ./narinfos
           publish_branch: gh-pages
-          # Never wipe: each run adds new store paths, old ones stay valid
-          # for older system generations.
+          # Never wipe: each run adds narinfos, older ones stay valid for older
+          # system generations and for kernels whose release still exists.
           keep_files: true
 
-      # The step above only proves the files left the runner. This proves the
-      # laptop's substituter finds them: each narinfo is served, describes the
-      # path we built, and carries our signature. It cannot prove the signature
-      # math is accepted (that needs the nar), but the failure this catches is
-      # the common one, a published path the cache never serves.
+      # Proves the laptop's substituter can actually use the cache: the narinfo
+      # is served, describes the path we published, carries our signature, and
+      # the nar it points at is downloadable with the size the narinfo promises.
+      # The size check is a HEAD, so a 210 MB nar costs nothing to verify.
       - name: Verify The Cache Serves Every Path
         run: |
           set -uo pipefail
-          mapfile -t PATHS < ./kernel-paths
+          mapfile -t PATHS < ./published-paths
           for p in "${PATHS[@]}"; do
             h=${p#/nix/store/}
             h=${h%%-*}
@@ -160,11 +252,25 @@ jobs:
               sleep 10
             done
             [ -n "$served" ] || { echo "$p never appeared at $CACHE_URL" >&2; exit 1; }
+
             printf '%s\n' "$served" | grep -qx "StorePath: $p" \
               || { echo "served narinfo does not describe $p" >&2; exit 1; }
             printf '%s\n' "$served" | grep -q "^Sig: $CACHE_KEY_NAME:" \
               || { echo "served narinfo for $p is not signed by $CACHE_KEY_NAME" >&2; exit 1; }
-            printf '%s\n' "$served" | grep -q '^NarHash: ' \
-              || { echo "served narinfo for $p has no NarHash" >&2; exit 1; }
+
+            url=$(printf '%s\n' "$served" | sed -n 's/^URL: //p')
+            size=$(printf '%s\n' "$served" | sed -n 's/^FileSize: //p')
+            [ -n "$url" ] && [ -n "$size" ] \
+              || { echo "narinfo for $p has no URL or FileSize" >&2; exit 1; }
+            # HEAD through the release redirect: the final response carries the
+            # real length, so a 210 MB nar costs nothing to check.
+            headers=$(curl -fsSIL "$url" 2>/dev/null | tr -d '\r') \
+              || { echo "nar for $p is not downloadable: $url" >&2; exit 1; }
+            code=$(printf '%s\n' "$headers" | awk '/^HTTP\//{c=$2} END{print c}')
+            actual=$(printf '%s\n' "$headers" | awk 'tolower($1)=="content-length:"{v=$2} END{print v}')
+            [ "$code" = "200" ] || { echo "nar for $p: $url returned $code" >&2; exit 1; }
+            [ "$actual" = "$size" ] \
+              || { echo "nar for $p is $actual bytes, narinfo says $size" >&2; exit 1; }
+            echo "$p -> $url ($size bytes)"
           done
-          echo "all ${#PATHS[@]} paths are served and signed at $CACHE_URL"
+          echo "all ${#PATHS[@]} paths are served, signed and downloadable"
