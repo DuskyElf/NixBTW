@@ -1,0 +1,10 @@
+StorePath: /nix/store/5f43mrilyf90ckxam3prxsw79cd9bs50-linux-config-7.2.13
+URL: nar/0xrbv4fsaxxfjaw8z3jck367xgn71pk0khffxh2c791pdwnj1jk2.nar.xz
+Compression: xz
+FileHash: sha256:0xrbv4fsaxxfjaw8z3jck367xgn71pk0khffxh2c791pdwnj1jk2
+FileSize: 64480
+NarHash: sha256:14cgwrh0bdpznnllyi7mgv2vxqg9b8d6gmgw0rr3kc2pyks67b90
+NarSize: 315632
+References: 
+Deriver: h02rv2nfvsrdfarbdi1y299a8gaj1r4i-linux-config-7.2.13.drv
+Sig: i9-kernel-cache:rUQmgtap/BEtlx6hQc1zetABn2goy8WtL9N639UcGGtHuDD4DdtEb03b2fVPvITGRULJOhYLMkf+Ah1qCBpsCg==
