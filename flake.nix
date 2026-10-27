@@ -1,20 +1,6 @@
 {
   description = "DuskyElf's dotfiles";
 
-  nixConfig = {
-    extra-substituters = [
-      "https://cache.nixos-cuda.org/"
-      "https://duskyelf.github.io/NixBTW"
-    ];
-    extra-trusted-public-keys = [
-      "cache.nixos-cuda.org:74DUi4Ye579gUqzH4ziL9IyiJBlDpMRn9MBN8oNan9M="
-      # Binary cache for the custom kernel, built on GitHub Actions and
-      # deployed to gh-pages. Key name must exactly match the signer
-      # (NIX_SECRET_KEY); a rename here silently rejects the cache.
-      "i9-kernel-cache:4R0pqOZkrRj4utTbF4zP05Y58QSgShLqQ77KUPzFjwk="
-    ];
-  };
-
   inputs = {
     self.submodules = true;
 
