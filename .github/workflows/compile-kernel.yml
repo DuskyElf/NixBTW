@@ -239,38 +239,47 @@ jobs:
       - name: Verify The Cache Serves Every Path
         run: |
           set -uo pipefail
+
+          # Returns non-zero and sets REASON when the path is not servable yet.
+          check_path() {
+            p=$1
+            h=$2
+            REASON=""
+            served=$(curl -fsS "$CACHE_URL/$h.narinfo" 2>/dev/null) \
+              || { REASON="narinfo not served"; return 1; }
+            printf '%s\n' "$served" | grep -qx "StorePath: $p" \
+              || { REASON="served narinfo does not describe $p"; return 1; }
+            printf '%s\n' "$served" | grep -q "^Sig: $CACHE_KEY_NAME:" \
+              || { REASON="not signed by $CACHE_KEY_NAME"; return 1; }
+            url=$(printf '%s\n' "$served" | sed -n 's/^URL: //p')
+            size=$(printf '%s\n' "$served" | sed -n 's/^FileSize: //p')
+            [ -n "$url" ] && [ -n "$size" ] \
+              || { REASON="narinfo has no URL or FileSize"; return 1; }
+            headers=$(curl -fsSIL "$url" 2>/dev/null | tr -d '\r') \
+              || { REASON="nar not downloadable: $url"; return 1; }
+            code=$(printf '%s\n' "$headers" | awk '/^HTTP\//{c=$2} END{print c}')
+            actual=$(printf '%s\n' "$headers" | awk 'tolower($1)=="content-length:"{v=$2} END{print v}')
+            [ "$code" = "200" ] || { REASON="nar returned $code"; return 1; }
+            [ "$actual" = "$size" ] \
+              || { REASON="nar is $actual bytes, narinfo says $size"; return 1; }
+            echo "$p -> $url ($size bytes)"
+          }
+
           mapfile -t PATHS < ./published-paths
           for p in "${PATHS[@]}"; do
             h=${p#/nix/store/}
             h=${h%%-*}
-            served=""
-            # gh-pages takes a moment to publish a new commit. Poll instead of
-            # failing on the first 404, which would be a false alarm.
-            for attempt in $(seq 1 20); do
-              if served=$(curl -fsS "$CACHE_URL/$h.narinfo"); then break; fi
-              echo "attempt $attempt/20: $h.narinfo not served yet" >&2
+            # Pages serves max-age=600 and switches over seconds after the
+            # deploy step reports success, so the narinfo can be present but
+            # still the previous copy. Retry until the content is right, not
+            # until it merely loads: a stale narinfo is the failure that made
+            # a smoke test look broken when the cache was already fine.
+            ok=false
+            for attempt in $(seq 1 60); do
+              if check_path "$p" "$h"; then ok=true; break; fi
+              echo "attempt $attempt/60: $h ($REASON), retrying in 10s" >&2
               sleep 10
             done
-            [ -n "$served" ] || { echo "$p never appeared at $CACHE_URL" >&2; exit 1; }
-
-            printf '%s\n' "$served" | grep -qx "StorePath: $p" \
-              || { echo "served narinfo does not describe $p" >&2; exit 1; }
-            printf '%s\n' "$served" | grep -q "^Sig: $CACHE_KEY_NAME:" \
-              || { echo "served narinfo for $p is not signed by $CACHE_KEY_NAME" >&2; exit 1; }
-
-            url=$(printf '%s\n' "$served" | sed -n 's/^URL: //p')
-            size=$(printf '%s\n' "$served" | sed -n 's/^FileSize: //p')
-            [ -n "$url" ] && [ -n "$size" ] \
-              || { echo "narinfo for $p has no URL or FileSize" >&2; exit 1; }
-            # HEAD through the release redirect: the final response carries the
-            # real length, so a 210 MB nar costs nothing to check.
-            headers=$(curl -fsSIL "$url" 2>/dev/null | tr -d '\r') \
-              || { echo "nar for $p is not downloadable: $url" >&2; exit 1; }
-            code=$(printf '%s\n' "$headers" | awk '/^HTTP\//{c=$2} END{print c}')
-            actual=$(printf '%s\n' "$headers" | awk 'tolower($1)=="content-length:"{v=$2} END{print v}')
-            [ "$code" = "200" ] || { echo "nar for $p: $url returned $code" >&2; exit 1; }
-            [ "$actual" = "$size" ] \
-              || { echo "nar for $p is $actual bytes, narinfo says $size" >&2; exit 1; }
-            echo "$p -> $url ($size bytes)"
+            [ "$ok" = "true" ] || { echo "$p never became servable: $REASON" >&2; exit 1; }
           done
           echo "all ${#PATHS[@]} paths are served, signed and downloadable"
