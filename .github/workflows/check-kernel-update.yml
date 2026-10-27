@@ -1,12 +1,17 @@
 name: "Check Kernel Update"
 
-# Daily: if release-26.05 carries a newer linux_7_2 than our pin, stage the
+# Daily: if release-26.05 carries a newer stable kernel than our pin, stage the
 # toolchain bump (flake.nix pin + hosts/asus/kernel-toolchain.lock) on the
 # kernel-bump branch and open/update a PR to main.
 #
+# "Stable kernel" means the newest series with a stable patch release, as
+# decided by hosts/asus/stable-kernel.nix. Comparing versions rather than
+# series names is what turns a new series (7.3.1, later 7.4.1) into an
+# ordinary pin bump instead of an edit to the kernel selection.
+#
 # Nothing lands on main by itself: merging the PR is the manual gate.
-# The merge triggers compile-kernel (path filter), CI deploys the binary,
-# and the laptop's kernel-update-check timer notices the new cache entry.
+# The merge triggers compile-kernel (path filter), which deploys the signed
+# binary to gh-pages; the next local nixos-rebuild substitutes it.
 
 on:
   schedule:
@@ -23,9 +28,16 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-latest
+    env:
+      # The channel the kernel toolchain pin tracks. If this branch ever stops
+      # carrying new stable series, point it (and the flake.nix URL) at
+      # nixos-unstable; nothing else here assumes a release branch.
+      CHANNEL: release-26.05
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Install Nix
         uses: cachix/install-nix-action@v31
@@ -42,16 +54,20 @@ jobs:
           [ -n "$PINNED_REV" ] || { echo "pin not found in flake.nix" >&2; exit 1; }
           echo "pinned rev: $PINNED_REV"
 
-          PREFETCH=$(nix flake prefetch github:NixOS/nixpkgs/release-26.05 --json)
+          PREFETCH=$(nix flake prefetch "github:NixOS/nixpkgs/$CHANNEL" --json)
           LATEST_REV=$(echo "$PREFETCH" | jq -r '.locked.rev // .rev')
           LATEST_HASH=$(echo "$PREFETCH" | jq -r '.hash')
           [ -n "$LATEST_REV" ] && [ "$LATEST_REV" != "null" ] || { echo "could not resolve channel rev" >&2; exit 1; }
           echo "latest rev: $LATEST_REV"
 
           ver_at() {
-            nix eval "github:NixOS/nixpkgs/$1#legacyPackages.x86_64-linux.linuxKernel.kernels.linux_7_2.version" --raw
+            # Ask the flake itself which kernel a rev yields, so the selection
+            # rule (hosts/asus/stable-kernel.nix) is never duplicated here.
+            nix eval --raw .#kernelVersion --override-input nixpkgs-fast-release "github:NixOS/nixpkgs/$1"
           }
-          PINNED_VER=$(ver_at "$PINNED_REV")
+          # The pinned side is the flake as committed: this is also a check that
+          # the rev grepped above is the rev that actually resolves.
+          PINNED_VER=$(nix eval --raw .#kernelVersion)
           LATEST_VER=$(ver_at "$LATEST_REV")
           echo "pinned kernel: $PINNED_VER, channel kernel: $LATEST_VER"
 
@@ -59,8 +75,9 @@ jobs:
             echo "kernel $PINNED_VER still current, nothing to do"
             exit 0
           fi
-          # Forward-only: a staging backport pin can sit ahead of the
-          # release channel for days. Never stage a downgrade.
+          # Forward-only. Normally the pin trails the channel and the check
+          # above only fires on a real move, but a hand-picked staging rev can
+          # sit ahead of it for days. Never stage a downgrade.
           if [ "$(printf '%s\n%s\n' "$PINNED_VER" "$LATEST_VER" | sort -V | head -n1)" = "$LATEST_VER" ]; then
             echo "pinned $PINNED_VER ahead of channel $LATEST_VER, holding"
             exit 0
@@ -94,21 +111,26 @@ jobs:
           CHANGED=$(git diff --numstat flake.nix | awk '{print $1 + $2}')
           [ "$CHANGED" = "2" ] || { echo "pin replacement touched $CHANGED lines, aborting" >&2; git diff flake.nix >&2; exit 1; }
 
-          jq -n --arg rev "$NEW_REV" --arg hash "$NEW_HASH" --arg ver "$NEW_VER" --arg date "$(date +%F)" \
-            '{input: "nixpkgs-fast-release", ref: "release-26.05", rev: $rev, narHash: $hash, kernelVersion: $ver, updated: $date}' \
+          jq -n --arg rev "$NEW_REV" --arg hash "$NEW_HASH" --arg ver "$NEW_VER" --arg ref "$CHANNEL" --arg date "$(date +%F)" \
+            '{input: "nixpkgs-fast-release", ref: $ref, rev: $rev, narHash: $hash, kernelVersion: $ver, updated: $date}' \
             > hosts/asus/kernel-toolchain.lock
 
           git add flake.nix hosts/asus/kernel-toolchain.lock
           git commit -m "chore(kernel): stage toolchain for linux ${OLD_VER} -> ${NEW_VER}" || echo "nothing new to commit"
           git push -f origin kernel-bump
 
-          if ! gh pr view kernel-bump --json number -q .number >/dev/null 2>&1; then
-            # Requesting review guarantees a GitHub notification for the merge gate.
-            gh pr create --base main --head kernel-bump --reviewer DuskyElf \
-              --title "chore(kernel): build linux ${NEW_VER}" \
-              --body "release-26.05 moved linux_7_2 ${OLD_VER} -> ${NEW_VER}.
+          TITLE="chore(kernel): build linux ${NEW_VER}"
+          BODY="${CHANNEL} moved the stable kernel ${OLD_VER} -> ${NEW_VER}.
 
           Merging this PR triggers the compile-kernel build; once CI deploys
           the binary to gh-pages, run nixos-rebuild locally (cache hit, no
           2h compile) and reboot."
+          if gh pr view kernel-bump --json number -q .number >/dev/null 2>&1; then
+            # Re-bumps move the branch, so the title and body have to follow or
+            # the PR keeps advertising the kernel it was first opened for.
+            gh pr edit kernel-bump --title "$TITLE" --body "$BODY"
+          else
+            # Requesting review guarantees a GitHub notification for the merge gate.
+            gh pr create --base main --head kernel-bump --reviewer DuskyElf \
+              --title "$TITLE" --body "$BODY"
           fi

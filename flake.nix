@@ -23,8 +23,11 @@
     # Pinned by rev (not branch) so GitHub Actions builds the exact same
     # kernel closure as this laptop. CI has no lock file for this flake, so a
     # floating ref would drift and every cache lookup would miss.
-    # To bump the kernel toolchain: update the rev, push, let the
-    # compile-kernel workflow rebuild and repopulate the cache.
+    # This is a staging-nixos-26.05 commit, ahead of release-26.05, to carry the
+    # 7.2.13 patch. Which kernel the rev yields is decided by
+    # hosts/asus/stable-kernel.nix, never by a series name here. The daily
+    # check-kernel-update workflow moves the pin to the release channel once the
+    # channel is not behind, and holds while this pin is ahead.
     # NOTE: deploy-system must NOT follows-override this input, or local
     # builds will use a different rev than CI and miss the cache.
     nixpkgs-fast-release.url = "github:NixOS/nixpkgs/63f32ffb70a5c10e0aaa040cd1a64f2f1c6b94a6";
@@ -112,6 +115,13 @@
         system = system;
         config.allowUnfree = true;
       };
+      # Which kernel this machine runs, decided in one place. Exposed as the
+      # `kernelVersion` flake output so CI can ask a candidate pin the same
+      # question; hosts/asus/system.nix gets the drv through specialArgs.
+      stableKernel = import ./hosts/asus/stable-kernel.nix {
+        inherit (pkgs-fast-release) lib;
+        kernels = pkgs-fast-release.linuxKernel.kernels;
+      };
       baseJail = inputs.jail-nix.lib.extend {
         inherit pkgs;
         additionalCombinators =
@@ -140,6 +150,11 @@
         };
     in
     {
+      # The stable kernel series this machine tracks (see
+      # hosts/asus/stable-kernel.nix). CI compares this against a candidate
+      # pin: nix eval --raw .#kernelVersion --override-input nixpkgs-fast-release <rev>
+      kernelVersion = stableKernel.version;
+
       nixosConfigurations.asus = nixpkgs.lib.nixosSystem {
         inherit system;
         specialArgs = {
@@ -148,6 +163,7 @@
             jail
             pkgs-unstable
             pkgs-fast-release
+            stableKernel
             ;
         };
         modules = [

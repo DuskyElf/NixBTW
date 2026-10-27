@@ -2,6 +2,7 @@
   config,
   pkgs,
   pkgs-fast-release,
+  stableKernel,
   lib,
   modulesPath,
   ...
@@ -217,10 +218,11 @@ in
     ];
     extraModulePackages = [ ];
 
-    #kernelPackages = pkgs.linuxPackages_latest;
-
+    # The kernel drv comes from flake.nix (hosts/asus/stable-kernel.nix picks
+    # the newest series with a stable patch release). This file only decides
+    # how it is configured, so a new series never needs an edit here.
     kernelPackages = pkgs-fast-release.linuxPackagesFor (
-      pkgs-fast-release.linuxKernel.kernels.linux_7_2.override {
+      stableKernel.override {
         ignoreConfigErrors = true;
 
         # Start with an all-no config.  It is slightly easiler to pull together
