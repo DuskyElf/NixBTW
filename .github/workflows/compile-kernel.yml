@@ -1,0 +1,95 @@
+name: "Compile Optimized Kernel"
+
+# Builds the custom skylake kernel from this flake and publishes it as a
+# Nix binary cache on gh-pages (https://duskyelf.github.io/NixBTW).
+#
+# Why this works (lessons from the May experiments):
+# - The kernel pins MSKYLAKE instead of X86_NATIVE_CPU, so a build on an AMD
+#   Actions runner is identical to one on the i9 laptop. Native-CPU sniffing
+#   gave same-store-path/different-bytes poison and endless local rebuilds.
+# - nixpkgs-fast-release is pinned by rev in flake.nix, so CI (which has no
+#   lock file) resolves the exact same toolchain as the laptop.
+# - All three kernel outputs (out, modules, dev) are copied. Copying only
+#   `out` left the modules uncached, which is most of the compile.
+# - The deploy keeps existing files. keep_files:false wiped the cache every run.
+# - The trusted-public-key name must match the NIX_SECRET_KEY signer
+#   (i9-kernel-cache) or the laptop silently rejects every lookup.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "flake.nix"
+      - "hosts/asus/system.nix"
+      - "system.nix"
+      - ".github/workflows/compile-kernel.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            accept-flake-config = true
+
+      - name: Build Kernel (all outputs)
+        run: |
+          # Fail fast: confirm the pinned microarch made it into .config
+          # before spending ~2h compiling.
+          nix build '.#nixosConfigurations.asus.config.boot.kernelPackages.kernel.configfile' --out-link ./result-config
+          grep -q '^CONFIG_MSKYLAKE=y' ./result-config || { echo "MSKYLAKE missing from kernel .config" >&2; exit 1; }
+          if grep -q '^CONFIG_X86_NATIVE_CPU=y' ./result-config; then
+            echo "X86_NATIVE_CPU leaked into kernel .config" >&2
+            exit 1
+          fi
+          nix build '.#nixosConfigurations.asus.config.boot.kernelPackages.kernel^out' --out-link ./result-out
+          nix build '.#nixosConfigurations.asus.config.boot.kernelPackages.kernel^modules' --out-link ./result-modules
+          nix build '.#nixosConfigurations.asus.config.boot.kernelPackages.kernel^dev' --out-link ./result-dev
+          echo "out:     $(readlink -f ./result-out)"
+          echo "modules: $(readlink -f ./result-modules)"
+          echo "dev:     $(readlink -f ./result-dev)"
+
+      - name: Publish Signed Closure To File Cache
+        env:
+          NIX_SECRET_KEY: ${{ secrets.NIX_SECRET_KEY }}
+        run: |
+          printf '%s' "$NIX_SECRET_KEY" > ./nix-secret-key
+          chmod 600 ./nix-secret-key
+          mkdir -p ./public-cache
+          nix --extra-option secret-key-files "$PWD/nix-secret-key" \
+            copy --to "file://$PWD/public-cache" \
+            ./result-out ./result-modules ./result-dev
+          rm -f ./nix-secret-key
+          # Fail loudly if anything was left unsigned: an unsigned narinfo
+          # is exactly the "cache never hits" failure mode.
+          if [ "$(ls ./public-cache/*.narinfo 2>/dev/null | wc -l)" -eq 0 ]; then
+            echo "no narinfo files produced, refusing to deploy" >&2
+            exit 1
+          fi
+          if grep -L '^Sig:' ./public-cache/*.narinfo; then
+            echo "unsigned narinfo found, refusing to deploy" >&2
+            exit 1
+          fi
+          ls ./public-cache | head -n 20
+
+      - name: Deploy Cache to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public-cache
+          publish_branch: gh-pages
+          # Never wipe: each run adds new store paths, old ones stay valid
+          # for older system generations.
+          keep_files: true

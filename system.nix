@@ -86,10 +86,14 @@ in
       substituters = [
         "https://cache.nixos.org"
         "https://cache.nixos-cuda.org"
+        "https://duskyelf.github.io/NixBTW"
       ];
 
       trusted-public-keys = [
         "cache.nixos-cuda.org:74DUi4Ye579gUqzH4ziL9IyiJBlDpMRn9MBN8oNan9M="
+        # Custom kernel cache (GitHub Actions -> gh-pages). Key name must
+        # match the NIX_SECRET_KEY signer exactly or lookups miss silently.
+        "i9-kernel-cache:4R0pqOZkrRj4utTbF4zP05Y58QSgShLqQ77KUPzFjwk="
       ];
 
       experimental-features = [

@@ -233,10 +233,17 @@ in
 
     kernelPatches = [
       {
-        name = "march-native-llvm-lto";
+        name = "skylake-preempt";
         patch = null;
         structuredExtraConfig = with lib.kernel; {
-          X86_NATIVE_CPU = yes;
+          # Do NOT use X86_NATIVE_CPU. It sniffs the *build* host's CPU at
+          # compile time, so a kernel built on GitHub Actions (AMD runner)
+          # would differ from one built on this laptop (i9-9980HK, Coffee
+          # Lake == skylake) while sharing the same store path. That silently
+          # poisons the binary cache and forces local rebuilds. Pin the
+          # microarch explicitly so CI and local builds are identical.
+          X86_NATIVE_CPU = lib.mkForce no;
+          MSKYLAKE = yes;
           X86_INTEL_PSTATE = yes;
           PREEMPT = lib.mkForce yes;
           PREEMPT_LAZY = lib.mkForce no;

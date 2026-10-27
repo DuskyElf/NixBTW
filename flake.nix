@@ -4,9 +4,14 @@
   nixConfig = {
     extra-substituters = [
       "https://cache.nixos-cuda.org/"
+      "https://duskyelf.github.io/NixBTW"
     ];
     extra-trusted-public-keys = [
       "cache.nixos-cuda.org:74DUi4Ye579gUqzH4ziL9IyiJBlDpMRn9MBN8oNan9M="
+      # Binary cache for the custom kernel, built on GitHub Actions and
+      # deployed to gh-pages. Key name must exactly match the signer
+      # (NIX_SECRET_KEY); a rename here silently rejects the cache.
+      "i9-kernel-cache:4R0pqOZkrRj4utTbF4zP05Y58QSgShLqQ77KUPzFjwk="
     ];
   };
 
@@ -15,8 +20,14 @@
 
     nixpkgs.url = "nixpkgs/nixos-26.05";
 
-    # pkgs from release-26.05 are not cached, I compile my kernel myself either way
-    nixpkgs-fast-release.url = "nixpkgs/release-26.05";
+    # Pinned by rev (not branch) so GitHub Actions builds the exact same
+    # kernel closure as this laptop. CI has no lock file for this flake, so a
+    # floating ref would drift and every cache lookup would miss.
+    # To bump the kernel toolchain: update the rev, push, let the
+    # compile-kernel workflow rebuild and repopulate the cache.
+    # NOTE: deploy-system must NOT follows-override this input, or local
+    # builds will use a different rev than CI and miss the cache.
+    nixpkgs-fast-release.url = "github:NixOS/nixpkgs/2f11bb7ff83b556e035a5da06596c106ddba1311";
 
     nixpkgs-unstable.url = "nixpkgs/nixos-unstable";
 
