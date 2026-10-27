@@ -19,6 +19,14 @@ name: "Compile Optimized Kernel"
 
 on:
   workflow_dispatch:
+    inputs:
+      # Publishes the kernel configfile instead of the kernel: seconds instead
+      # of hours. Exercises signing, deploy and substitutability on their own,
+      # so a publish bug never costs another full compile to discover.
+      smoke_test:
+        description: "Publish only the kernel configfile (no compile)"
+        type: boolean
+        default: false
   push:
     branches: [main]
     paths:
@@ -64,34 +72,46 @@ jobs:
             echo "X86_NATIVE_CPU leaked into kernel .config" >&2
             exit 1
           fi
-          nix build '.#nixosConfigurations.asus.config.boot.kernelPackages.kernel^out' --out-link ./result-out
-          nix build '.#nixosConfigurations.asus.config.boot.kernelPackages.kernel^modules' --out-link ./result-modules
-          nix build '.#nixosConfigurations.asus.config.boot.kernelPackages.kernel^dev' --out-link ./result-dev
-          echo "out:     $(readlink -f ./result-out)"
-          echo "modules: $(readlink -f ./result-modules)"
-          echo "dev:     $(readlink -f ./result-dev)"
+          # --print-out-paths, never --out-link: nix appends the output name to
+          # the link (result-modules-modules), so ./result-modules would not
+          # exist and the copy step would have nothing to read.
+          if [ "${{ inputs.smoke_test }}" = "true" ]; then
+            echo "smoke test: publishing the configfile only, no kernel build" >&2
+            nix build --no-link --print-out-paths \
+              '.#nixosConfigurations.asus.config.boot.kernelPackages.kernel.configfile' \
+              > ./kernel-paths
+          else
+            nix build --no-link --print-out-paths \
+              '.#nixosConfigurations.asus.config.boot.kernelPackages.kernel^out' \
+              '.#nixosConfigurations.asus.config.boot.kernelPackages.kernel^modules' \
+              '.#nixosConfigurations.asus.config.boot.kernelPackages.kernel^dev' \
+              > ./kernel-paths
+          fi
+          cat ./kernel-paths
 
       - name: Publish Signed Closure To File Cache
         env:
           NIX_SECRET_KEY: ${{ secrets.NIX_SECRET_KEY }}
         run: |
+          mapfile -t PATHS < ./kernel-paths
           printf '%s' "$NIX_SECRET_KEY" > ./nix-secret-key
           chmod 600 ./nix-secret-key
           mkdir -p ./public-cache
-          nix --extra-option secret-key-files "$PWD/nix-secret-key" \
-            copy --to "file://$PWD/public-cache" \
-            ./result-out ./result-modules ./result-dev
+          # Sign first: a file cache only exports signatures already recorded
+          # on the path, and `nix copy` has no --secret-key-files flag.
+          nix store sign --key-file ./nix-secret-key "${PATHS[@]}"
+          nix copy --to "file://$PWD/public-cache" "${PATHS[@]}"
           rm -f ./nix-secret-key
-          # Fail loudly if anything was left unsigned: an unsigned narinfo
-          # is exactly the "cache never hits" failure mode.
-          if [ "$(ls ./public-cache/*.narinfo 2>/dev/null | wc -l)" -eq 0 ]; then
-            echo "no narinfo files produced, refusing to deploy" >&2
-            exit 1
-          fi
-          if grep -L '^Sig:' ./public-cache/*.narinfo; then
-            echo "unsigned narinfo found, refusing to deploy" >&2
-            exit 1
-          fi
+          # Fail loudly if a kernel path is not signed by our own key: that is
+          # exactly the "cache never hits" failure mode.
+          for p in "${PATHS[@]}"; do
+            h=${p#/nix/store/}
+            h=${h%%-*}
+            if ! grep -q '^Sig: i9-kernel-cache:' "./public-cache/$h.narinfo"; then
+              echo "narinfo for $p is not signed by i9-kernel-cache" >&2
+              exit 1
+            fi
+          done
           ls ./public-cache | head -n 20
 
       - name: Deploy Cache to GitHub Pages
