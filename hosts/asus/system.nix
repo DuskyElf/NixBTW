@@ -233,17 +233,20 @@ in
 
     kernelPatches = [
       {
-        name = "skylake-preempt";
-        patch = null;
+        name = "skylake-tune-preempt";
+        patch = ./skylake-march.patch;
         structuredExtraConfig = with lib.kernel; {
           # Do NOT use X86_NATIVE_CPU. It sniffs the *build* host's CPU at
           # compile time, so a kernel built on GitHub Actions (AMD runner)
-          # would differ from one built on this laptop (i9-9980HK, Coffee
-          # Lake == skylake) while sharing the same store path. That silently
-          # poisons the binary cache and forces local rebuilds. Pin the
-          # microarch explicitly so CI and local builds are identical.
+          # would differ from one built on this laptop while sharing the
+          # same store path. That silently poisons the binary cache and
+          # forces local rebuilds. The -march=skylake tuning lives in
+          # skylake-march.patch instead: kernel 7.2 dropped the 64-bit
+          # family choice from Kconfig, so a fixed Makefile flag is the
+          # only deterministic way to keep the tuning. It compiles
+          # identically anywhere and only ever runs on this laptop
+          # (i9-9980HK, Coffee Lake == skylake).
           X86_NATIVE_CPU = lib.mkForce no;
-          MSKYLAKE = yes;
           X86_INTEL_PSTATE = yes;
           PREEMPT = lib.mkForce yes;
           PREEMPT_LAZY = lib.mkForce no;

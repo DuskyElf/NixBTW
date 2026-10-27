@@ -46,10 +46,10 @@ jobs:
 
       - name: Build Kernel (all outputs)
         run: |
-          # Fail fast: confirm the pinned microarch made it into .config
-          # before spending ~2h compiling.
+          # Fail fast: confirm NATIVE_CPU stayed out of .config before
+          # spending ~2h compiling. (The skylake tuning itself lives in
+          # skylake-march.patch; a bad patch fails the build in seconds.)
           nix build '.#nixosConfigurations.asus.config.boot.kernelPackages.kernel.configfile' --out-link ./result-config
-          grep -q '^CONFIG_MSKYLAKE=y' ./result-config || { echo "MSKYLAKE missing from kernel .config" >&2; exit 1; }
           if grep -q '^CONFIG_X86_NATIVE_CPU=y' ./result-config; then
             echo "X86_NATIVE_CPU leaked into kernel .config" >&2
             exit 1
