@@ -3,6 +3,11 @@ name: "Compile Optimized Kernel"
 # Builds the custom skylake kernel from this flake and publishes it as a
 # Nix binary cache on gh-pages (https://duskyelf.github.io/NixBTW).
 #
+# Which kernel gets built is never named here. hosts/asus/stable-kernel.nix
+# picks the newest series with a stable patch release and this workflow builds
+# whatever that resolves to, so a new series arrives as an ordinary pin bump.
+# Naming a series below would publish a kernel the laptop is not running.
+#
 # Why this works (lessons from the May experiments):
 # - The kernel uses a fixed -march=skylake (skylake-march.patch) instead of
 #   X86_NATIVE_CPU, so a build on an AMD Actions runner is identical to one
@@ -11,11 +16,20 @@ name: "Compile Optimized Kernel"
 #   choice from Kconfig, so the Makefile patch is the only deterministic knob.)
 # - nixpkgs-fast-release is pinned by rev in flake.nix, so CI (which has no
 #   lock file) resolves the exact same toolchain as the laptop.
-# - All three kernel outputs (out, modules, dev) are copied. Copying only
-#   `out` left the modules uncached, which is most of the compile.
+# - A real run copies all three kernel outputs (out, modules, dev). Copying
+#   only `out` left the modules uncached, which is most of the compile. A
+#   smoke_test run copies the configfile instead, which costs seconds.
 # - The deploy keeps existing files. keep_files:false wiped the cache every run.
-# - The trusted-public-key name must match the NIX_SECRET_KEY signer
-#   (i9-kernel-cache) or the laptop silently rejects every lookup.
+# - The trusted-public-key name must match the NIX_SECRET_KEY signer or the
+#   laptop silently rejects every lookup and builds the kernel itself.
+
+env:
+  CACHE_URL: https://duskyelf.github.io/NixBTW
+  # The signer name. system.nix holds the public half the laptop trusts; the
+  # name there and here must be identical, so keep them in one place each.
+  CACHE_KEY_NAME: i9-kernel-cache
+  # Long enough that repeating it by hand invites a typo in one of the outputs.
+  KERNEL: .#nixosConfigurations.asus.config.boot.kernelPackages.kernel
 
 on:
   workflow_dispatch:
@@ -31,6 +45,9 @@ on:
     branches: [main]
     paths:
       - "flake.nix"
+      # The selector: editing it changes which kernel is built, so it has to
+      # trigger a rebuild or the laptop compiles the new one locally.
+      - "hosts/asus/stable-kernel.nix"
       - "hosts/asus/system.nix"
       - "hosts/asus/skylake-march.patch"
       - "hosts/asus/kernel-toolchain.lock"
@@ -62,30 +79,26 @@ jobs:
             experimental-features = nix-command flakes
             accept-flake-config = true
 
-      - name: Build Kernel (all outputs)
+      - name: Build Kernel
         run: |
           # Fail fast: confirm NATIVE_CPU stayed out of .config before
           # spending ~2h compiling. (The skylake tuning itself lives in
           # skylake-march.patch; a bad patch fails the build in seconds.)
-          nix build '.#nixosConfigurations.asus.config.boot.kernelPackages.kernel.configfile' --out-link ./result-config
+          nix build "$KERNEL.configfile" --out-link ./result-config
           if grep -q '^CONFIG_X86_NATIVE_CPU=y' ./result-config; then
             echo "X86_NATIVE_CPU leaked into kernel .config" >&2
             exit 1
           fi
           # --print-out-paths, never --out-link: nix appends the output name to
           # the link (result-modules-modules), so ./result-modules would not
-          # exist and the copy step would have nothing to read.
+          # exist and the copy step would have nothing to read. The smoke test
+          # reuses the configfile just built, so it stays a seconds-long job.
           if [ "${{ inputs.smoke_test }}" = "true" ]; then
             echo "smoke test: publishing the configfile only, no kernel build" >&2
-            nix build --no-link --print-out-paths \
-              '.#nixosConfigurations.asus.config.boot.kernelPackages.kernel.configfile' \
-              > ./kernel-paths
+            readlink -f ./result-config > ./kernel-paths
           else
             nix build --no-link --print-out-paths \
-              '.#nixosConfigurations.asus.config.boot.kernelPackages.kernel^out' \
-              '.#nixosConfigurations.asus.config.boot.kernelPackages.kernel^modules' \
-              '.#nixosConfigurations.asus.config.boot.kernelPackages.kernel^dev' \
-              > ./kernel-paths
+              "$KERNEL^out" "$KERNEL^modules" "$KERNEL^dev" > ./kernel-paths
           fi
           cat ./kernel-paths
 
@@ -102,17 +115,19 @@ jobs:
           nix store sign --key-file ./nix-secret-key "${PATHS[@]}"
           nix copy --to "file://$PWD/public-cache" "${PATHS[@]}"
           rm -f ./nix-secret-key
-          # Fail loudly if a kernel path is not signed by our own key: that is
-          # exactly the "cache never hits" failure mode.
+          # Fail loudly if a path is not signed by our own key: that is exactly
+          # the "cache never hits" failure mode. Per path, and by signer name,
+          # because dependencies arrive signed by cache.nixos.org and a bare
+          # `grep -L '^Sig:'` could never fail.
           for p in "${PATHS[@]}"; do
             h=${p#/nix/store/}
             h=${h%%-*}
-            if ! grep -q '^Sig: i9-kernel-cache:' "./public-cache/$h.narinfo"; then
-              echo "narinfo for $p is not signed by i9-kernel-cache" >&2
+            if ! grep -q "^Sig: $CACHE_KEY_NAME:" "./public-cache/$h.narinfo"; then
+              echo "narinfo for $p is not signed by $CACHE_KEY_NAME" >&2
               exit 1
             fi
           done
-          ls ./public-cache | head -n 20
+          find ./public-cache -maxdepth 1 -name '*.narinfo' | sort | head -n 20
 
       - name: Deploy Cache to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
@@ -123,3 +138,33 @@ jobs:
           # Never wipe: each run adds new store paths, old ones stay valid
           # for older system generations.
           keep_files: true
+
+      # The step above only proves the files left the runner. This proves the
+      # laptop's substituter finds them: each narinfo is served, describes the
+      # path we built, and carries our signature. It cannot prove the signature
+      # math is accepted (that needs the nar), but the failure this catches is
+      # the common one, a published path the cache never serves.
+      - name: Verify The Cache Serves Every Path
+        run: |
+          set -uo pipefail
+          mapfile -t PATHS < ./kernel-paths
+          for p in "${PATHS[@]}"; do
+            h=${p#/nix/store/}
+            h=${h%%-*}
+            served=""
+            # gh-pages takes a moment to publish a new commit. Poll instead of
+            # failing on the first 404, which would be a false alarm.
+            for attempt in $(seq 1 20); do
+              if served=$(curl -fsS "$CACHE_URL/$h.narinfo"); then break; fi
+              echo "attempt $attempt/20: $h.narinfo not served yet" >&2
+              sleep 10
+            done
+            [ -n "$served" ] || { echo "$p never appeared at $CACHE_URL" >&2; exit 1; }
+            printf '%s\n' "$served" | grep -qx "StorePath: $p" \
+              || { echo "served narinfo does not describe $p" >&2; exit 1; }
+            printf '%s\n' "$served" | grep -q "^Sig: $CACHE_KEY_NAME:" \
+              || { echo "served narinfo for $p is not signed by $CACHE_KEY_NAME" >&2; exit 1; }
+            printf '%s\n' "$served" | grep -q '^NarHash: ' \
+              || { echo "served narinfo for $p has no NarHash" >&2; exit 1; }
+          done
+          echo "all ${#PATHS[@]} paths are served and signed at $CACHE_URL"

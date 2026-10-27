@@ -1,8 +1,9 @@
 name: "Check Kernel Update"
 
-# Daily: if release-26.05 carries a newer stable kernel than our pin, stage the
-# toolchain bump (flake.nix pin + hosts/asus/kernel-toolchain.lock) on the
-# kernel-bump branch and open/update a PR to main.
+# Daily: if the channel (CHANNEL below) carries a newer stable kernel than our
+# pin, stage the toolchain bump (flake.nix pin plus
+# hosts/asus/kernel-toolchain.lock) on the kernel-bump branch and open or update
+# a PR to main.
 #
 # "Stable kernel" means the newest series with a stable patch release, as
 # decided by hosts/asus/stable-kernel.nix. Comparing versions rather than

@@ -59,7 +59,7 @@ Do not append session notes, reproduction logs, transient tool quirks, or readab
 ## Load-bearing oddities, do not clean up
 
 * Perl overlay in `flake.nix` (`doCheck = false` on ModuleCPANTS-Analyse) is required for gnucash to build.
-* `hosts/asus/system.nix` compiles its own kernel (march-native plus LLVM LTO) from nixpkgs-fast-release. Changes mean a long local compile. `PREEMPT_LAZY = lib.mkForce no` resolves a config conflict (commit a2b03f7).
+* `hosts/asus/system.nix` compiles its own kernel (fixed `-march=skylake`, LLVM LTO) from nixpkgs-fast-release. Changes mean a long local compile. `PREEMPT_LAZY = lib.mkForce no` resolves a config conflict (commit a2b03f7). The series is derived, not named: `hosts/asus/stable-kernel.nix` picks the newest series with a stable patch release, so never pin `linux_7_2` or reach for `linuxPackages_latest`.
 * nixpkgs inputs are deliberately mixed (system release, niri unstable, stylix aligned with system). Aligning them is not a fix.
 * Zen reads light/dark from the portal's `org.freedesktop.appearance`, mapped to dconf `org/gnome/desktop/interface.color-scheme`. `home.nix` pins `prefer-dark`. Unset, zen renders light despite `stylix.polarity = "dark"`. `stylix.targets.zen-browser.enable = false` only gates CSS, not light/dark (niri issue 2878).
 * Stylix's gtk target sets `gtk.gtk4.theme` internally. A manual line duplicates the definition and fails home-manager.

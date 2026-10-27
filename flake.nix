@@ -23,11 +23,11 @@
     # Pinned by rev (not branch) so GitHub Actions builds the exact same
     # kernel closure as this laptop. CI has no lock file for this flake, so a
     # floating ref would drift and every cache lookup would miss.
-    # This is a staging-nixos-26.05 commit, ahead of release-26.05, to carry the
-    # 7.2.13 patch. Which kernel the rev yields is decided by
-    # hosts/asus/stable-kernel.nix, never by a series name here. The daily
-    # check-kernel-update workflow moves the pin to the release channel once the
-    # channel is not behind, and holds while this pin is ahead.
+    # The rev carries whatever hosts/asus/stable-kernel.nix picks (the newest
+    # series with a stable patch release); hosts/asus/kernel-toolchain.lock
+    # records which one it currently is. The daily check-kernel-update workflow
+    # moves this pin to the channel tip once the channel is not behind, and
+    # holds while this pin is ahead.
     # NOTE: deploy-system must NOT follows-override this input, or local
     # builds will use a different rev than CI and miss the cache.
     nixpkgs-fast-release.url = "github:NixOS/nixpkgs/63f32ffb70a5c10e0aaa040cd1a64f2f1c6b94a6";

@@ -4,7 +4,8 @@
 # kernel.org calls a freshly cut release "mainline" (7.3, no patch releases)
 # and a maintained series "stable" (7.2.13 today, and 7.3.1 once gregkh cuts
 # it). nixpkgs spells the mainline release with two version components and
-# every stable patch with three, so that difference is the whole test.
+# every stable patch with three, so that difference is the whole test. An rc of
+# the mainline release (7.3-rc1) also spells two, so it is skipped for free.
 #
 # Deliberately neither of the obvious aliases:
 #   linuxPackages_latest -> mainline (7.3), untested by anyone else yet
@@ -29,7 +30,6 @@ let
       if
         probed.success
         && builtins.length (lib.splitString "." probed.value) == 3
-        && !(lib.hasInfix "-rc" probed.value)
       then
         probed.value
       else
