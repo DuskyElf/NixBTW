@@ -3,27 +3,37 @@ name: "Compile Optimized Kernel"
 # Builds the custom skylake kernel from this flake and serves it to this laptop
 # as a Nix binary cache, so nixos-rebuild substitutes instead of compiling.
 #
-# Two hosts, because the pieces have different size limits:
+# Two hosts, because the pieces have different size limits. A substituter must
+# serve <cache>/<storehash>.narinfo from a fixed path prefix, which only a
+# static site can do, but no git branch accepts a file over 100 MB and the nars
+# run from 64 KB to 158 MB. An earlier version copied the nars into gh-pages
+# and the pre-receive hook rejected the push:
 #
-#   gh-pages serves the narinfo files only, a few KB each. No branch of a
-#   GitHub repo may hold a file over 100 MB and a Pages site is capped at 1 GB,
-#   while the kernel nars are 90 to 210 MB. An earlier version copied the nars
-#   here and the pre-receive hook rejected the push.
+#   gh-pages serves the narinfo files only, a few hundred KB in total. Every
+#   URL line is rewritten to an absolute release URL.
 #
 #   GitHub releases hold the nars, as assets under the tag kernel-<version>.
-#   Release assets allow 2 GB per file and are free on public repos. Every
-#   narinfo's URL line is rewritten to an absolute release URL, and nix follows
-#   the redirect to the storage backend: verified by pointing a cache root at a
-#   release asset and watching nix copy --from download the nar from github.com.
+#   Assets allow 2 GB per file and are free on public repos. Nix follows the
+#   redirect to the storage backend: verified by pointing a cache root at a
+#   release asset and watching nix copy --from download the nar from github.com,
+#   and by deleting a path from the local store and substituting it back, which
+#   fails without the signing key and succeeds with it.
 #
-# A kernel is built at most once. The release carries a PACKAGED manifest, and
-# the plan step checks for it before spending two hours, so a re-run after a
-# failed publish only re-publishes narinfos and verifies.
+# A kernel is built at most once. The release carries a PACKAGED manifest,
+# uploaded last, and the plan step checks for it before spending two hours. So
+# dispatching this workflow against a kernel that is already published is a
+# two minute no-op, which is also how to rehearse a change to this file: the
+# plan, gather, deploy and verify steps all run, nothing is compiled.
 #
 # A binary cache must be closed under references (nix refuses to add a path
 # whose dependencies are absent), so each release carries the whole build
-# closure, not just the kernel outputs. Prune old kernel-* releases by hand with
-# `gh release delete` once no generation uses them.
+# closure, not just the kernel outputs, which is why one release is ~720 MB
+# across ~150 assets. Most of those are the toolchain the kernel references.
+#
+# Retention keeps the newest KEEP_KERNELS releases. Deleting a release whose
+# kernel a generation still runs turns that rollback into a local build, so the
+# default leaves one spare; set it to 1 if you never roll back. Pruning never
+# touches the release this run published.
 #
 # Which kernel gets built is never named here: hosts/asus/stable-kernel.nix
 # picks the newest series with a stable patch release.
@@ -43,20 +53,13 @@ env:
   # The signer name. system.nix holds the public half the laptop trusts; the
   # name there and here must be identical, so keep them in one place each.
   CACHE_KEY_NAME: i9-kernel-cache
+  # Kernel releases to keep. Each one is ~720 MB of release assets.
+  KEEP_KERNELS: 2
   # Long enough that repeating it by hand invites a typo in one of the outputs.
   KERNEL: .#nixosConfigurations.asus.config.boot.kernelPackages.kernel
 
 on:
   workflow_dispatch:
-    inputs:
-      # Publishes the kernel configfile instead of the kernel: seconds instead
-      # of hours. Exercises rewrite, release upload, deploy and verify, so a
-      # publish bug never costs another full compile to discover. Uses its own
-      # release tag, so it can never satisfy a real run's manifest check.
-      smoke_test:
-        description: "Publish only the kernel configfile (no compile)"
-        type: boolean
-        default: false
   push:
     branches: [main]
     paths:
@@ -103,23 +106,13 @@ jobs:
           set -euo pipefail
           VER=$(nix eval --raw .#kernelVersion)
           TAG="kernel-$VER"
-          if [ "${{ inputs.smoke_test }}" = "true" ]; then
-            TAG="$TAG-smoke"
-          fi
 
           # Paths come from the derivation, which costs seconds. Building them
           # costs hours. These are the only paths this workflow must publish;
           # the rest of the closure comes along because a cache cannot be
           # partial, but nothing else ever asks the laptop to trust it.
-          # One eval, because --raw would run it four times and concatenate the
-          # results into a single line.
-          if [ "${{ inputs.smoke_test }}" = "true" ]; then
-            nix eval --json --apply 'k: [ k.configfile ]' "$KERNEL" \
-              | jq -r '.[]' > ./published-paths
-          else
-            nix eval --json --apply 'k: [ k.out k.modules k.dev k.configfile ]' "$KERNEL" \
-              | jq -r '.[]' > ./published-paths
-          fi
+          nix eval --json --apply 'k: [ k.out k.modules k.dev k.configfile ]' "$KERNEL" \
+            | jq -r '.[]' > ./published-paths
 
           # PACKAGED is uploaded last, so its presence means every nar and
           # narinfo in the release made it. Anything less and we build again.
@@ -155,10 +148,8 @@ jobs:
             echo "X86_NATIVE_CPU leaked into kernel .config" >&2
             exit 1
           fi
-          if [ "${{ inputs.smoke_test }}" != "true" ]; then
-            nix build --no-link --print-out-paths \
-              "$KERNEL^out" "$KERNEL^modules" "$KERNEL^dev" > /dev/null
-          fi
+          nix build --no-link --print-out-paths \
+            "$KERNEL^out" "$KERNEL^modules" "$KERNEL^dev" > /dev/null
           for p in "${PATHS[@]}"; do
             [ -e "$p" ] || { echo "planned path $p is missing after the build" >&2; exit 1; }
           done
@@ -201,26 +192,58 @@ jobs:
           gh release view "$TAG" --repo "$RELEASE_REPO" >/dev/null 2>&1 \
             || gh release create "$TAG" --repo "$RELEASE_REPO" \
                  --title "Kernel ${{ steps.plan.outputs.version }} nar cache" \
-                 --notes "Nar assets for the signed kernel cache at $CACHE_URL, mirrored as narinfos on gh-pages. Read by .github/workflows/compile-kernel.yml. Do not delete while a generation still runs this kernel."
+                 --notes "Nar assets for the signed kernel cache at $CACHE_URL, mirrored as narinfos on gh-pages. Read by .github/workflows/compile-kernel.yml. Deleting this while a generation still runs this kernel turns its rollback into a local build."
           gh release upload "$TAG" ./public-cache/nar/*.nar.xz --repo "$RELEASE_REPO" --clobber
           gh release upload "$TAG" ./narinfos/*.narinfo --repo "$RELEASE_REPO" --clobber
           printf '%s\n' "${PATHS[@]}" > ./PACKAGED
           gh release upload "$TAG" ./PACKAGED --repo "$RELEASE_REPO" --clobber
           echo "uploaded $(find ./public-cache/nar -name '*.nar.xz' | wc -l) nars to $TAG"
 
-      - name: Reuse Narinfos From The Release
-        if: steps.plan.outputs.need_build != 'true'
+      # Keeps the release storage bounded. Anything this deletes stops being
+      # substitutable, so a generation still on that kernel falls back to
+      # building it locally.
+      - name: Prune Old Kernel Releases
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.plan.outputs.tag }}
         run: |
           set -euo pipefail
+          gh release list --repo "$RELEASE_REPO" --limit 100 --json tagName \
+            -q '.[] | select(.tagName | startswith("kernel-")) | .tagName' \
+            | sort -Vr | tail -n "+$((KEEP_KERNELS + 1))" > ./prune-list
+          while read -r old; do
+            [ -n "$old" ] || continue
+            # Never prune what this run just published, even if it is older than
+            # KEEP_KERNELS newer ones, which happens when republishing.
+            [ "$old" = "$TAG" ] && continue
+            echo "pruning $old"
+            gh release delete "$old" --repo "$RELEASE_REPO" --yes --cleanup-tag
+          done < ./prune-list
+          echo "kept: $(gh release list --repo "$RELEASE_REPO" --limit 100 --json tagName \
+            -q '[.[] | select(.tagName | startswith("kernel-")) | .tagName] | join(" ")')"
+
+      # gh-pages is rebuilt from the surviving releases every run rather than
+      # appended to, so a narinfo can never outlive the nar it points at. The
+      # download order is oldest first, so when two releases carry the same
+      # dependency the newest one wins and survives the next prune.
+      - name: Gather Narinfos From Every Kernel Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          rm -rf ./narinfos
           mkdir -p ./narinfos
-          gh release download "$TAG" --repo "$RELEASE_REPO" \
-            --pattern '*.narinfo' --dir ./narinfos
+          gh release list --repo "$RELEASE_REPO" --limit 100 --json tagName \
+            -q '.[] | select(.tagName | startswith("kernel-")) | .tagName' \
+            | sort -V > ./kept-releases
+          while read -r tag; do
+            [ -n "$tag" ] || continue
+            gh release download "$tag" --repo "$RELEASE_REPO" \
+              --pattern '*.narinfo' --dir ./narinfos --clobber
+          done < ./kept-releases
           COUNT=$(find ./narinfos -name '*.narinfo' | wc -l)
-          [ "$COUNT" -gt 0 ] || { echo "release $TAG has no narinfos" >&2; exit 1; }
-          echo "restored $COUNT narinfos from $TAG"
+          [ "$COUNT" -gt 0 ] || { echo "no narinfos in any kernel release" >&2; exit 1; }
+          echo "$COUNT narinfos from $(wc -l < ./kept-releases) release(s)"
 
       - name: Deploy Narinfos To GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
@@ -228,14 +251,16 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./narinfos
           publish_branch: gh-pages
-          # Never wipe: each run adds narinfos, older ones stay valid for older
-          # system generations and for kernels whose release still exists.
-          keep_files: true
+          # Explicit, because replacing the whole site is the point: gh-pages
+          # must mirror the surviving releases exactly. Appending would let a
+          # narinfo outlive the nar it points at after a prune, and a narinfo
+          # whose nar is gone makes nix error instead of falling back.
+          keep_files: false
 
       # Proves the laptop's substituter can actually use the cache: the narinfo
       # is served, describes the path we published, carries our signature, and
       # the nar it points at is downloadable with the size the narinfo promises.
-      # The size check is a HEAD, so a 210 MB nar costs nothing to verify.
+      # The size check is a HEAD, so a 158 MB nar costs nothing to verify.
       - name: Verify The Cache Serves Every Path
         run: |
           set -uo pipefail
