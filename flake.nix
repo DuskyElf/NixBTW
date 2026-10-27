@@ -24,8 +24,7 @@
     # kernel closure as this laptop. CI has no lock file for this flake, so a
     # floating ref would drift and every cache lookup would miss.
     # The rev carries whatever hosts/asus/stable-kernel.nix picks (the newest
-    # series with a stable patch release); hosts/asus/kernel-toolchain.lock
-    # records which one it currently is. The daily check-kernel-update workflow
+    # series with a stable patch release). The daily check-kernel-update workflow
     # moves this pin to the channel tip once the channel is not behind, and
     # holds while this pin is ahead.
     # NOTE: deploy-system must NOT follows-override this input, or local

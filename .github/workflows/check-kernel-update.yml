@@ -1,9 +1,8 @@
 name: "Check Kernel Update"
 
 # Daily: if the channel (CHANNEL below) carries a newer stable kernel than our
-# pin, stage the toolchain bump (flake.nix pin plus
-# hosts/asus/kernel-toolchain.lock) on the kernel-bump branch and open or update
-# a PR to main.
+# pin, stage the flake.nix bump on the kernel-bump branch and open or update a
+# PR to main.
 #
 # "Stable kernel" means the newest series with a stable patch release, as
 # decided by hosts/asus/stable-kernel.nix. Comparing versions rather than
@@ -54,10 +53,11 @@ jobs:
           PINNED_REV=$(grep -oP 'nixpkgs-fast-release\.url = "github:NixOS/nixpkgs/\K[0-9a-f]{40}' flake.nix)
           [ -n "$PINNED_REV" ] || { echo "pin not found in flake.nix" >&2; exit 1; }
           echo "pinned rev: $PINNED_REV"
+          # Handed to the bump step so the regex lives in one place.
+          echo "pinned_rev=$PINNED_REV" >> "$GITHUB_OUTPUT"
 
           PREFETCH=$(nix flake prefetch "github:NixOS/nixpkgs/$CHANNEL" --json)
           LATEST_REV=$(echo "$PREFETCH" | jq -r '.locked.rev // .rev')
-          LATEST_HASH=$(echo "$PREFETCH" | jq -r '.hash')
           [ -n "$LATEST_REV" ] && [ "$LATEST_REV" != "null" ] || { echo "could not resolve channel rev" >&2; exit 1; }
           echo "latest rev: $LATEST_REV"
 
@@ -87,7 +87,6 @@ jobs:
           {
             echo "new_version=$LATEST_VER"
             echo "new_rev=$LATEST_REV"
-            echo "new_hash=$LATEST_HASH"
             echo "old_version=$PINNED_VER"
           } >> "$GITHUB_OUTPUT"
 
@@ -95,29 +94,25 @@ jobs:
         if: steps.check.outputs.new_version != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PINNED_REV: ${{ steps.check.outputs.pinned_rev }}
           NEW_REV: ${{ steps.check.outputs.new_rev }}
-          NEW_HASH: ${{ steps.check.outputs.new_hash }}
           NEW_VER: ${{ steps.check.outputs.new_version }}
           OLD_VER: ${{ steps.check.outputs.old_version }}
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git fetch origin kernel-bump 2>/dev/null || true
           git checkout -B kernel-bump
 
-          PINNED_REV=$(grep -oP 'nixpkgs-fast-release\.url = "github:NixOS/nixpkgs/\K[0-9a-f]{40}' flake.nix)
           sed -i "s/${PINNED_REV}/${NEW_REV}/" flake.nix
           # Caution: the pin must be the ONLY thing sed touched.
           CHANGED=$(git diff --numstat flake.nix | awk '{print $1 + $2}')
           [ "$CHANGED" = "2" ] || { echo "pin replacement touched $CHANGED lines, aborting" >&2; git diff flake.nix >&2; exit 1; }
 
-          jq -n --arg rev "$NEW_REV" --arg hash "$NEW_HASH" --arg ver "$NEW_VER" --arg ref "$CHANNEL" --arg date "$(date +%F)" \
-            '{input: "nixpkgs-fast-release", ref: $ref, rev: $rev, narHash: $hash, kernelVersion: $ver, updated: $date}' \
-            > hosts/asus/kernel-toolchain.lock
-
-          git add flake.nix hosts/asus/kernel-toolchain.lock
+          git add flake.nix
           git commit -m "chore(kernel): stage toolchain for linux ${OLD_VER} -> ${NEW_VER}" || echo "nothing new to commit"
+          # Forced because the branch is a bot-owned staging area: a re-bump
+          # replaces the previous one rather than stacking on it.
           git push -f origin kernel-bump
 
           TITLE="chore(kernel): build linux ${NEW_VER}"

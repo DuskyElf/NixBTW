@@ -1,8 +1,0 @@
-{
-  "input": "nixpkgs-fast-release",
-  "ref": "staging-nixos-26.05",
-  "rev": "63f32ffb70a5c10e0aaa040cd1a64f2f1c6b94a6",
-  "narHash": "sha256-xCOiBDbxXPkIKkMQi5PriZWoHVAfAYBTza4gCFMJ/zU=",
-  "kernelVersion": "7.2.13",
-  "updated": "2026-10-27"
-}

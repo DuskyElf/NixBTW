@@ -1,34 +1,32 @@
 name: "Compile Optimized Kernel"
 
-# Builds the custom skylake kernel from this flake and serves it to this laptop
-# as a Nix binary cache, so nixos-rebuild substitutes instead of compiling.
+# Builds this laptop's kernel on a standard runner and serves it as a signed
+# Nix binary cache, so nixos-rebuild substitutes instead of compiling.
 #
 # Two hosts, because the pieces have different size limits. A substituter must
 # serve <cache>/<storehash>.narinfo from a fixed path prefix, which only a
 # static site can do, but no git branch accepts a file over 100 MB and the nars
-# run from 64 KB to 158 MB. An earlier version copied the nars into gh-pages
-# and the pre-receive hook rejected the push:
+# run from 64 KB to 150 MB:
 #
-#   gh-pages serves the narinfo files only, a few hundred KB in total. Every
-#   URL line is rewritten to an absolute release URL.
+#   gh-pages holds the narinfos, a few KB each. Every URL line is rewritten to
+#   an absolute release URL.
 #
 #   GitHub releases hold the nars, as assets under the tag kernel-<version>.
 #   Assets allow 2 GB per file and are free on public repos. Nix follows the
-#   redirect to the storage backend: verified by pointing a cache root at a
-#   release asset and watching nix copy --from download the nar from github.com,
-#   and by deleting a path from the local store and substituting it back, which
-#   fails without the signing key and succeeds with it.
+#   redirect to the storage backend.
+#
+# Only the kernel's four outputs are published: out, modules, dev and
+# configfile, about 305 MB. The rest of the closure is the compiler toolchain
+# that kernel-dev points at, and cache.nixos.org already has all of it, so
+# publishing it again would double the download and leave unsigned narinfos in
+# a cache this laptop trusts. The build checks every reference against upstream
+# instead, so a rev that ships one upstream lacks fails here, not on the laptop.
 #
 # A kernel is built at most once. The release carries a PACKAGED manifest,
 # uploaded last, and the plan step checks for it before spending two hours. So
-# dispatching this workflow against a kernel that is already published is a
-# two minute no-op, which is also how to rehearse a change to this file: the
-# plan, gather, deploy and verify steps all run, nothing is compiled.
-#
-# A binary cache must be closed under references (nix refuses to add a path
-# whose dependencies are absent), so each release carries the whole build
-# closure, not just the kernel outputs, which is why one release is ~720 MB
-# across ~150 assets. Most of those are the toolchain the kernel references.
+# dispatching this against a published kernel is a two minute no-op, which is
+# also how to rehearse a change to this file: plan, gather, deploy and verify
+# run, nothing compiles.
 #
 # Retention keeps the newest KEEP_KERNELS releases. Deleting a release whose
 # kernel a generation still runs turns that rollback into a local build, so the
@@ -38,14 +36,10 @@ name: "Compile Optimized Kernel"
 # Which kernel gets built is never named here: hosts/asus/stable-kernel.nix
 # picks the newest series with a stable patch release.
 #
-# Why the artifact is deterministic at all (lessons from the May experiments):
-# - fixed -march=skylake (skylake-march.patch), never X86_NATIVE_CPU, so a build
-#   on an AMD runner is identical to one on the i9 laptop. Native-CPU sniffing
-#   gave same-store-path/different-bytes poison and endless local rebuilds.
-# - nixpkgs-fast-release is pinned by rev in flake.nix, so CI resolves the exact
-#   same toolchain as the laptop.
-# - the trusted-public-key name must match the NIX_SECRET_KEY signer, or the
-#   laptop silently rejects every lookup and builds the kernel itself.
+# Two things make the artifact identical on the runner and on this laptop, so
+# the store paths match and the cache hits: fixed -march=skylake from
+# skylake-march.patch (never X86_NATIVE_CPU, which sniffs the build host), and
+# nixpkgs-fast-release pinned by rev in flake.nix.
 
 env:
   CACHE_URL: https://duskyelf.github.io/NixBTW
@@ -53,7 +47,7 @@ env:
   # The signer name. system.nix holds the public half the laptop trusts; the
   # name there and here must be identical, so keep them in one place each.
   CACHE_KEY_NAME: i9-kernel-cache
-  # Kernel releases to keep. Each one is ~720 MB of release assets.
+  # Kernel releases to keep. Each one is ~305 MB of release assets.
   KEEP_KERNELS: 2
   # Long enough that repeating it by hand invites a typo in one of the outputs.
   KERNEL: .#nixosConfigurations.asus.config.boot.kernelPackages.kernel
@@ -69,7 +63,6 @@ on:
       - "hosts/asus/stable-kernel.nix"
       - "hosts/asus/system.nix"
       - "hosts/asus/skylake-march.patch"
-      - "hosts/asus/kernel-toolchain.lock"
       - "system.nix"
       - ".github/workflows/compile-kernel.yml"
 
@@ -140,6 +133,9 @@ jobs:
           set -euo pipefail
           mapfile -t PATHS < ./published-paths
 
+          # Store path hash alone: /nix/store/<hash>-<name> gives <hash>.
+          hash_of() { local h=${1#/nix/store/}; printf '%s' "${h%%-*}"; }
+
           # Fail fast: keep NATIVE_CPU out of .config before spending ~2h. The
           # skylake tuning itself lives in skylake-march.patch, so a bad patch
           # fails the build in seconds.
@@ -163,28 +159,39 @@ jobs:
           rm -f ./nix-secret-key
           nix copy --to "file://$PWD/public-cache" "${PATHS[@]}"
 
+          # Everything these outputs need but this run does not publish has to
+          # come from somewhere else. cache.nixos.org has the whole toolchain
+          # today; check the full closure here so a rev that changes that breaks
+          # the build instead of leaving the laptop unable to substitute.
+          { for p in "${PATHS[@]}"; do nix-store -q --requisites "$p"; done; } \
+            | sort -u | grep -vxF -f ./published-paths > ./upstream-refs || true
+          while read -r ref; do
+            nix path-info --store https://cache.nixos.org "$ref" >/dev/null 2>&1 \
+              || { echo "$ref is neither published here nor on cache.nixos.org" >&2; exit 1; }
+          done < ./upstream-refs
+          echo "$(wc -l < ./upstream-refs) references come from cache.nixos.org"
+
           # Fail loudly if a path is not signed by our own key: that is exactly
-          # the "cache never hits" failure mode. Per path, and by signer name,
-          # because dependencies arrive signed by cache.nixos.org and a bare
-          # `grep -L '^Sig:'` could never fail.
+          # the "cache never hits" failure mode.
           for p in "${PATHS[@]}"; do
-            h=${p#/nix/store/}
-            h=${h%%-*}
-            if ! grep -q "^Sig: $CACHE_KEY_NAME:" "./public-cache/$h.narinfo"; then
+            if ! grep -q "^Sig: $CACHE_KEY_NAME:" "./public-cache/$(hash_of "$p").narinfo"; then
               echo "narinfo for $p is not signed by $CACHE_KEY_NAME" >&2
               exit 1
             fi
           done
 
-          # Point every narinfo at its release asset. gh-pages holds the
-          # narinfos, the nars live in the release, and this URL is the bridge.
+          # Point every published narinfo at its release asset. gh-pages holds
+          # the narinfos, the nars live in the release, and this URL is the
+          # bridge.
           ASSET_BASE="https://github.com/$RELEASE_REPO/releases/download/$TAG"
           mkdir -p ./narinfos
-          for n in ./public-cache/*.narinfo; do
-            out="./narinfos/$(basename "$n")"
-            sed "s|^URL: nar/|URL: $ASSET_BASE/|" "$n" > "$out"
-            grep -q "^URL: $ASSET_BASE/" "$out" \
-              || { echo "narinfo $n still points at a relative URL" >&2; exit 1; }
+          nars=()
+          for p in "${PATHS[@]}"; do
+            h=$(hash_of "$p")
+            sed "s|^URL: nar/|URL: $ASSET_BASE/|" "./public-cache/$h.narinfo" > "./narinfos/$h.narinfo"
+            grep -q "^URL: $ASSET_BASE/" "./narinfos/$h.narinfo" \
+              || { echo "narinfo $h still points at a relative URL" >&2; exit 1; }
+            nars+=("./public-cache/nar/$h.nar.xz")
           done
 
           # Upload before anything else can fail, and upload PACKAGED last so a
@@ -193,11 +200,11 @@ jobs:
             || gh release create "$TAG" --repo "$RELEASE_REPO" \
                  --title "Kernel ${{ steps.plan.outputs.version }} nar cache" \
                  --notes "Nar assets for the signed kernel cache at $CACHE_URL, mirrored as narinfos on gh-pages. Read by .github/workflows/compile-kernel.yml. Deleting this while a generation still runs this kernel turns its rollback into a local build."
-          gh release upload "$TAG" ./public-cache/nar/*.nar.xz --repo "$RELEASE_REPO" --clobber
+          gh release upload "$TAG" "${nars[@]}" --repo "$RELEASE_REPO" --clobber
           gh release upload "$TAG" ./narinfos/*.narinfo --repo "$RELEASE_REPO" --clobber
           printf '%s\n' "${PATHS[@]}" > ./PACKAGED
           gh release upload "$TAG" ./PACKAGED --repo "$RELEASE_REPO" --clobber
-          echo "uploaded $(find ./public-cache/nar -name '*.nar.xz' | wc -l) nars to $TAG"
+          echo "uploaded ${#nars[@]} nars to $TAG"
 
       # Keeps the release storage bounded. Anything this deletes stops being
       # substitutable, so a generation still on that kernel falls back to
@@ -223,23 +230,32 @@ jobs:
             -q '[.[] | select(.tagName | startswith("kernel-")) | .tagName] | join(" ")')"
 
       # gh-pages is rebuilt from the surviving releases every run rather than
-      # appended to, so a narinfo can never outlive the nar it points at. The
-      # download order is oldest first, so when two releases carry the same
-      # dependency the newest one wins and survives the next prune.
+      # appended to, so a narinfo can never outlive the nar it points at. Each
+      # release is read through its PACKAGED manifest rather than its asset
+      # list, so only the paths that release actually publishes are served.
       - name: Gather Narinfos From Every Kernel Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          rm -rf ./narinfos
+          rm -rf ./narinfos ./staging
           mkdir -p ./narinfos
           gh release list --repo "$RELEASE_REPO" --limit 100 --json tagName \
             -q '.[] | select(.tagName | startswith("kernel-")) | .tagName' \
             | sort -V > ./kept-releases
           while read -r tag; do
             [ -n "$tag" ] || continue
+            rm -rf ./staging && mkdir -p ./staging
             gh release download "$tag" --repo "$RELEASE_REPO" \
-              --pattern '*.narinfo' --dir ./narinfos --clobber
+              --pattern PACKAGED --pattern '*.narinfo' --dir ./staging --clobber
+            [ -s ./staging/PACKAGED ] \
+              || { echo "release $tag has no PACKAGED manifest" >&2; exit 1; }
+            while read -r p; do
+              [ -n "$p" ] || continue
+              h=${p#/nix/store/}
+              h=${h%%-*}
+              cp "./staging/$h.narinfo" ./narinfos/
+            done < ./staging/PACKAGED
           done < ./kept-releases
           COUNT=$(find ./narinfos -name '*.narinfo' | wc -l)
           [ "$COUNT" -gt 0 ] || { echo "no narinfos in any kernel release" >&2; exit 1; }
@@ -271,29 +287,27 @@ jobs:
         run: |
           set -uo pipefail
 
-          # Returns non-zero and sets REASON when the path is not servable yet.
+          # Prints the reason and returns non-zero when the path is not servable
+          # yet, prints nothing and returns zero when it is.
           check_path() {
-            p=$1
-            h=$2
-            REASON=""
+            local p=$1 h=$2 served url size headers code actual
             served=$(curl -fsS "$CACHE_URL/$h.narinfo" 2>/dev/null) \
-              || { REASON="narinfo not served"; return 1; }
+              || { echo "narinfo not served"; return 1; }
             printf '%s\n' "$served" | grep -qx "StorePath: $p" \
-              || { REASON="served narinfo does not describe $p"; return 1; }
+              || { echo "served narinfo does not describe $p"; return 1; }
             printf '%s\n' "$served" | grep -q "^Sig: $CACHE_KEY_NAME:" \
-              || { REASON="not signed by $CACHE_KEY_NAME"; return 1; }
+              || { echo "not signed by $CACHE_KEY_NAME"; return 1; }
             url=$(printf '%s\n' "$served" | sed -n 's/^URL: //p')
             size=$(printf '%s\n' "$served" | sed -n 's/^FileSize: //p')
             [ -n "$url" ] && [ -n "$size" ] \
-              || { REASON="narinfo has no URL or FileSize"; return 1; }
+              || { echo "narinfo has no URL or FileSize"; return 1; }
             headers=$(curl -fsSIL "$url" 2>/dev/null | tr -d '\r') \
-              || { REASON="nar not downloadable: $url"; return 1; }
+              || { echo "nar not downloadable: $url"; return 1; }
             code=$(printf '%s\n' "$headers" | awk '/^HTTP\//{c=$2} END{print c}')
             actual=$(printf '%s\n' "$headers" | awk 'tolower($1)=="content-length:"{v=$2} END{print v}')
-            [ "$code" = "200" ] || { REASON="nar returned $code"; return 1; }
+            [ "$code" = "200" ] || { echo "nar returned $code"; return 1; }
             [ "$actual" = "$size" ] \
-              || { REASON="nar is $actual bytes, narinfo says $size"; return 1; }
-            echo "$p -> $url ($size bytes)"
+              || { echo "nar is $actual bytes, narinfo says $size"; return 1; }
           }
 
           # The substituter handshake, checked before any path because nix asks
@@ -319,10 +333,11 @@ jobs:
             # a smoke test look broken when the cache was already fine.
             ok=false
             for attempt in $(seq 1 60); do
-              if check_path "$p" "$h"; then ok=true; break; fi
-              echo "attempt $attempt/60: $h ($REASON), retrying in 10s" >&2
+              if reason=$(check_path "$p" "$h"); then ok=true; break; fi
+              echo "attempt $attempt/60: $h ($reason), retrying in 10s" >&2
               sleep 10
             done
-            [ "$ok" = "true" ] || { echo "$p never became servable: $REASON" >&2; exit 1; }
+            [ "$ok" = "true" ] || { echo "$p never became servable: $reason" >&2; exit 1; }
+            echo "$p served"
           done
           echo "all ${#PATHS[@]} paths are served, signed and downloadable"
