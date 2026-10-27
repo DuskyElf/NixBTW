@@ -59,6 +59,12 @@ jobs:
             echo "kernel $PINNED_VER still current, nothing to do"
             exit 0
           fi
+          # Forward-only: a staging backport pin can sit ahead of the
+          # release channel for days. Never stage a downgrade.
+          if [ "$(printf '%s\n%s\n' "$PINNED_VER" "$LATEST_VER" | sort -V | head -n1)" = "$LATEST_VER" ]; then
+            echo "pinned $PINNED_VER ahead of channel $LATEST_VER, holding"
+            exit 0
+          fi
           echo "new kernel available: $PINNED_VER -> $LATEST_VER"
           {
             echo "new_version=$LATEST_VER"

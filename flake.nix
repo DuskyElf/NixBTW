@@ -27,7 +27,7 @@
     # compile-kernel workflow rebuild and repopulate the cache.
     # NOTE: deploy-system must NOT follows-override this input, or local
     # builds will use a different rev than CI and miss the cache.
-    nixpkgs-fast-release.url = "github:NixOS/nixpkgs/2f11bb7ff83b556e035a5da06596c106ddba1311";
+    nixpkgs-fast-release.url = "github:NixOS/nixpkgs/63f32ffb70a5c10e0aaa040cd1a64f2f1c6b94a6";
 
     nixpkgs-unstable.url = "nixpkgs/nixos-unstable";
 
