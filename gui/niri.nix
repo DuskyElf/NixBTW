@@ -219,7 +219,13 @@ in
   ];
 
   programs = {
-    fuzzel.enable = true;
+    # Terminal=true entries (btop, vim, nvim) open in kitty. fuzzel runs them
+    # through `terminal` and otherwise spawns them with no tty, where they die
+    # silently.
+    fuzzel = {
+      enable = true;
+      settings.main.terminal = "kitty";
+    };
 
     niri = {
       package = inputs.niri.packages.${pkgs.system}.niri-unstable;
