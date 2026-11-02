@@ -182,16 +182,26 @@ jobs:
           # Point every published narinfo at its release asset. gh-pages holds
           # the narinfos, the nars live in the release, and this URL is the
           # bridge.
+          #
+          # The file store names a nar after the hash of the compressed file,
+          # not the store hash, so the narinfo's URL line is the only reliable
+          # source for the file name. Guessing <storehash>.nar.xz uploads
+          # nothing: gh expands its own globs and dies on a name that is absent.
           ASSET_BASE="https://github.com/$RELEASE_REPO/releases/download/$TAG"
           mkdir -p ./narinfos
           nars=()
           for p in "${PATHS[@]}"; do
             h=$(hash_of "$p")
+            nar=$(sed -n 's|^URL: nar/||p' "./public-cache/$h.narinfo")
+            [ -f "./public-cache/nar/$nar" ] \
+              || { echo "narinfo $h points at nar/$nar, which the copy did not write" >&2; exit 1; }
+            nars+=("./public-cache/nar/$nar")
             sed "s|^URL: nar/|URL: $ASSET_BASE/|" "./public-cache/$h.narinfo" > "./narinfos/$h.narinfo"
-            grep -q "^URL: $ASSET_BASE/" "./narinfos/$h.narinfo" \
+            grep -q "^URL: $ASSET_BASE/$nar\$" "./narinfos/$h.narinfo" \
               || { echo "narinfo $h still points at a relative URL" >&2; exit 1; }
-            nars+=("./public-cache/nar/$h.nar.xz")
           done
+          [ "${#nars[@]}" -eq "${#PATHS[@]}" ] \
+            || { echo "collected ${#nars[@]} nars for ${#PATHS[@]} paths" >&2; exit 1; }
 
           # Upload before anything else can fail, and upload PACKAGED last so a
           # half-finished upload never looks complete to the next run.
