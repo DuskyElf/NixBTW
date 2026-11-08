@@ -139,21 +139,25 @@ in
     nvidia = {
       open = true;
 
-      # 595.x (what 26.05 ships) predates Linux 7.2 and cannot compile against it:
-      # 7.2 removed include/linux/platform/ outright, which is the header
-      # nv-ipc-soc.c probes for, and NVIDIA only added 7.2 support in 610.57.04.
-      # So the driver is 615.71.09, built against our kernel via mkDriver.
-      # Hashes copied from nvidia-x11 (new_feature) at nixpkgs-unstable-small rev
-      # 5b7b3c13; bump by hand. Cost: this exact driver closure is not in any binary
-      # cache, so the userspace build happens locally once, then stays in the store.
-      # (The kernel module always builds locally anyway, custom kernel.)
+      # The driver tracks the kernel: every kernel jump needs a driver release
+      # that knows it. 26.05's 595.x predates Linux 7.2 (7.2 removed
+      # include/linux/platform/, the header nv-ipc-soc.c probes for, and NVIDIA
+      # added 7.2 support in 610.57.04). 615.71.09 then broke on 7.3.1: 7.3
+      # changed dmem_cgroup_register_region to take a struct dmem_cgroup_init
+      # pointer, while os-interface.c still called it as (size, name).
+      # So the driver is 615.78.08, built against our kernel via mkDriver.
+      # Hashes copied from linuxPackages.nvidiaPackages.new_feature in
+      # nixos-unstable; bump by hand. Cost: this exact driver closure is not in
+      # any binary cache, so the userspace build happens locally once, then
+      # stays in the store. (The kernel module always builds locally anyway,
+      # custom kernel.)
       package = config.boot.kernelPackages.nvidiaPackages.mkDriver {
-        version = "615.71.09";
-        sha256_64bit = "sha256-zc7tIrvrYSSNGm3qvCWWZz46ZQFpjucayNL9wo87cP4=";
-        sha256_aarch64 = "sha256-IbekQhE7cFfmnPZaLY9NDYcF7CoNZ+2Qb7sRd4EOgWM=";
-        openSha256 = "sha256-3gByMYIwFzRaLdDG+roCEOuKRRJDrljG9AlLnRZTirM=";
-        settingsSha256 = "sha256-LK1LU8mDkM/XVRKPBtuOZh9nIP/lGFLAJnmasEX8jhg=";
-        persistencedSha256 = "sha256-qPRb+3d88+2RcpUkoBTbjIaImnQ+jX+/6p1vXcJ5geE=";
+        version = "615.78.08";
+        sha256_64bit = "sha256-Pj9t3cLudnoIGFMAr3vjyyhuznZpjS3eNSRZl4LQf/4=";
+        sha256_aarch64 = "sha256-UHYBE1AYHoGgMfD9AS/jX+S+N8eCDWUft6qolK9Eejc=";
+        openSha256 = "sha256-HBINiOjL0ZJLIAJeNIBYHBnwgUXtNwPPtnFpAI1YwF4=";
+        settingsSha256 = "sha256-inDRpG02sdDgHmlqgu/DsgK8OFdOt1fZIYyXdhlGC/c=";
+        persistencedSha256 = "sha256-RzeR6Ldct6MUxjnXRyThdh5Y3jjMehTVg85MtwuWNX4=";
       };
 
       modesetting.enable = true;
