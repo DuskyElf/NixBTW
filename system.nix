@@ -50,6 +50,16 @@ in
       };
     };
 
+    # Tailscale gives the phone a stable private route to the t3code
+    # server on 3773 from any network. MagicDNS name: asus.<tailnet>.ts.net
+    # --operator lets duskyelf run `tailscale serve`, which the t3code
+    # desktop app calls to publish the backend over HTTPS on the tailnet.
+    services.tailscale = {
+      enable = true;
+      openFirewall = true;
+      extraSetFlags = [ "--operator=duskyelf" ];
+    };
+
     services.blueman.enable = true;
     hardware.bluetooth.enable = true;
 
