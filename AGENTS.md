@@ -39,6 +39,8 @@ All rebuilds go through the wrapper with the live-tree override so uncommitted e
 
 A daily user timer runs `nix flake update nixpkgs nixpkgs-unstable-small zen-browser` in `deploy-system/`, switches home-manager, and commits that lock. Only those 3 inputs auto-update. When the machine disagrees with this repo, suspect that drift first, not a local edit. Do not hand-edit pins the timer owns.
 
+Submodule bumps (e.g. `neovimBTW`) do not reach a switch through the live-tree override alone. The wrapper pins each submodule as its own flake input, so run `nix flake update <name>` inside `deploy-system/` after the bump, then switch.
+
 ## Liveness and shell
 
 The shell sees the user's filesystem, network, and systemd user bus. Direct curl, `systemctl --user`, and /sys reads work. `web_search` runs one call per turn with 2 to 4 queries. `fetch_content` covers raw.githubusercontent.com and the GitHub API.
