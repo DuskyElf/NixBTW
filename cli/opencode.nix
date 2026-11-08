@@ -27,6 +27,29 @@ let
     }
   );
   t3code = pkgs-unstable-small.t3code.override { inherit codex; };
+
+  # T3's html_render and browser tool spawn their own Chrome for Testing
+  # download. That binary wants /lib64/ld-linux-x86-64.so.2, which NixOS does
+  # not have, so every spawn exits 127. T3 exposes no browser-path setting, and
+  # the path is pinned to the downloaded version, so the smallest local fix is
+  # to overwrite each download with a shim that execs the Nix Chromium. T3 only
+  # stats the file, so a script satisfies it. Runs on switch; if a T3 upgrade
+  # downloads a newer build before the next switch, run t3-headless-chrome-shim.
+  t3HeadlessChromeShim = pkgs.writeShellScript "t3-headless-chrome-shim" ''
+    set -eu
+    root="$HOME/.t3/tools/chrome-headless-shell"
+    chromium="$HOME/.nix-profile/bin/chromium"
+    [ -d "$root" ] && [ -x "$chromium" ] || exit 0
+
+    for bin in "$root"/*/*/chrome-headless-shell; do
+      [ -f "$bin" ] || continue
+      if head -c 2 "$bin" 2>/dev/null | grep -q '#!'; then
+        continue
+      fi
+      printf '#!/bin/sh\nexec %s "$@"\n' "$chromium" > "$bin"
+      chmod +x "$bin"
+    done
+  '';
 in
 {
   home.packages = [
@@ -73,6 +96,13 @@ in
     #  ]
     #))
   ];
+
+  # T3's downloads are already on disk by the time a switch runs, so this
+  # repairs them without a watcher. Any T3 upgrade that downloads a newer build
+  # is healed by the next switch (the daily auto-update) or by running
+  # t3-headless-chrome-shim by hand.
+  home.activation.t3HeadlessChromeShim =
+    config.lib.dag.entryAfter [ "writeBoundary" ] "run ${t3HeadlessChromeShim}";
 
   home.file.".config/opencode".source =
     config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/dotfiles/opencodeBTW";
