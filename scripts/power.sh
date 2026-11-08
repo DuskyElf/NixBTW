@@ -75,7 +75,10 @@ elif [ "$MODE" = "performance" ]; then
     # Switch to performance mode
     auto-cpufreq --force reset
     echo 1 | sudo tee /sys/bus/pci/rescan
-    "$MODPROBE" nvidia nvidia_modeset nvidia_drm
+    # nvidia_uvm backs /dev/nvidia-uvm for CUDA. Without it cuInit fails
+    # (999) while nvidia-smi still works, and ollama silently falls back
+    # to CPU inference.
+    "$MODPROBE" nvidia nvidia_uvm nvidia_modeset nvidia_drm
     run_user_cmd notify-send "Power Mode" "Switched to performance mode" --expire-time=500
 else
     echo "Error: Invalid mode '$MODE'"
