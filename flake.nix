@@ -159,6 +159,7 @@
         };
         modules = [
           ./system.nix
+          ./system-health.nix
           ./hosts/asus/system.nix
 
           ./cli/system.nix

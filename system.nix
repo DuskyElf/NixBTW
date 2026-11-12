@@ -113,6 +113,19 @@ in
       ];
     };
 
+    # Weekly store hygiene. The GC keeps 14 days of history and only drops
+    # paths no generation, profile, or gcroot references. The optimiser
+    # hardlinks identical files, which is why du and df disagree on /nix/store.
+    nix.gc = {
+      automatic = true;
+      dates = "weekly";
+      options = "--delete-older-than 14d";
+    };
+    nix.optimise = {
+      automatic = true;
+      dates = [ "weekly" ];
+    };
+
     i18n.extraLocaleSettings = {
       LC_ADDRESS = "en_IN";
       LC_IDENTIFICATION = "en_IN";
