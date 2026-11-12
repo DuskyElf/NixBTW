@@ -56,13 +56,11 @@ in
     networking = {
       networkmanager.enable = true;
       hostName = config.hostOptions.hostName;
-      firewall = {
-        enable = true;
-        # t3code desktop server on 3773. The app's "Network access"
-        # toggle binds it to LAN; without this only loopback
-        # gets through.
-        allowedTCPPorts = [ 3773 ];
-      };
+      # No LAN ports open on purpose. t3code on 3773 is reached over
+      # tailscale serve, never over the local network, which IOT devices
+      # share. Keep the app's "Network access" toggle off so it binds
+      # loopback only.
+      firewall.enable = true;
     };
 
     # Tailscale gives the phone a stable private route to the t3code
