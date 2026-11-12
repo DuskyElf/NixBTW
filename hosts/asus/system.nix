@@ -35,7 +35,8 @@ in
     description = "DuskyElf";
     extraGroups = [
       "networkmanager"
-      "input"
+      # No "input": that group reads /dev/input and could keylog the sudo
+      # password. keyd runs as a system service; evdev tools get sudo instead.
       "wheel"
     ];
   };

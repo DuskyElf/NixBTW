@@ -5,18 +5,33 @@
   ...
 }:
 let
-  # power.sh runs as root via NOPASSWD sudo, so it must never be writable by
-  # the user. Content is read from scripts/power.sh at eval time and the
-  # activation script symlinks the immutable store copy into /usr/local/sbin.
-  # Repo edits only take effect on the next nixos-rebuild, and tampering with
-  # the writable ~/.config/scripts copy is useless because sudo only matches
-  # the path below.
-  powerScript = pkgs.writeTextFile {
+  # power.sh runs as root via NOPASSWD sudo, so the invariant is two parts:
+  # an immutable body and pinned command lookups. The activation script links
+  # this store copy into /usr/local/sbin, which is the only path sudo matches,
+  # and runtimeInputs means sudo's inherited caller PATH cannot shadow a tool.
+  # writeShellApplication emits a directory, so link its /bin/power.sh, not it.
+  # Edits to scripts/power.sh only reach root on the next nixos-rebuild, and
+  # the writable ~/.config/scripts copy never does, because sudo matches only
+  # the /usr/local/sbin path.
+  powerScript = pkgs.writeShellApplication {
     name = "power.sh";
-    executable = true;
-    text =
-      "#!${pkgs.bash}/bin/bash\n"
-      + lib.removePrefix "#!/usr/bin/env bash\n" (builtins.readFile ./scripts/power.sh);
+    inheritPath = false;
+    # The script owns its own errexit/nounset/pipefail, so the wrapper must not
+    # add a second copy of them.
+    bashOptions = [ ];
+    runtimeInputs = [
+      pkgs.auto-cpufreq
+      pkgs.coreutils
+      pkgs.gnugrep
+      pkgs.gnused
+      pkgs.kmod
+      pkgs.libnotify
+      pkgs.sudo
+    ];
+    # ls -l | grep parses /proc/<pid>/fd symlink targets; a glob is not
+    # equivalent, so this is the one shellcheck check worth excluding.
+    excludeShellChecks = [ "SC2010" ];
+    text = lib.removePrefix "#!/usr/bin/env bash\n" (builtins.readFile ./scripts/power.sh);
   };
 in
 {
@@ -89,9 +104,9 @@ in
     i18n.defaultLocale = "en_US.UTF-8";
 
     nix.settings = {
-      trusted-users = [
-        "duskyelf"
-      ];
+      # Trusted users can make the daemon run a post-build hook as root and
+      # disable the sandbox, so trust belongs to root only.
+      trusted-users = lib.mkForce [ "root" ];
 
       substituters = [
         "https://cache.nixos.org"
@@ -140,7 +155,7 @@ in
 
     system.activationScripts.powerScript = ''
       mkdir -p /usr/local/sbin
-      ln -sfn ${powerScript} /usr/local/sbin/power.sh
+      ln -sfn ${lib.getExe powerScript} /usr/local/sbin/power.sh
     '';
 
     # Disable the credential cache: a fresh sudo timestamp (e.g. from a
