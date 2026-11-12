@@ -73,25 +73,6 @@ A `neovimBTW` submodule bump also needs `nix flake update neovimBTW` inside
 `deploy-system/`, then a switch. `opencodeBTW` and `piBTW` are symlinked, not
 flake inputs.
 
-## Layout
-
-| Path | What it owns |
-| --- | --- |
-| `flake.nix` | inputs, outputs, kernel selection, jail combinators |
-| `system.nix` | machine config, `power.sh`, sudo rule, tailscale, nix cache |
-| `system-health.nix` | weekly machine digest service |
-| `hosts/asus/` | hardware, filesystems, custom kernel, BIOS unlock entries |
-| `home.nix` | user, stylix, the daily auto-update timer |
-| `cli/` | shell, git, tmux, neovim, languages, agents, T3 Code, local LLM lab |
-| `gui/` | niri, kitty, browsers, blender, gnucash, idle |
-| `scripts/` | wallpaper, status bars, power, digest, T3 Code pin updater, deploy bootstrap |
-| `hot-configs/` | `tmux.conf`, symlinked live |
-| `quickshell/` | bar and OSD QML, symlinked live |
-| `neovimBTW/`, `opencodeBTW/`, `piBTW/` | submodules with their own docs |
-
-`scripts/` and `quickshell/` are `mkOutOfStoreSymlink` targets, so edits apply
-without a switch.
-
 ## What is pinned
 
 | Thing | Where | Why |
