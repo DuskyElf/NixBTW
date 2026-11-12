@@ -15,7 +15,7 @@
     # holds while this pin is ahead.
     # NOTE: deploy-system must NOT follows-override this input, or local
     # builds will use a different rev than CI and miss the cache.
-    nixpkgs-fast-release.url = "github:NixOS/nixpkgs/9bb52223f4f6a0cc606fd0852d8784f896c137d5";
+    nixpkgs-fast-release.url = "github:NixOS/nixpkgs/0265ae2bec6c3ef106c5466e83160149de08a5b8";
 
     nixpkgs-unstable.url = "nixpkgs/nixos-unstable";
 
