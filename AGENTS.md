@@ -41,6 +41,8 @@ A daily user timer runs `nix flake update nixpkgs nixpkgs-unstable-small zen-bro
 
 Submodule bumps (e.g. `neovimBTW`) do not reach a switch through the live-tree override alone. The wrapper pins each submodule as its own flake input, so run `nix flake update <name>` inside `deploy-system/` after the bump, then switch.
 
+T3 Code is not the nixpkgs package. `cli/t3code-main.nix` reuses that recipe on upstream main, and `cli/t3code-main.lock.nix` holds the rev plus the three fixed-output hashes that follow a rev. `scripts/update-t3code-main.sh` moves that pin inside the daily timer, before the switch, and keeps the old pin when a commit does not build. Do not swap it back to `pkgs.t3code` or edit the hashes by hand.
+
 ## Liveness and shell
 
 The shell sees the user's filesystem, network, and systemd user bus. Direct curl, `systemctl --user`, and /sys reads work. `web_search` runs one call per turn with 2 to 4 queries. `fetch_content` covers raw.githubusercontent.com and the GitHub API.

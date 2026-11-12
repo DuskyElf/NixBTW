@@ -1,32 +1,15 @@
 {
   config,
   jail,
-  lib,
   pkgs,
   pkgs-unstable-small,
   ...
 }:
 let
-  # nixos-unstable-small at d63e5b96ca17 carries codex 0.167.0 without the
-  # system-library inputs that nixpkgs 16b463698a added. codex replaces its
-  # cargoDeps with overrideAttrs, which drops the default crate overrides, so
-  # aws-lc-sys sees AWS_LC_SYS_USE_SYSTEM=1 and no system AWS-LC and fails the
-  # build. Supply the missing inputs here; becomes a no-op once the pin ships
-  # the fix. Drop this then.
-  codex = pkgs-unstable-small.codex.overrideAttrs (
-    old:
-    lib.optionalAttrs (!lib.any (p: (p.pname or "") == "aws-lc") old.buildInputs) {
-      buildInputs =
-        old.buildInputs
-        ++ (with pkgs-unstable-small; [
-          aws-lc
-          oniguruma
-          sqlite
-          zstd
-        ]);
-    }
-  );
-  t3code = pkgs-unstable-small.t3code.override { inherit codex; };
+  # Built from upstream main, not the tagged release in nixpkgs. The rev and
+  # the fixed-output hashes live in t3code-main.lock.nix and move with the daily
+  # flake auto-update (scripts/update-t3code-main.sh).
+  t3code = import ./t3code-main.nix { pkgs = pkgs-unstable-small; };
 
   # T3's html_render and browser tool spawn their own Chrome for Testing
   # download. That binary wants /lib64/ld-linux-x86-64.so.2, which NixOS does

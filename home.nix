@@ -79,6 +79,13 @@
           exit 1
         fi
 
+        # T3 Code follows upstream main. This moves the rev and the three
+        # hashes before the switch; a build that fails upstream leaves the
+        # previous pin in place and lets the update carry on.
+        echo "Updating T3 Code main pin..."
+        "$HOME/.config/scripts/update-t3code-main.sh" ||
+          echo "T3 Code pin update failed, keeping the previous revision"
+
         # Switch home-manager using the PRIVATE wrapper. The live-tree override
         # keeps it consistent with manual rebuilds (AGENTS.md): the pinned
         # my-dotfiles rev in the deploy lock goes stale whenever dotfiles commits
