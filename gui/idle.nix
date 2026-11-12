@@ -72,6 +72,12 @@ in
     Service = {
       Type = "oneshot";
       ExecStart = "${breakTimer}/bin/break-timer";
+      # dimIfLocked, dimOnIdle and resumeOnIdle stop this unit mid-run, and
+      # Mod+B does too. systemd kills it with SIGTERM, which is a deliberate
+      # stop, not a failure. SuccessExitStatus takes signal *names*: the
+      # numeric exit code 143 does not match signal 15. Real errors still
+      # exit non-zero and still fail the unit.
+      SuccessExitStatus = [ "TERM" ];
     };
   };
 
