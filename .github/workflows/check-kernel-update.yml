@@ -120,12 +120,19 @@ jobs:
           Merging this PR triggers the compile-kernel build; once CI deploys
           the binary to gh-pages, run nixos-rebuild locally (cache hit, no
           2h compile) and reboot."
-          if gh pr view kernel-bump --json number -q .number >/dev/null 2>&1; then
+          # Only an OPEN PR may be edited. gh resolves a head branch whatever its
+          # state, so the merged PR from an earlier bump still answers to
+          # kernel-bump; editing it renames a dead PR and leaves this bump with
+          # no PR at all.
+          OPEN_PR=$(gh pr list --head kernel-bump --state open --json number -q '.[0].number' || true)
+          if [ -n "$OPEN_PR" ]; then
             # Re-bumps move the branch, so the title and body have to follow or
             # the PR keeps advertising the kernel it was first opened for.
-            gh pr edit kernel-bump --title "$TITLE" --body "$BODY"
+            gh pr edit "$OPEN_PR" --title "$TITLE" --body "$BODY"
           else
-            # Requesting review guarantees a GitHub notification for the merge gate.
+            # The previous bump's PR is merged or closed: this push to the
+            # staging branch is a fresh diff against main, so open a new PR.
+            # Requesting review guarantees a notification for the merge gate.
             gh pr create --base main --head kernel-bump --reviewer DuskyElf \
               --title "$TITLE" --body "$BODY"
           fi
