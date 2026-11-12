@@ -74,7 +74,7 @@ in
     )
     (jail "worktrunk" pkgs-unstable.worktrunk (
       c: with c; [
-        (readwrite "/home/duskyelf/Projects")
+        (readwrite "${home}/Projects")
         (add-pkg-deps [ pkgs.git ])
         (xdg-app home "worktrunk")
       ]

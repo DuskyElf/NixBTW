@@ -10,6 +10,9 @@ let
       nix-shell -p "$1" --run "$1"
     }
   '';
+
+  # Deps for the live scripts tree, built from scripts/package-lock.json.
+  scriptsNodeModules = pkgs.callPackage ../scripts/node-modules.nix { };
 in
 {
   home.shellAliases = {
@@ -25,6 +28,20 @@ in
     recursive = true;
     source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/dotfiles/quickshell";
   };
+  # scripts/ stays an out-of-store symlink so edits apply without a rebuild.
+  # Only the dependency tree is pinned, or a fresh switch would leave
+  # wallpaper.mjs without the modules it imports.
+  home.file."dotfiles/scripts/node_modules" = {
+    source = scriptsNodeModules + "/node_modules";
+    force = true;
+  };
+  # `force` only skips the collision check; ln cannot replace a real directory.
+  # Drop a hand-installed tree once so the symlink below can take its place.
+  home.activation.scriptsNodeModules = lib.hm.dag.entryBefore [ "linkGeneration" ] ''
+    if [[ -e "$HOME/dotfiles/scripts/node_modules" && ! -L "$HOME/dotfiles/scripts/node_modules" ]]; then
+      run rm -rf "$HOME/dotfiles/scripts/node_modules"
+    fi
+  '';
   home.packages = with pkgs; [
     lm_sensors
     gnugrep

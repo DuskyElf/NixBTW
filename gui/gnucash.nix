@@ -13,7 +13,7 @@ in
       c: with c; [
         gui
         (xdg-app home "gnucash")
-        (readwrite "/home/duskyelf/Documents/")
+        (readwrite "${home}/Documents/")
         (dbus {
           talk = [
             "org.freedesktop.portal.Desktop"

@@ -1,4 +1,6 @@
 **/*.swp
+# The deploy wrapper owns the lock. Keeping it out of the public repo keeps the
+# exact nixpkgs/stylix/niri revisions private; see AGENTS.md.
 flake.lock
 scripts/node_modules/
 .tmp/

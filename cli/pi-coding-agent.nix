@@ -5,20 +5,23 @@
   pkgs-unstable-small,
   ...
 }:
+let
+  home = config.home.homeDirectory;
+in
 {
   home.packages = [
     (jail "pi" pkgs-unstable-small.pi-coding-agent (
       c: with c; [
         network
         mount-cwd
-        (readwrite "/home/duskyelf/.pi")
+        (readwrite "${home}/.pi")
 
         # can run any binary with limited file system access
         (readonly "/nix/store")
         (readonly "/run/current-system/sw/bin")
-        (readonly "/home/duskyelf/.nix-profile/bin")
-        (readonly "/home/duskyelf/dotfiles/deploy-system/")
-        (set-env "PATH" "/run/current-system/sw/bin:/home/duskyelf/.nix-profile/bin")
+        (readonly "${home}/.nix-profile/bin")
+        (readonly "${home}/dotfiles/deploy-system/")
+        (set-env "PATH" "/run/current-system/sw/bin:${home}/.nix-profile/bin")
 
         (set-env "EDITOR" "vim")
 
