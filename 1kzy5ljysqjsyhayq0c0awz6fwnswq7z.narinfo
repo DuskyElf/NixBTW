@@ -1,0 +1,10 @@
+StorePath: /nix/store/1kzy5ljysqjsyhayq0c0awz6fwnswq7z-linux-7.3.4-modules
+URL: https://github.com/DuskyElf/NixBTW/releases/download/kernel-7.3.4/1829qrq8ajjk291bg0aagfv5mfviis7pndys4x2r6928d0msyj13.nar.xz
+Compression: xz
+FileHash: sha256:1829qrq8ajjk291bg0aagfv5mfviis7pndys4x2r6928d0msyj13
+FileSize: 135984300
+NarHash: sha256:1ynp4zyhdja7m49h955185c3jdjhdanv1jacdgg7zamzs418y41d
+NarSize: 144769920
+References: 
+Deriver: 47llhpc65nggsj15s9hvzqq0wiv6k3zh-linux-7.3.4.drv
+Sig: i9-kernel-cache:GgAzaIVDpPjxxc891qVDjO6KhVR2tsaf6NbKC/+53gV5aHzAnt7fJOWsbePIcjUE+b187+/8zHexqSMadMnjDg==
