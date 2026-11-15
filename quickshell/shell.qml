@@ -207,7 +207,7 @@ Scope {
 
   onCaptionTextChanged: root.splitCaption()
 
-  // Caption: wallpaper.sh writes this file on every wallpaper change.
+  // Caption: wallpaper-guardian writes this file on every wallpaper change.
   Process {
     id: captionProc
     command: [ "sh", "-c", "cat ~/.cache/wallpaper-guardian/caption.txt" ]

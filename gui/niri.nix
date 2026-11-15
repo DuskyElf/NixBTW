@@ -29,6 +29,8 @@ let
     notify-send "Screenpad Brightness" "$PCT%" --expire-time=500 -p --replace-id=$(cat '/tmp/niri-screenpad-brightness' 2>/dev/null || echo 0) > '/tmp/niri-screenpad-brightness' || notify-send "Screenpad Brightness" "$PCT%" --expire-time=500 -p > '/tmp/niri-screenpad-brightness'
   '';
 
+  wallpaperGuardian = config.services.wallpaper-guardian.package;
+
   notifyTemperature = pkgs.writeShellScriptBin "notify-temperature" ''
     VAL=$(${pkgs.systemd}/bin/busctl --user get-property rs.wl-gammarelay / rs.wl.gammarelay Temperature 2>/dev/null | ${pkgs.gawk}/bin/awk '{print $2}')
     VAL=''${VAL:-6500}
@@ -51,75 +53,16 @@ let
   '';
 in
 {
+  imports = [ inputs.wallpaper-guardian.homeManagerModules.default ];
+
   services = {
     mako.enable = true;
     polkit-gnome.enable = true;
   };
 
-  systemd.user.services.wallpaper-fetch = {
-    Unit = {
-      Description = "Fetch Guardian photos of the day into the wallpaper pool";
-      PartOf = [ "graphical-session.target" ];
-    };
-    Service = {
-      Type = "oneshot";
-      Environment = [
-        "PATH=/run/current-system/sw/bin:%h/.nix-profile/bin"
-        "WAYLAND_DISPLAY=wayland-1"
-      ];
-      ExecStart = "%h/.config/scripts/wallpaper.mjs fetch";
-    };
-  };
-
-  systemd.user.timers.wallpaper-fetch = {
-    Unit.Description = "Guardian wallpaper pool fetch";
-    # Runs 15min after boot then every 12h of awake use, not at a fixed
-    # 08:30. The laptop is suspended at odd hours; OnUnitActiveSec uses the
-    # monotonic clock so sleep time does not count and the fetch fires shortly
-    # after wake if the 12h boundary passed while asleep. Persistent= would
-    # only help at boot anyway (known systemd regression on resume).
-    Timer = {
-      OnBootSec = "15min";
-      OnUnitActiveSec = "12h";
-    };
-    Install.WantedBy = [ "timers.target" ];
-  };
-
-  systemd.user.services.wallpaper-rotate = {
-    Unit = {
-      Description = "Rotate Guardian wallpaper";
-      PartOf = [ "graphical-session.target" ];
-    };
-    Service = {
-      Type = "oneshot";
-      Environment = [
-        "PATH=/run/current-system/sw/bin:%h/.nix-profile/bin"
-        "WAYLAND_DISPLAY=wayland-1"
-      ];
-      ExecStart = "%h/.config/scripts/wallpaper.mjs next";
-    };
-  };
-
-  systemd.user.timers.wallpaper-rotate = {
-    Unit.Description = "Rotate Guardian wallpaper every 6 minutes";
-    Timer.OnCalendar = "*:0/6";
-    Install.WantedBy = [ "timers.target" ];
-  };
-
-  systemd.user.services.wallpaper-resume = {
-    Unit = {
-      Description = "Re-apply wallpaper after suspend";
-      After = [ "sleep.target" ];
-    };
-    Service = {
-      Type = "oneshot";
-      Environment = [
-        "PATH=/run/current-system/sw/bin:%h/.nix-profile/bin"
-        "WAYLAND_DISPLAY=wayland-1"
-      ];
-      ExecStart = "%h/.config/scripts/wallpaper.mjs next";
-    };
-    Install.WantedBy = [ "sleep.target" ];
+  services.wallpaper-guardian = {
+    enable = true;
+    waylandDisplay = "wayland-1";
   };
 
   # Daemons that niri used to spawn at startup, now owned by systemd so they
@@ -220,25 +163,6 @@ in
       ExecStart = "${pkgs.quickshell}/bin/quickshell";
       Restart = "on-failure";
       RestartSec = "1s";
-    };
-    Install.WantedBy = [ "graphical-session.target" ];
-  };
-
-  # Initial wallpaper apply. Must run after awww-daemon so applier.ensure()
-  # finds the daemon instead of spawning a duplicate detached copy.
-  systemd.user.services.wallpaper-startup = {
-    Unit = {
-      Description = "Apply initial wallpaper at session start";
-      PartOf = [ "graphical-session.target" ];
-      After = [ "awww-daemon.service" ];
-    };
-    Service = {
-      Type = "oneshot";
-      Environment = [
-        "PATH=/run/current-system/sw/bin:%h/.nix-profile/bin"
-        "WAYLAND_DISPLAY=wayland-1"
-      ];
-      ExecStart = "%h/.config/scripts/wallpaper.mjs next";
     };
     Install.WantedBy = [ "graphical-session.target" ];
   };
@@ -379,7 +303,7 @@ in
           "Mod+T".action = spawn "kitty";
           "Mod+O".action = spawn "fuzzel";
 
-          "Mod+N".action = spawn "bash" "-c" "~/.config/scripts/wallpaper.mjs next";
+          "Mod+N".action = spawn "bash" "-c" "${lib.getExe wallpaperGuardian} next";
 
           "Mod+8".action = spawn "bash" "-c" ("sudo /usr/local/sbin/power.sh powersave");
           "Mod+9".action = spawn "bash" "-c" ("sudo /usr/local/sbin/power.sh performance");

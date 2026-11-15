@@ -1,8 +1,9 @@
 # NixBTW
 
 The NixOS and home-manager config for my laptop (`asus`, a UX581GV), plus the
-small tools around it: the wallpaper pool, the status scripts, the T3 Code pin,
-and the kernel cache.
+small tools around it: the status scripts, the T3 Code pin, and the kernel
+cache. The Guardian wallpaper pool lives in `wallpaper-guardian/`, a separate
+flake and submodule.
 
 This repo is the source tree, not the deploy unit. `deploy-system/` is a
 gitignored wrapper flake that pins every input and holds `flake.lock`. It stays
@@ -18,6 +19,9 @@ Clone [DuskyElf/NixBTW](https://github.com/DuskyElf/NixBTW) into `dotfiles`:
 ```sh
 git clone --recurse-submodules https://github.com/DuskyElf/NixBTW dotfiles
 ```
+
+An existing checkout needs `git submodule update --init wallpaper-guardian`
+after pulling, since the flake reads that path as an input.
 
 The clone has no `deploy-system/` and no lock. On the laptop I restore the
 private wrapper. A public-only checkout can generate an equivalent one and lock
@@ -65,11 +69,15 @@ What needs which rebuild:
 | `home.nix`, `cli/`, `gui/` | `home-manager switch` |
 | `system.nix`, `hosts/` | `nixos-rebuild switch` |
 | `gui/niri.nix` | `home-manager switch` (it is a home module) |
-| `scripts/*.mjs`, `hot-configs/`, `quickshell/` | nothing, they are linked live |
+| `wallpaper-guardian/` | `home-manager switch`; a submodule bump also needs `nix flake update wallpaper-guardian` in `deploy-system/` |
+| `scripts/timers.mjs`, `hot-configs/`, `quickshell/` | nothing, they are linked live |
 | `scripts/power.sh` | `nixos-rebuild switch` (it lands in `/usr/local/sbin`) |
 
-A `neovimBTW` submodule bump also needs `nix flake update neovimBTW` inside
-`deploy-system/`, then a switch. `opencodeBTW` is symlinked, not a flake input.
+A `neovimBTW` or `wallpaper-guardian` submodule bump also needs
+`nix flake update <name>` inside `deploy-system/`, then a switch. The private
+wrapper must list `wallpaper-guardian` as an input first; `scripts/deploy-system.nix`
+shows the shape for a fresh bootstrap. `opencodeBTW` is symlinked, not a flake
+input.
 
 ## What is pinned
 
@@ -82,19 +90,19 @@ A `neovimBTW` submodule bump also needs `nix flake update neovimBTW` inside
 
 The other inputs float through the private lock, including system nixpkgs,
 unstable for niri, unstable-small for the agents, home-manager, stylix,
-jail-nix, and zen-browser. The daily timer updates three of them. The kernel
-pin has its own rotation, described below.
+jail-nix, neovimBTW, wallpaper-guardian, and zen-browser. The daily timer
+updates three of them. The kernel pin has its own rotation, described below.
 
 ## What runs
 
 Systemd units do the background work, not shell daemons. The daily wrapper
 update has a timer. Store hygiene is daily: the devshell pin runs at 03:30, the
 root GC at 04:00, and your own GC at 05:00, the two GCs keeping two days of
-generations. The wallpaper fetch, rotate, resume, and startup units live in
-`gui/niri.nix`, together with `awww-daemon`,
-`quickshell`, `wl-gammarelay`, and `break-timer`. `battery-threshold-control`
-and `screenpad-off` are one-shot system services. `llm-lab` starts ollama and
-Open WebUI only when you ask.
+generations. The wallpaper fetch, rotate, resume, and startup units come from
+the `wallpaper-guardian` home-manager module enabled in `gui/niri.nix`.
+`awww-daemon`, `quickshell`, `wl-gammarelay`, and `break-timer` are defined
+there too. `battery-threshold-control` and `screenpad-off` are one-shot system
+services. `llm-lab` starts ollama and Open WebUI only when you ask.
 
 ## The daily update
 

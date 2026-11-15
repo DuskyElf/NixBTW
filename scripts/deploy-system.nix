@@ -15,6 +15,7 @@
     stylix.url = "github:nix-community/stylix/release-26.05";
     niri.url = "github:sodiboo/niri-flake";
     neovimBTW.url = "git+file://@ROOT@/neovimBTW";
+    wallpaper-guardian.url = "git+file://@ROOT@/wallpaper-guardian";
     zen-browser.url = "github:0xc000022070/zen-browser-flake/beta";
 
     # Do not follow-override nixpkgs-fast-release. The kernel cache is built
@@ -28,10 +29,12 @@
     my-dotfiles.inputs.stylix.follows = "stylix";
     my-dotfiles.inputs.niri.follows = "niri";
     my-dotfiles.inputs.neovimBTW.follows = "neovimBTW";
+    my-dotfiles.inputs.wallpaper-guardian.follows = "wallpaper-guardian";
     my-dotfiles.inputs.zen-browser.follows = "zen-browser";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
     stylix.inputs.nixpkgs.follows = "nixpkgs";
     neovimBTW.inputs.nixpkgs.follows = "nixpkgs";
+    wallpaper-guardian.inputs.nixpkgs.follows = "nixpkgs";
     niri.inputs.nixpkgs.follows = "nixpkgs-unstable";
     zen-browser.inputs.nixpkgs.follows = "nixpkgs-unstable";
     zen-browser.inputs.home-manager.follows = "home-manager";

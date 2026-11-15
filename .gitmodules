@@ -4,3 +4,6 @@
 [submodule "opencodeBTW"]
 	path = opencodeBTW
 	url = https://github.com/DuskyElf/opencodeBTW
+[submodule "wallpaper-guardian"]
+	path = wallpaper-guardian
+	url = https://github.com/DuskyElf/wallpaper-guardian
