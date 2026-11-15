@@ -70,8 +70,7 @@ What needs which rebuild:
 | `scripts/machine-digest.sh` | `nixos-rebuild switch` (the unit reads the store copy) |
 
 A `neovimBTW` submodule bump also needs `nix flake update neovimBTW` inside
-`deploy-system/`, then a switch. `opencodeBTW` and `piBTW` are symlinked, not
-flake inputs.
+`deploy-system/`, then a switch. `opencodeBTW` is symlinked, not a flake input.
 
 ## What is pinned
 
@@ -90,9 +89,9 @@ pin has its own rotation, described below.
 ## What runs
 
 Systemd units do the background work, not shell daemons. The daily wrapper
-update and the weekly digest have timers. Store hygiene is daily: the root GC
-runs at 04:00 and your own GC at 05:00, each keeping two days of generations.
-The wallpaper fetch, rotate, resume,
+update and the weekly digest have timers. Store hygiene is daily: the devshell
+pin runs at 03:30, the root GC at 04:00, and your own GC at 05:00, the two GCs
+keeping two days of generations. The wallpaper fetch, rotate, resume,
 and startup units live in `gui/niri.nix`, together with `awww-daemon`,
 `quickshell`, `wl-gammarelay`, and `break-timer`. `battery-threshold-control`
 and `screenpad-off` are one-shot system services. `llm-lab` starts ollama and

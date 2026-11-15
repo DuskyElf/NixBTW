@@ -20,7 +20,7 @@ Subrepos own their domains. Read their docs when you work inside them and do not
 
 * `neovimBTW/` is the Neovim config (submodule).
 * `opencodeBTW/` is the opencode setup: agents, commands, skills, plugins. Opencode behavior and tool quirks belong there, not here.
-* `piBTW/` is pi agent state and config (submodule, symlinked to `~/.pi`). Its `AGENTS.md` and `CONTEXT.md` rule inside it. Dirty entries there are runtime noise. Never commit them.
+* `piBTW/` is leftover pi agent state (submodule). The pi tool is no longer installed, so nothing links it to `~/.pi`; treat it as data. Its `AGENTS.md` and `CONTEXT.md` rule inside it. Dirty entries there are runtime noise. Never commit them.
 
 If a fact lives in config or a subrepo doc, point at it. Do not copy it here.
 
@@ -49,7 +49,7 @@ The shell sees the user's filesystem, network, and systemd user bus. Direct curl
 
 `scripts/` is symlinked into `~/.config` via mkOutOfStoreSymlink, so edits go live at once, no rebuild. Exception: `power.sh` is store-pinned and symlinked into `/usr/local/sbin`, so it needs a nixos-rebuild. Any root action from a keybind must route through `power.sh` or sudo hangs the keybind.
 
-Sandboxed commands (`curl`, `wget`, `gh`, `worktrunk`, `pi`) get network plus mount-cwd plus own config dirs, nothing more:
+Sandboxed commands (`curl`, `wget`, `gh`, `worktrunk`) get network plus mount-cwd plus own config dirs, nothing more:
 
 * Sandboxed curl cannot WRITE with `-o` (exit 23). Use a shell redirect (`curl ... > file`) so the shell opens the target.
 * A daemon backgrounded while holding a flock inherits the fd and holds the lock forever. Close it on spawn (`daemon ... 9>&- &`). Seen via `scripts/wallpaper.mjs` and `lib/lock.mjs`.
