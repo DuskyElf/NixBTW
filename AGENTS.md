@@ -12,6 +12,7 @@ Top level owns the machine: `flake.nix`, `home.nix`, `system.nix`, `cli/`, `gui/
 Subrepos own their domains. Read their docs when you work inside them and do not duplicate them here:
 * `neovimBTW/`
 * `opencodeBTW/`
+* `wallpaper-guardian/` (Guardian wallpaper pool CLI, Rust, own flake and home-manager module)
 
 This repo is NOT the deploy flake. `deploy-system/` is a private wrapper flake pinning this repo as `my-dotfiles`. It is gitignored with its own nested git repo and never pushed, so its flake.lock is the only lock source of truth. You may read it and propose edits to it. The user applies them.
 
@@ -24,7 +25,7 @@ Everything on this machine is handled by systemd timers pretty much.
 
 A daily user timer runs `nix flake update nixpkgs nixpkgs-unstable-small zen-browser` (see ./home.nix)  in `deploy-system/`, switches home-manager, and commits that lock. Only those 3 inputs auto-update. When the machine disagrees with this repo, suspect that drift first, not a local edit. Do not hand-edit pins the timer owns.
 
-Submodule bumps (e.g. `neovimBTW`) do not reach a switch through the live-tree override alone. The wrapper pins each submodule as its own flake input, so run `nix flake update <name>` inside `deploy-system/` after the bump, then switch.
+Submodule bumps (e.g. `neovimBTW`) do not reach a switch through the live-tree override alone. The wrapper pins each submodule as its own flake input, so run `nix flake update <name>` inside `deploy-system/` after the bump, then switch. `wallpaper-guardian` is pinned the same way.
 
 T3 Code is not the nixpkgs package. `cli/t3code-main.nix` reuses that recipe on upstream main, and `cli/t3code-main.lock.nix` holds the rev plus the three fixed-output hashes that follow a rev. `scripts/update-t3code-main.sh` moves that pin inside the daily timer, before the switch, and keeps the old pin when a commit does not build. Do not swap it back to `pkgs.t3code` or edit the hashes by hand.
 
