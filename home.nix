@@ -136,4 +136,30 @@
     };
     Install.WantedBy = [ "timers.target" ];
   };
+
+  # Keeps the devshells of the projects listed in dotfiles/hot-configs/
+  # active-projects alive across GC. A plain `nix develop` creates no gc root,
+  # so the GC collects the shell and every package in it; projects.sh pin
+  # links each listed devshell under ~/.local/state/nix/gcroots/projects.
+  # 03:30 puts it ahead of both GC timers, and Persistent catches up after a
+  # wake. Removing a project from the list unpins it on the next run.
+  systemd.user.services.projects-pin = {
+    Unit.Description = "Pin active project devshells as gc roots";
+    Service = {
+      Type = "oneshot";
+      ExecStart = "%h/.config/scripts/projects.sh pin";
+      # A lock bump can mean building a toolchain from scratch, which takes
+      # far longer than the 90s default start timeout.
+      TimeoutStartSec = "infinity";
+    };
+  };
+
+  systemd.user.timers.projects-pin = {
+    Unit.Description = "Daily devshell pin, ahead of the nix store GC";
+    Timer = {
+      OnCalendar = "*-*-* 03:30:00";
+      Persistent = true;
+    };
+    Install.WantedBy = [ "timers.target" ];
+  };
 }

@@ -1,0 +1,23 @@
+# Projects under ~/Projects whose devshell stays out of the store GC.
+#
+# GC keeps only store paths that a gc root points at, and a plain
+# `nix develop` creates no root, so a devshell and its dependencies are
+# collected on the next run. `projects.sh pin` links each project listed
+# here to a gc root at ~/.local/state/nix/gcroots/projects/<name>, so its
+# devshell closure is never collected. Re-pin after a flake.lock moves, or
+# run it from a timer.
+#
+# One path per line, relative to ~/Projects, so nested projects work too.
+# `projects.sh find` lists every flake on disk and whether it is here.
+#
+# tangled/core and tangled/ting/core are left out on purpose: their devshell
+# overrides stdenv to pkgsStatic, so pinning them compiles 504 derivations
+# locally (no cache hit for a static Rust/Go toolchain). Add them as a pair
+# only if you work inside that shell often.
+apalaka
+at-advent-codes
+duskyelf.com
+jee-prep
+tangled/ting
+txm
+Vimophone
