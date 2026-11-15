@@ -19,7 +19,7 @@
 
     nixpkgs-unstable.url = "nixpkgs/nixos-unstable";
 
-    # for opencoode and pi-coding-agent
+    # for opencode and the T3 Code pin
     # which I want to be on the latest version but don't want to wait for the whole nixpkgs-unstable to build
     nixpkgs-unstable-small.url = "nixpkgs/nixos-unstable-small";
 
@@ -96,12 +96,6 @@
       };
       pkgs-unstable = inputs.nixpkgs-unstable.legacyPackages.${system};
       pkgs-unstable-small = inputs.nixpkgs-unstable-small.legacyPackages.${system};
-      # Unfree-allowed unstable-small for packages with CUDA EULA deps
-      # (ollama-cuda). Kept separate so the plain set stays fully free.
-      pkgs-unstable-small-unfree = import inputs.nixpkgs-unstable-small {
-        inherit system;
-        config.allowUnfree = true;
-      };
       pkgs-fast-release = import inputs.nixpkgs-fast-release {
         system = system;
         config.allowUnfree = true;
@@ -185,7 +179,6 @@
             inputs
             pkgs-unstable
             pkgs-unstable-small
-            pkgs-unstable-small-unfree
             jail
             ;
         };

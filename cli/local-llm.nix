@@ -8,7 +8,12 @@
 # `llm-lab stop` shuts both down and frees VRAM and RAM.
 #
 # Nothing autostarts at login, so idle RAM and VRAM stay free.
-{ config, lib, pkgs, pkgs-unstable-small-unfree, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   ollamaUrl = "http://127.0.0.1:11434";
@@ -20,7 +25,7 @@ let
 
     OLLAMA_URL="${ollamaUrl}"
     WEBUI_URL="${webuiUrl}"
-    OLLAMA_BIN="${pkgs-unstable-small-unfree.ollama-cuda}/bin/ollama"
+    OLLAMA_BIN="${pkgs.ollama-cuda}/bin/ollama"
     SYSTEMCTL="${pkgs.systemd}/bin/systemctl --user"
     CURL="${pkgs.curl}/bin/curl -sf"
 
@@ -82,7 +87,7 @@ in
 {
   services.ollama = {
     enable = true;
-    package = pkgs-unstable-small-unfree.ollama-cuda;
+    package = pkgs.ollama-cuda;
     acceleration = "cuda";
     host = "127.0.0.1";
     port = 11434;
