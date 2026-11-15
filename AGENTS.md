@@ -20,7 +20,6 @@ Subrepos own their domains. Read their docs when you work inside them and do not
 
 * `neovimBTW/` is the Neovim config (submodule).
 * `opencodeBTW/` is the opencode setup: agents, commands, skills, plugins. Opencode behavior and tool quirks belong there, not here.
-* `piBTW/` is leftover pi agent state (submodule). The pi tool is no longer installed, so nothing links it to `~/.pi`; treat it as data. Its `AGENTS.md` and `CONTEXT.md` rule inside it. Dirty entries there are runtime noise. Never commit them.
 
 If a fact lives in config or a subrepo doc, point at it. Do not copy it here.
 
