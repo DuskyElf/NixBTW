@@ -126,13 +126,19 @@ in
       ];
     };
 
-    # Weekly store hygiene. The GC keeps 14 days of history and only drops
-    # paths no generation, profile, or gcroot references. The optimiser
-    # hardlinks identical files, which is why du and df disagree on /nix/store.
+    # Daily store hygiene at 04:00, keeping two days of generations. The GC
+    # only drops paths no generation, profile, or gcroot references, so a
+    # devshell pinned by scripts/projects.sh survives no matter its age. Two
+    # days is deliberate: the t3code pin moves daily and each build leaves
+    # about 4 GiB of dead paths behind. The optimiser stays weekly because it
+    # rewrites the whole store, and because hardlinked identical files are why
+    # du and df disagree on /nix/store. Home-manager and profile generations
+    # live in ~/.local/state/nix/profiles, which root cannot see; home.nix has
+    # the matching user-level run.
     nix.gc = {
       automatic = true;
-      dates = "weekly";
-      options = "--delete-older-than 14d";
+      dates = "*-*-* 04:00:00";
+      options = "--delete-older-than 2d";
     };
     nix.optimise = {
       automatic = true;

@@ -30,6 +30,17 @@
   home.stateVersion = "25.11";
   programs.home-manager.enable = true;
 
+  # Store GC for this user, staggered after the 04:00 root run in system.nix.
+  # Root's run only walks /root and /nix/var/nix/profiles, so generations in
+  # ~/.local/state/nix/profiles are never pruned without this, and every one
+  # of them pins the packages it references. Two days of history is deliberate;
+  # see system.nix for why.
+  nix.gc = {
+    automatic = true;
+    dates = "*-*-* 05:00:00";
+    options = "--delete-older-than 2d";
+  };
+
   # auto-update flakes and home-manager on login
   systemd.user.services.flake-auto-update = {
     Unit = {

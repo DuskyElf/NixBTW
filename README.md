@@ -90,7 +90,9 @@ pin has its own rotation, described below.
 ## What runs
 
 Systemd units do the background work, not shell daemons. The daily wrapper
-update and the weekly digest have timers. The wallpaper fetch, rotate, resume,
+update and the weekly digest have timers. Store hygiene is daily: the root GC
+runs at 04:00 and your own GC at 05:00, each keeping two days of generations.
+The wallpaper fetch, rotate, resume,
 and startup units live in `gui/niri.nix`, together with `awww-daemon`,
 `quickshell`, `wl-gammarelay`, and `break-timer`. `battery-threshold-control`
 and `screenpad-off` are one-shot system services. `llm-lab` starts ollama and
