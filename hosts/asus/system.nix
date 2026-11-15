@@ -137,6 +137,9 @@ in
       ];
     };
 
+    # The dGPU is optional. powersave modes in scripts/power.sh remove the PCI
+    # device and unload the modules; performance re-scans the bus and reloads
+    # them. A missing nvidia module is a power mode, not a broken config.
     nvidia = {
       open = true;
 
@@ -238,6 +241,12 @@ in
       }
     );
 
+    # Editing this config produces a kernel no cache holds. CI builds and
+    # publishes it to the signed cache this machine trusts
+    # (.github/workflows/compile-kernel.yml), so the next switch substitutes
+    # instead of compiling here; a run takes roughly two hours. LTO is
+    # unavailable, not disabled: the clang LTO knobs cannot be forced on a
+    # GCC build.
     kernelPatches = [
       {
         name = "skylake-tune-preempt";
@@ -256,6 +265,9 @@ in
           X86_NATIVE_CPU = lib.mkForce no;
           X86_INTEL_PSTATE = yes;
           PREEMPT = lib.mkForce yes;
+          # nixpkgs' common-config turns PREEMPT_LAZY on for kernels >= 6.18,
+          # and Kconfig puts it in the same choice group as PREEMPT, so both
+          # set makes generate-config.pl fail with "conflicting answers!".
           PREEMPT_LAZY = lib.mkForce no;
           PREEMPT_DYNAMIC = yes;
           CPU_IDLE = yes;

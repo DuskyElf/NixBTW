@@ -487,8 +487,14 @@ in
           "Mod+1" = {
             allow-when-locked = true;
             action = spawn "bash" "-c" ''
-              # Toggle screenpad (bl_power: 0 = off, 4 = on). No waits, no
-              # retries. Press again if the attach does not stick.
+              # Toggle the screenpad (bl_power: 0 = off, 4 = on). Turning it
+              # on is bare on purpose: the DP link trains marginal and i915
+              # rejects the modeset mid-training (EINVAL), so only a fresh
+              # bl_power cycle re-trains it, and the kernel hotplug uevent
+              # about 1.5s later auto-connects the output. No sleeps,
+              # retries or flock: the retry is another Mod+1. `niri msg
+              # output DP-2 on` exits 0 even on an unmapped connector, so
+              # never trust its exit code.
               if [ "$(cat /sys/class/backlight/asus_screenpad/bl_power 2>/dev/null)" = "4" ]; then
                 niri msg output DP-2 off || true
                 sudo /usr/local/sbin/power.sh screenpad off || true
@@ -503,7 +509,8 @@ in
 
         };
 
-        # explicitly only use iGPU and leave the dGPU alone
+        # Explicitly only use the iGPU and leave the dGPU alone; the nvidia
+        # render node is ignored even when it is present.
         debug = {
           ignore-drm-device = "/dev/dri/by-path/pci-0000:01:00.0-render";
           render-drm-device = "/dev/dri/by-path/pci-0000:00:02.0-render";

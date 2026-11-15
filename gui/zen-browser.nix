@@ -31,5 +31,7 @@ in
     ))
   ];
 
+  # CSS only: this gates the browser chrome, not light/dark, which comes from
+  # the portal dconf key in home.nix.
   stylix.targets.zen-browser.enable = false;
 }

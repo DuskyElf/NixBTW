@@ -148,7 +148,7 @@ Disk UUIDs, BIOS offsets, undervolt values, the screenpad quirk, and the kernel
 tuning all describe one UX581GV. A second machine should get its own
 `hosts/<name>` and a real hardware config, not a copy of `hosts/asus`.
 
-`AGENTS.md` is the operating manual for agents working in this tree. It also
-lists the load-bearing oddities in the kernel, stylix, screenpad, and power
-paths, with the reason each one has to stay as it is. Read it before changing
-any of those.
+`AGENTS.md` is the operating manual for agents working in this tree. The
+kernel, stylix, screenpad, and power paths each carry the reason they have to
+stay as they are in a comment beside the code, so read that comment before
+editing the code.

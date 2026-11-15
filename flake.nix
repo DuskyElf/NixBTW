@@ -6,6 +6,9 @@
 
     nixpkgs.url = "nixpkgs/nixos-26.05";
 
+    # The nixpkgs inputs are deliberately mixed, and aligning them is not a
+    # fix: each one follows the nixpkgs its packages are built against.
+
     # Pinned by rev (not branch) so GitHub Actions builds the exact same
     # kernel closure as this laptop. CI has no lock file for this flake, so a
     # floating ref would drift and every cache lookup would miss.

@@ -9,6 +9,8 @@
   home.username = "duskyelf";
   home.homeDirectory = "/home/duskyelf";
 
+  # Stylix's gtk target sets gtk.gtk4.theme itself; adding that option by hand
+  # duplicates the definition and fails the home-manager build.
   stylix = {
     enable = true;
     polarity = "dark";
