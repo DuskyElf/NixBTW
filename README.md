@@ -63,11 +63,10 @@ What needs which rebuild:
 | Changed | Apply with |
 | --- | --- |
 | `home.nix`, `cli/`, `gui/` | `home-manager switch` |
-| `system.nix`, `system-health.nix`, `hosts/` | `nixos-rebuild switch` |
+| `system.nix`, `hosts/` | `nixos-rebuild switch` |
 | `gui/niri.nix` | `home-manager switch` (it is a home module) |
 | `scripts/*.mjs`, `hot-configs/`, `quickshell/` | nothing, they are linked live |
 | `scripts/power.sh` | `nixos-rebuild switch` (it lands in `/usr/local/sbin`) |
-| `scripts/machine-digest.sh` | `nixos-rebuild switch` (the unit reads the store copy) |
 
 A `neovimBTW` submodule bump also needs `nix flake update neovimBTW` inside
 `deploy-system/`, then a switch. `opencodeBTW` is symlinked, not a flake input.
@@ -89,10 +88,10 @@ pin has its own rotation, described below.
 ## What runs
 
 Systemd units do the background work, not shell daemons. The daily wrapper
-update and the weekly digest have timers. Store hygiene is daily: the devshell
-pin runs at 03:30, the root GC at 04:00, and your own GC at 05:00, the two GCs
-keeping two days of generations. The wallpaper fetch, rotate, resume,
-and startup units live in `gui/niri.nix`, together with `awww-daemon`,
+update has a timer. Store hygiene is daily: the devshell pin runs at 03:30, the
+root GC at 04:00, and your own GC at 05:00, the two GCs keeping two days of
+generations. The wallpaper fetch, rotate, resume, and startup units live in
+`gui/niri.nix`, together with `awww-daemon`,
 `quickshell`, `wl-gammarelay`, and `break-timer`. `battery-threshold-control`
 and `screenpad-off` are one-shot system services. `llm-lab` starts ollama and
 Open WebUI only when you ask.
@@ -137,7 +136,6 @@ Check the parts that have tests or a single answer:
 
 ```sh
 nix eval --raw .#kernelVersion   # the series the selector picked
-scripts/test-machine-digest.sh   # shape of the weekly report
 scripts/test-update-t3code-main.sh  # t3code pin repair, against a fake nix
 nix fmt                          # nixfmt-tree over the repo
 ```
