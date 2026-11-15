@@ -32,8 +32,8 @@ if [ ! -x "$script" ]; then
     fail "$script is missing or not executable"
 fi
 
-mkdir -p "$work/bin" "$work/dotfiles/cli" "$work/deploy-system"
-lock=$work/dotfiles/cli/t3code-main.lock.nix
+mkdir -p "$work/bin" "$work/dotfiles/pkgs/t3code" "$work/deploy-system"
+lock=$work/dotfiles/pkgs/t3code/lock.nix
 truth=$work/truth.nix
 head=$work/head.nix
 commits=$work/commits
@@ -118,7 +118,7 @@ case "${1:-}" in
         printf '%s\trefs/heads/main\n' "$(cat "$T3_TEST_REV")"
         ;;
     add)
-        [ "${2:-}" = "cli/t3code-main.lock.nix" ] || {
+        [ "${2:-}" = "pkgs/t3code/lock.nix" ] || {
             echo "shim git: add of ${2:-nothing}" >&2
             exit 1
         }
@@ -128,7 +128,7 @@ case "${1:-}" in
         cp "$T3_TEST_LOCK" "$T3_TEST_HEAD"
         ;;
     status)
-        cmp -s "$T3_TEST_LOCK" "$T3_TEST_HEAD" || echo " M cli/t3code-main.lock.nix"
+        cmp -s "$T3_TEST_LOCK" "$T3_TEST_HEAD" || echo " M pkgs/t3code/lock.nix"
         ;;
     checkout)
         # Only the no-previous-lock path reaches this.

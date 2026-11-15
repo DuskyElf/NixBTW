@@ -7,9 +7,9 @@
 }:
 let
   # Built from upstream main, not the tagged release in nixpkgs. The rev and
-  # the fixed-output hashes live in t3code-main.lock.nix and move with the daily
+  # the fixed-output hashes live in pkgs/t3code/lock.nix and move with the daily
   # flake auto-update (scripts/update-t3code-main.sh).
-  t3code = import ./t3code-main.nix { pkgs = pkgs-unstable-small; };
+  t3code = import ../pkgs/t3code { pkgs = pkgs-unstable-small; };
 
   # T3's html_render and browser tool spawn their own Chrome for Testing
   # download. That binary wants /lib64/ld-linux-x86-64.so.2, which NixOS does
@@ -60,7 +60,7 @@ in
     #    # clipboard: wl-copy/wl-paste need the Wayland socket
     #    wayland
 
-    #    # done-bell: system notification + audio + media pause (mirrors gui/idle.nix break-timer)
+    #    # done-bell: system notification + audio + media pause (mirrors apps/idle.nix break-timer)
     #    notifications
     #    pipewire
     #    (dbus {
@@ -84,8 +84,9 @@ in
   # repairs them without a watcher. Any T3 upgrade that downloads a newer build
   # is healed by the next switch (the daily auto-update) or by running
   # t3-headless-chrome-shim by hand.
-  home.activation.t3HeadlessChromeShim =
-    config.lib.dag.entryAfter [ "writeBoundary" ] "run ${t3HeadlessChromeShim}";
+  home.activation.t3HeadlessChromeShim = config.lib.dag.entryAfter [
+    "writeBoundary"
+  ] "run ${t3HeadlessChromeShim}";
 
   home.file.".config/opencode".source =
     config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/dotfiles/opencodeBTW";

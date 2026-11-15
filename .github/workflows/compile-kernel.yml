@@ -44,7 +44,7 @@ name: "Compile Optimized Kernel"
 env:
   CACHE_URL: https://duskyelf.github.io/NixBTW
   RELEASE_REPO: DuskyElf/NixBTW
-  # The signer name. system.nix holds the public half the laptop trusts; the
+  # The signer name. base/system.nix holds the public half the laptop trusts; the
   # name there and here must be identical, so keep them in one place each.
   CACHE_KEY_NAME: i9-kernel-cache
   # Kernel releases to keep. Each one is ~305 MB of release assets.
@@ -60,10 +60,9 @@ on:
       - "flake.nix"
       # The selector: editing it changes which kernel is built, so it has to
       # trigger a rebuild or the laptop compiles the new one locally.
-      - "hosts/asus/stable-kernel.nix"
-      - "hosts/asus/system.nix"
-      - "hosts/asus/skylake-march.patch"
-      - "system.nix"
+      - "hosts/asus/**"
+      - "lib/**"
+      - "base/system.nix"
       - ".github/workflows/compile-kernel.yml"
 
 permissions:

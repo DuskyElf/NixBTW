@@ -3,16 +3,16 @@
 # nixpkgs ships the newest tagged release, so its recipe is reused here with the
 # source swapped for a commit. A new commit moves three fixed-output hashes: the
 # repo tarball, the pnpm store, and the resource monitor's cargo vendor tree.
-# They live in ./t3code-main.lock.nix, which scripts/update-t3code-main.sh
-# rewrites during the daily flake auto-update. `baseVersion` is cosmetic (it
-# lands in `t3 --version` and the store path); bump it when upstream cuts a new
-# minor, nothing breaks if you don't.
+# They live in ./lock.nix, which scripts/update-t3code-main.sh rewrites during
+# the daily flake auto-update. `baseVersion` is cosmetic (it lands in `t3
+# --version` and the store path); bump it when upstream cuts a new minor,
+# nothing breaks if you don't.
 #
 # The package is built twice per bump: once by the update script to validate the
 # commit, once by the home-manager switch (a cache hit by then).
 {
   pkgs,
-  lockPath ? ./t3code-main.lock.nix,
+  lockPath ? ./lock.nix,
 }:
 let
   inherit (pkgs) lib;

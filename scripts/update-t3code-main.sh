@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Moves cli/t3code-main.lock.nix to the tip of pingdotgg/t3code main.
+# Moves pkgs/t3code/lock.nix to the tip of pingdotgg/t3code main.
 #
 # Runs from the daily flake auto-update, between `nix flake update` and the
 # home-manager switch:
@@ -30,8 +30,8 @@ set -euo pipefail
 DOTFILES=${DOTFILES:-/home/duskyelf/dotfiles}
 DEPLOY=${DEPLOY:-/home/duskyelf/dotfiles/deploy-system}
 REMOTE=https://github.com/pingdotgg/t3code
-LOCK=$DOTFILES/cli/t3code-main.lock.nix
-PKG=$DOTFILES/cli/t3code-main.nix
+LOCK=$DOTFILES/pkgs/t3code/lock.nix
+PKG=$DOTFILES/pkgs/t3code/default.nix
 FAKE=sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
 HASHES=(srcHash pnpmDepsHash cargoHash)
 
@@ -120,7 +120,7 @@ restore() {
       cp "$backup" "$LOCK.new" && mv -f "$LOCK.new" "$LOCK"
     else
       rm -f "$LOCK" "$LOCK.new"
-      git -C "$DOTFILES" checkout -- cli/t3code-main.lock.nix 2>/dev/null || true
+      git -C "$DOTFILES" checkout -- pkgs/t3code/lock.nix 2>/dev/null || true
     fi
   fi
   rm -f "$backup"
@@ -185,10 +185,10 @@ if [ "$built" -ne 1 ]; then
 fi
 
 # An unchanged pin builds from the store and has nothing to commit.
-if [ -n "$(git -C "$DOTFILES" status --porcelain -- cli/t3code-main.lock.nix)" ]; then
-  git -C "$DOTFILES" add cli/t3code-main.lock.nix
+if [ -n "$(git -C "$DOTFILES" status --porcelain -- pkgs/t3code/lock.nix)" ]; then
+  git -C "$DOTFILES" add pkgs/t3code/lock.nix
   git -C "$DOTFILES" commit -q --no-gpg-sign -m "chore(t3code): main ${rev:0:7}" \
-    -- cli/t3code-main.lock.nix 2>/dev/null || true
+    -- pkgs/t3code/lock.nix 2>/dev/null || true
   echo "t3code: main ${rev:0:7} built"
 else
   echo "t3code: main ${rev:0:7} is current and builds"

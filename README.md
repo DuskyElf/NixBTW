@@ -12,6 +12,26 @@ revisions are not published. A fresh clone can evaluate after its submodules
 are checked out and Nix resolves the floating inputs, but the machine's exact
 closure comes from that wrapper.
 
+## Layout
+
+| Path | Holds |
+| --- | --- |
+| `flake.nix` | Inputs and outputs. Nothing computes here. |
+| `lib/` | nixpkgs instances, the jail wrapper, the kernel selection, `mkHost` |
+| `base/` | Machine-wide config: system policy and unowned packages in `base/system.nix`, stylix and timers in `base/home.nix` |
+| `apps/` | One app's config per file, with split apps in their own subdirectory. `apps/default.nix` lists which are home modules and which are system modules |
+| `pkgs/` | Packages this repo builds itself, such as the T3 Code pin |
+| `hosts/asus/` | This laptop: firmware, kernel, nvidia, screenpad |
+| `scripts/`, `quickshell/`, `hot-configs/` | Linked live, no rebuild |
+
+A file in `apps/` sets config for one app, except `apps/default.nix` itself and
+the helpers a module imports, such as `apps/niri/notify.nix`. Machine policy
+(network, power, sudo), a bare `programs.<app>.enable`, and packages that need
+no config stay in `base/system.nix`; `programs.niri.enable` stays in
+`apps/niri/system.nix` because the compositor's config lives beside it. The list
+a module appears in decides which rebuild applies, so the filename does not have
+to say it.
+
 ## First checkout
 
 Clone [DuskyElf/NixBTW](https://github.com/DuskyElf/NixBTW) into `dotfiles`:
@@ -66,9 +86,10 @@ What needs which rebuild:
 
 | Changed | Apply with |
 | --- | --- |
-| `home.nix`, `cli/`, `gui/` | `home-manager switch` |
-| `system.nix`, `hosts/` | `nixos-rebuild switch` |
-| `gui/niri.nix` | `home-manager switch` (it is a home module) |
+| `base/home.nix`, the home list in `apps/default.nix` | `home-manager switch` |
+| `base/system.nix`, the system list in `apps/default.nix`, `hosts/` | `nixos-rebuild switch` |
+| `apps/niri/system.nix` | `nixos-rebuild switch`; the rest of `apps/niri/` is a home module |
+| `flake.nix`, `lib/` | both, the wiring reaches both configurations |
 | `wallpaper-guardian/` | `home-manager switch`; a submodule bump also needs `nix flake update wallpaper-guardian` in `deploy-system/` |
 | `scripts/timers.mjs`, `hot-configs/`, `quickshell/` | nothing, they are linked live |
 | `scripts/power.sh` | `nixos-rebuild switch` (it lands in `/usr/local/sbin`) |
@@ -84,7 +105,7 @@ input.
 | Thing | Where | Why |
 | --- | --- | --- |
 | kernel nixpkgs | `flake.nix` | CI builds the same kernel derivation as the laptop, so the signed cache hits |
-| T3 Code main | `cli/t3code-main.lock.nix` | upstream commit plus the three vendor hashes, moved daily |
+| T3 Code main | `pkgs/t3code/lock.nix` | upstream commit plus the three vendor hashes, moved daily |
 | `setup_var.efi` | `hosts/asus/system.nix` | BIOS unlock entry, by version and hash |
 | NVIDIA driver | `hosts/asus/system.nix` | must match the custom kernel, and this closure is in no public cache |
 
@@ -99,9 +120,9 @@ Systemd units do the background work, not shell daemons. The daily wrapper
 update has a timer. Store hygiene is daily: the devshell pin runs at 03:30, the
 root GC at 04:00, and your own GC at 05:00, the two GCs keeping two days of
 generations. The wallpaper fetch, rotate, resume, and startup units come from
-the `wallpaper-guardian` home-manager module enabled in `gui/niri.nix`.
-`awww-daemon`, `quickshell`, `wl-gammarelay`, and `break-timer` are defined
-there too. `battery-threshold-control` and `screenpad-off` are one-shot system
+the `wallpaper-guardian` home-manager module enabled in `apps/wallpaper.nix`,
+next to `awww-daemon`. `quickshell`, `wl-gammarelay`, and `break-timer` are
+`apps/quickshell.nix`, `apps/gammarelay.nix`, and `apps/idle.nix`. `battery-threshold-control` and `screenpad-off` are one-shot system
 services. `llm-lab` starts ollama and Open WebUI only when you ask.
 
 ## The daily update
@@ -147,6 +168,22 @@ nix eval --raw .#kernelVersion   # the series the selector picked
 scripts/test-update-t3code-main.sh  # t3code pin repair, against a fake nix
 nix fmt                          # nixfmt-tree over the repo
 ```
+
+After a change that is only supposed to move files, take a snapshot of what each
+configuration installs before you start, and diff it afterwards:
+
+```sh
+nix eval --no-write-lock-file --json --apply \
+  'ps: builtins.sort builtins.lessThan (map toString ps)' \
+  '.#homeConfigurations."duskyelf@asus".config.home.packages' > /tmp/home-before
+nix eval --no-write-lock-file --json --apply \
+  'ps: builtins.sort builtins.lessThan (map toString ps)' \
+  '.#nixosConfigurations.asus.config.environment.systemPackages' > /tmp/system-before
+```
+
+Same list after the move means the same packages and the same derivations. Do
+not use `nix store diff-closures` for this: it compares names and versions, so a
+rebuilt package at the same version is invisible to it.
 
 ## This is not a template
 

@@ -2,6 +2,7 @@
   config,
   lib,
   pkgs,
+  jail,
   ...
 }:
 let
@@ -31,7 +32,7 @@ let
     # ls -l | grep parses /proc/<pid>/fd symlink targets; a glob is not
     # equivalent, so this is the one shellcheck check worth excluding.
     excludeShellChecks = [ "SC2010" ];
-    text = lib.removePrefix "#!/usr/bin/env bash\n" (builtins.readFile ./scripts/power.sh);
+    text = lib.removePrefix "#!/usr/bin/env bash\n" (builtins.readFile ../scripts/power.sh);
   };
 in
 {
@@ -45,6 +46,56 @@ in
     nixpkgs.config.allowUnfree = true;
 
     console.useXkbConfig = true;
+
+    # Very bare bones setup for root, everything else is handled by
+    # home-manager. A package that needs config of its own belongs in apps/
+    # instead, so it stays findable by name.
+    programs.zsh.enable = true;
+    programs.gpu-screen-recorder.enable = true;
+    programs.thunderbird.enable = true;
+
+    environment.systemPackages = [
+      pkgs.gcc
+      pkgs.vim
+      pkgs.git
+      (jail "wget" pkgs.wget (
+        c: with c; [
+          network
+          mount-cwd
+        ]
+      ))
+      (jail "curl" pkgs.curl (
+        c: with c; [
+          network
+          mount-cwd
+        ]
+      ))
+      pkgs.btop
+      pkgs.undervolt
+      pkgs.brightnessctl
+      pkgs.coreutils-full
+      pkgs.intel-gpu-tools
+
+      pkgs.fd
+      pkgs.fzf
+      pkgs.bat
+      pkgs.dust
+      pkgs.ripgrep
+      pkgs.tealdeer
+
+      pkgs.gpu-screen-recorder-gtk
+      pkgs.wl-clipboard
+      pkgs.libnotify
+    ];
+
+    environment.sessionVariables = {
+      NIXOS_OZONE_WL = "1"; # wayland support for some chromium applications
+    };
+
+    # Read by the greeter and the tty, not by the stylix terminal config.
+    fonts.packages = with pkgs; [
+      nerd-fonts.jetbrains-mono
+    ];
 
     boot.loader = {
       systemd-boot.enable = true;
