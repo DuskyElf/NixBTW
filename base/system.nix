@@ -1,8 +1,8 @@
 {
-  config,
   lib,
   pkgs,
   jail,
+  hostConfig,
   ...
 }:
 let
@@ -36,14 +36,24 @@ let
   };
 in
 {
-  options.hostOptions = {
-    hostName = lib.mkOption {
-      type = lib.types.str;
-    };
-  };
-
   config = {
     nixpkgs.config.allowUnfree = true;
+
+    # The login account every machine has. Groups are policy, so they stay
+    # here; a host with a different login name changes only config.nix.
+    users.users.${hostConfig.user.name} = {
+      isNormalUser = true;
+      shell = pkgs.zsh;
+      description = hostConfig.user.description;
+      # The system account and home-manager must agree; both read one value.
+      home = hostConfig.user.home;
+      extraGroups = [
+        "networkmanager"
+        # No "input": that group reads /dev/input and could keylog the sudo
+        # password. keyd runs as a system service; evdev tools get sudo instead.
+        "wheel"
+      ];
+    };
 
     console.useXkbConfig = true;
 
@@ -71,10 +81,8 @@ in
         ]
       ))
       pkgs.btop
-      pkgs.undervolt
       pkgs.brightnessctl
       pkgs.coreutils-full
-      pkgs.intel-gpu-tools
 
       pkgs.fd
       pkgs.fzf
@@ -106,7 +114,7 @@ in
 
     networking = {
       networkmanager.enable = true;
-      hostName = config.hostOptions.hostName;
+      hostName = hostConfig.hostName;
       # No LAN ports open on purpose. t3code on 3773 is reached over
       # tailscale serve, never over the local network, which IOT devices
       # share. Keep the app's "Network access" toggle off so it binds
@@ -115,27 +123,31 @@ in
     };
 
     # Tailscale gives the phone a stable private route to the t3code
-    # server on 3773 from any network. MagicDNS name: asus.<tailnet>.ts.net
-    # --operator lets duskyelf run `tailscale serve`, which the t3code
+    # server on 3773 from any network. MagicDNS name:
+    # <hostName>.<tailnet>.ts.net
+    # --operator lets the login user run `tailscale serve`, which the t3code
     # desktop app calls to publish the backend over HTTPS on the tailnet.
     services.tailscale = {
       enable = true;
       openFirewall = true;
-      extraSetFlags = [ "--operator=duskyelf" ];
+      extraSetFlags = [ "--operator=${hostConfig.user.name}" ];
     };
 
     services.blueman.enable = true;
     hardware.bluetooth.enable = true;
 
-    # for better battery life keep it at 80%
-    systemd.services.battery-threshold-control = {
+    # For better battery life the laptop stops charging at a set percentage.
+    # A host without a battery skips the unit entirely.
+    systemd.services.battery-threshold-control = lib.mkIf (hostConfig.hardware.battery != null) {
       script = ''
-        echo "80" > /sys/class/power_supply/BAT0/charge_control_end_threshold
+        echo "${toString hostConfig.hardware.battery.chargeLimit}" > /sys/class/power_supply/${hostConfig.hardware.battery.device}/charge_control_end_threshold
       '';
       wantedBy = [ "multi-user.target" ];
     };
 
-    services.auto-cpufreq = {
+    # Governs the CPU on battery and charger. It is a laptop policy, so a host
+    # with no battery does not install it.
+    services.auto-cpufreq = lib.mkIf (hostConfig.hardware.battery != null) {
       enable = true;
       settings = {
         battery = {
@@ -149,26 +161,23 @@ in
       };
     };
 
-    time.timeZone = "Asia/Kolkata";
-    i18n.defaultLocale = "en_US.UTF-8";
+    time.timeZone = hostConfig.timeZone;
+    i18n.defaultLocale = hostConfig.locale.default;
 
     nix.settings = {
       # Trusted users can make the daemon run a post-build hook as root and
       # disable the sandbox, so trust belongs to root only.
       trusted-users = lib.mkForce [ "root" ];
 
+      # Caches every host can use. A host that publishes its own builds adds
+      # them, with the matching key, in its system.nix.
       substituters = [
         "https://cache.nixos.org"
         "https://cache.nixos-cuda.org"
-        "https://duskyelf.github.io/NixBTW"
       ];
 
       trusted-public-keys = [
         "cache.nixos-cuda.org:74DUi4Ye579gUqzH4ziL9IyiJBlDpMRn9MBN8oNan9M="
-        # Custom kernel cache: narinfos on gh-pages, nars in GitHub releases.
-        # Key name must match the NIX_SECRET_KEY signer exactly or lookups
-        # miss silently and the kernel builds here instead.
-        "i9-kernel-cache:4R0pqOZkrRj4utTbF4zP05Y58QSgShLqQ77KUPzFjwk="
       ];
 
       experimental-features = [
@@ -196,41 +205,41 @@ in
       dates = [ "weekly" ];
     };
 
-    i18n.extraLocaleSettings = {
-      LC_ADDRESS = "en_IN";
-      LC_IDENTIFICATION = "en_IN";
-      LC_MEASUREMENT = "en_IN";
-      LC_MONETARY = "en_IN";
-      LC_NAME = "en_IN";
-      LC_NUMERIC = "en_IN";
-      LC_PAPER = "en_IN";
-      LC_TELEPHONE = "en_IN";
-      LC_TIME = "en_IN";
+    i18n.extraLocaleSettings = lib.mkIf (hostConfig.locale.extra != null) {
+      LC_ADDRESS = hostConfig.locale.extra;
+      LC_IDENTIFICATION = hostConfig.locale.extra;
+      LC_MEASUREMENT = hostConfig.locale.extra;
+      LC_MONETARY = hostConfig.locale.extra;
+      LC_NAME = hostConfig.locale.extra;
+      LC_NUMERIC = hostConfig.locale.extra;
+      LC_PAPER = hostConfig.locale.extra;
+      LC_TELEPHONE = hostConfig.locale.extra;
+      LC_TIME = hostConfig.locale.extra;
     };
 
     system.activationScripts.powerScript = ''
-      mkdir -p /usr/local/sbin
-      ln -sfn ${lib.getExe powerScript} /usr/local/sbin/power.sh
+      mkdir -p ${builtins.dirOf hostConfig.powerScriptPath}
+      ln -sfn ${lib.getExe powerScript} ${hostConfig.powerScriptPath}
     '';
 
     # Disable the credential cache: a fresh sudo timestamp (e.g. from a
-    # rebuild) would otherwise let anything running as duskyelf
+    # rebuild) would otherwise let anything running as the login user
     # `sudo -n <anything>` within the window. NOPASSWD keybind rule is
     # unaffected, but every other sudo now prompts fresh.
     security.sudo.extraConfig = "Defaults timestamp_timeout=0";
 
     security.sudo.extraRules = [
       {
-        users = [ "duskyelf" ];
+        users = [ hostConfig.user.name ];
         commands = [
           {
-            command = "/usr/local/sbin/power.sh";
+            command = hostConfig.powerScriptPath;
             options = [ "NOPASSWD" ];
           }
         ];
       }
     ];
 
-    system.stateVersion = "25.11"; # Leave it as it is
+    system.stateVersion = hostConfig.stateVersion.system; # Leave it as it is
   };
 }

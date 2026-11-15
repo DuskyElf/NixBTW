@@ -1,13 +1,13 @@
 {
-  config,
+  hostConfig,
   pkgs,
   ...
 }:
 
 {
   xdg.enable = true;
-  home.username = "duskyelf";
-  home.homeDirectory = "/home/duskyelf";
+  home.username = hostConfig.user.name;
+  home.homeDirectory = hostConfig.user.home;
 
   # Stylix's gtk target sets gtk.gtk4.theme itself; adding that option by hand
   # duplicates the definition and fails the home-manager build.
@@ -29,7 +29,7 @@
   dconf.settings."org/gnome/desktop/interface".color-scheme = "prefer-dark";
 
   # Don't change
-  home.stateVersion = "25.11";
+  home.stateVersion = hostConfig.stateVersion.home;
   programs.home-manager.enable = true;
 
   # Store GC for this user, staggered after the 04:00 root run in base/system.nix.
@@ -62,7 +62,7 @@
         trap 'echo "Caught SIGTERM, exiting..."; exit 143' TERM
 
         # Change to the PRIVATE wrapper repo
-        DEPLOY_DIR="${config.home.homeDirectory}/dotfiles/deploy-system"
+        DEPLOY_DIR="${hostConfig.dotsDir}/deploy-system"
         cd "$DEPLOY_DIR" || exit 1
 
         echo "Starting flake auto-update at $(date)"
@@ -96,7 +96,8 @@
         # hashes before the switch; a build that fails upstream leaves the
         # previous pin in place and lets the update carry on.
         echo "Updating T3 Code main pin..."
-        "$HOME/.config/scripts/update-t3code-main.sh" ||
+        DOTFILES=${hostConfig.dotsDir} DEPLOY=${hostConfig.dotsDir}/deploy-system \
+          "$HOME/.config/scripts/update-t3code-main.sh" ||
           echo "T3 Code pin update failed, keeping the previous revision"
 
         # Switch home-manager using the PRIVATE wrapper. The live-tree override
@@ -104,7 +105,7 @@
         # my-dotfiles rev in the deploy lock goes stale whenever dotfiles commits
         # (e.g. the voxtype removal), and without the override the switch
         # evaluates that stale rev and fails to resolve its inputs.
-        if home-manager switch --flake ${config.home.homeDirectory}/dotfiles/deploy-system --override-input my-dotfiles path:${config.home.homeDirectory}/dotfiles --cores 2; then
+        if home-manager switch --flake ${hostConfig.dotsDir}/deploy-system --override-input my-dotfiles path:${hostConfig.dotsDir} --cores 2; then
           echo "Home-manager switch successful"
           ${pkgs.libnotify}/bin/notify-send "Update successful" "Successfully updated and switched privately"
 

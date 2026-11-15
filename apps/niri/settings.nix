@@ -1,12 +1,31 @@
 # The compositor config: inputs, outputs, layout, startup, and the DRM devices.
 # Keybinds are in binds.nix.
+#
+# Outputs, render nodes, and driver workarounds come from the host config: they
+# describe the panels and the GPU, not the compositor. Everything else here is
+# the same on any machine with niri.
 {
   config,
+  hostConfig,
+  brightness,
   pkgs,
   lib,
   inputs,
   ...
 }:
+let
+  screenpad = hostConfig.hardware.screenpad;
+
+  # Render nodes are host paths. Only niri's debug block names them, and only
+  # when the host has an opinion; an empty block is not valid KDL.
+  debug =
+    lib.optionalAttrs (hostConfig.niri.render.primary != null) {
+      render-drm-device = hostConfig.niri.render.primary;
+    }
+    // lib.optionalAttrs (hostConfig.niri.render.ignore != null) {
+      ignore-drm-device = hostConfig.niri.render.ignore;
+    };
+in
 {
   programs.niri = {
     package = inputs.niri.packages.${pkgs.system}.niri-unstable;
@@ -20,32 +39,7 @@
         warp-mouse-to-focus.enable = true;
       };
 
-      outputs = {
-        "eDP-1" = {
-          focus-at-startup = true;
-          mode = {
-            width = 3840;
-            height = 2160;
-          };
-          position = {
-            x = 0;
-            y = 0;
-          };
-          scale = 2.5;
-        };
-
-        "DP-2" = {
-          mode = {
-            width = 3840;
-            height = 1100;
-          };
-          position = {
-            x = 0;
-            y = 864;
-          };
-          scale = 2.5;
-        };
-      };
+      outputs = hostConfig.niri.outputs;
 
       cursor = {
         size = 48;
@@ -68,44 +62,44 @@
         zoom = 0.25;
       };
 
-      environment = {
-        WLR_DRM_NO_MODIFIERS = "1";
-      };
-
-      # Explicitly only use the iGPU and leave the dGPU alone; the nvidia
-      # render node is ignored even when it is present.
-      debug = {
-        ignore-drm-device = "/dev/dri/by-path/pci-0000:01:00.0-render";
-        render-drm-device = "/dev/dri/by-path/pci-0000:00:02.0-render";
-      };
-
       prefer-no-csd = true;
       hotkey-overlay.skip-at-startup = true;
       spawn-at-startup = [
         {
           argv = [
-            "${pkgs.brightnessctl}/bin/brightnessctl"
+            brightness.bin
+          ]
+          ++ brightness.argv
+          ++ [
             "set"
             "10%"
           ];
         }
         { argv = [ "kitty" ]; }
+      ]
+      ++ lib.optionals (screenpad != null) [
         {
           argv = [
             "bash"
             "-c"
-            "niri msg output DP-2 off || true"
+            "niri msg output ${screenpad.output} off || true"
           ];
         }
         {
           argv = [
             "sudo"
-            "/usr/local/sbin/power.sh"
+            hostConfig.powerScriptPath
             "screenpad"
             "off"
           ];
         }
       ];
+    }
+    // lib.optionalAttrs (hostConfig.niri.env != { }) {
+      environment = hostConfig.niri.env;
+    }
+    // lib.optionalAttrs (debug != { }) {
+      inherit debug;
     };
   };
 

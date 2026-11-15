@@ -80,8 +80,10 @@
       # pin: nix eval --raw .#kernelVersion --override-input nixpkgs-fast-release <rev>
       kernelVersion = dotfiles.kernel.version;
 
-      nixosConfigurations.asus = asus.nixos;
-      homeConfigurations."duskyelf@asus" = asus.home;
+      # Both names come from hosts/asus/config.nix, so the outputs follow a
+      # host rename or a new user without an edit here.
+      nixosConfigurations.${asus.hostConfig.hostName} = asus.nixos;
+      homeConfigurations."${asus.hostConfig.user.name}@${asus.hostConfig.hostName}" = asus.home;
 
       formatter.${dotfiles.pkgs.system} = dotfiles.pkgs.stable.nixfmt-tree;
     };

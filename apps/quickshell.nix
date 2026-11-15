@@ -1,6 +1,6 @@
 # The wallpaper overlay: clock, photo caption, and a dim timer readout on empty
 # workspaces. Source lives in quickshell/, linked live by apps/sh.nix.
-{ pkgs, ... }:
+{ hostConfig, pkgs, ... }:
 {
   systemd.user.services.quickshell = {
     Unit = {
@@ -10,7 +10,7 @@
       After = [ "awww-daemon.service" ];
     };
     Service = {
-      Environment = "WAYLAND_DISPLAY=wayland-1";
+      Environment = "WAYLAND_DISPLAY=${hostConfig.waylandDisplay}";
       ExecStart = "${pkgs.quickshell}/bin/quickshell";
       Restart = "on-failure";
       RestartSec = "1s";

@@ -15,7 +15,7 @@ The layout is the first thing to read:
 * `base/` is machine-wide config. `base/system.nix` is policy and unconfigured packages, `base/home.nix` is stylix, gc and timers.
 * `apps/` is one app's config per file, with split apps in their own subdirectory. `apps/default.nix` splits them into `homeModules` and `systemModules`; that list, not the filename, says which rebuild applies.
 * `pkgs/` is packages this repo builds itself. `pkgs/t3code/` is the T3 Code pin.
-* `hosts/<name>/` is one laptop. `hosts/asus/default.nix` lists that host's modules; `lib/mkHost.nix` joins base, host and apps.
+* `hosts/<name>/` is one machine. `config.nix` holds its identity and hardware as data (user, home, hostname, time zone, state versions, panels, battery, GPU); `default.nix` lists that host's modules; `system.nix` holds the driver and kernel work. `lib/host.nix` is the schema and `lib/mkHost.nix` evaluates it once, passing it to `base/` and `apps/` as `hostConfig`. Never hardcode a username, connector name, or device path in `base/` or `apps/`; add an option to the schema instead.
 
 Subrepos own their domains. Read their docs when you work inside them and do not duplicate them here:
 * `neovimBTW/`

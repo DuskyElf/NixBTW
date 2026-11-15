@@ -1,12 +1,17 @@
 # The wallpaper stack: Guardian rotates the pool, awww draws it. The quickshell
 # overlay sits on top of it and is a separate app.
-{ inputs, pkgs, ... }:
+{
+  inputs,
+  hostConfig,
+  pkgs,
+  ...
+}:
 {
   imports = [ inputs.wallpaper-guardian.homeManagerModules.default ];
 
   services.wallpaper-guardian = {
     enable = true;
-    waylandDisplay = "wayland-1";
+    waylandDisplay = hostConfig.waylandDisplay;
   };
 
   # Daemons that niri used to spawn at startup, now owned by systemd so they
@@ -23,14 +28,14 @@
       StartLimitBurst = 10;
     };
     Service = {
-      # Pinned on purpose. niri does export WAYLAND_DISPLAY=wayland-1 to the
-      # user manager (systemctl --user show-environment), but the socket has
-      # to exist before awww starts: connecting to a missing socket panics
-      # (wayland.rs:60), and awww binds its own control socket first, so a
-      # dead instance leaves that socket behind and the next start panics on
-      # EADDRINUSE (main.rs:717). Wait for the Wayland socket, then clear the
-      # control socket only when no daemon owns it.
-      Environment = "WAYLAND_DISPLAY=wayland-1";
+      # Pinned on purpose. niri does export WAYLAND_DISPLAY to the user manager
+      # (systemctl --user show-environment), but the socket has to exist before
+      # awww starts: connecting to a missing socket panics (wayland.rs:60), and
+      # awww binds its own control socket first, so a dead instance leaves that
+      # socket behind and the next start panics on EADDRINUSE (main.rs:717).
+      # Wait for the Wayland socket, then clear the control socket only when no
+      # daemon owns it.
+      Environment = "WAYLAND_DISPLAY=${hostConfig.waylandDisplay}";
       ExecStartPre = pkgs.writeShellScript "awww-wait-wayland" ''
         i=0
         while [ "$i" -lt 100 ]; do

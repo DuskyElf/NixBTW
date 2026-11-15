@@ -1,7 +1,12 @@
-{ pkgs, ... }:
+{
+  pkgs,
+  brightness,
+  ...
+}:
 
 let
-  bt = "${pkgs.brightnessctl}/bin/brightnessctl";
+  # The panel's command line, e.g. ".../brightnessctl -d intel_backlight".
+  bt = "${brightness.bin}${brightness.shellArgs}";
   tmp = "/tmp";
 
   dimIfLocked = pkgs.writeShellScriptBin "dimIfLocked" ''

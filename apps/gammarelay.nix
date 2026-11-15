@@ -1,6 +1,6 @@
 # Colour temperature: wl-gammarelay owns the gamma LUT, a one-shot service sets
 # the startup temperature, and apps/niri/binds.nix nudges it on Alt+scroll.
-{ pkgs, ... }:
+{ hostConfig, pkgs, ... }:
 let
   setStartupTemperature = pkgs.writeShellScriptBin "set-startup-temperature" ''
     BUSCTL=${pkgs.systemd}/bin/busctl
@@ -24,7 +24,7 @@ in
       PartOf = [ "graphical-session.target" ];
     };
     Service = {
-      Environment = "WAYLAND_DISPLAY=wayland-1";
+      Environment = "WAYLAND_DISPLAY=${hostConfig.waylandDisplay}";
       ExecStart = "${pkgs.wl-gammarelay-rs}/bin/wl-gammarelay-rs";
       Restart = "on-failure";
       RestartSec = "1s";
@@ -44,7 +44,7 @@ in
     };
     Service = {
       Type = "oneshot";
-      Environment = "WAYLAND_DISPLAY=wayland-1";
+      Environment = "WAYLAND_DISPLAY=${hostConfig.waylandDisplay}";
       ExecStart = "${setStartupTemperature}/bin/set-startup-temperature";
       Restart = "on-failure";
       RestartSec = "1s";

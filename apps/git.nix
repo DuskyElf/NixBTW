@@ -1,8 +1,10 @@
 {
   config,
+  hostConfig,
   pkgs,
   pkgs-unstable,
   jail,
+  lib,
   ...
 }:
 let
@@ -37,17 +39,19 @@ in
   programs.git = {
     enable = true;
     #package = git-pkg;
-
+  }
+  // lib.optionalAttrs (hostConfig.user.git.signingKey != null) {
     signing = {
-      key = "~/.ssh/id_ed25519_signing";
+      key = hostConfig.user.git.signingKey;
       format = "ssh";
       signByDefault = true;
     };
-
+  }
+  // {
     settings = {
       user = {
-        name = "DuskyElf";
-        email = "duskyelf.dev+git@gmail.com";
+        name = hostConfig.user.git.name;
+        email = hostConfig.user.git.email;
       };
       init.defaultBranch = "main";
     };

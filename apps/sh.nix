@@ -1,5 +1,6 @@
 {
   config,
+  hostConfig,
   pkgs,
   lib,
   ...
@@ -19,11 +20,11 @@ in
 
   xdg.configFile."scripts" = {
     recursive = true;
-    source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/dotfiles/scripts";
+    source = config.lib.file.mkOutOfStoreSymlink "${hostConfig.dotsDir}/scripts";
   };
   xdg.configFile."quickshell" = {
     recursive = true;
-    source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/dotfiles/quickshell";
+    source = config.lib.file.mkOutOfStoreSymlink "${hostConfig.dotsDir}/quickshell";
   };
   home.packages = with pkgs; [
     lm_sensors

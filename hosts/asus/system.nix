@@ -1,5 +1,6 @@
 {
   config,
+  hostConfig,
   pkgs,
   pkgs-fast-release,
   stableKernel,
@@ -24,22 +25,16 @@ let
   };
 in
 {
-  hostOptions.hostName = "asus";
-  nixpkgs.hostPlatform = "x86_64-linux";
-
   networking.useDHCP = lib.mkDefault true;
 
-  users.users.duskyelf = {
-    shell = pkgs.zsh;
-    isNormalUser = true;
-    description = "DuskyElf";
-    extraGroups = [
-      "networkmanager"
-      # No "input": that group reads /dev/input and could keylog the sudo
-      # password. keyd runs as a system service; evdev tools get sudo instead.
-      "wheel"
-    ];
-  };
+  # This machine's own binary cache: CI builds the tuned kernel and publishes
+  # it here. The key name must match the NIX_SECRET_KEY signer exactly or
+  # lookups miss silently and the kernel builds here instead. Other hosts do
+  # not trust it, which is why it is appended here and not in base/.
+  nix.settings.substituters = lib.mkAfter [ "https://duskyelf.github.io/NixBTW" ];
+  nix.settings.trusted-public-keys = lib.mkAfter [
+    "i9-kernel-cache:4R0pqOZkrRj4utTbF4zP05Y58QSgShLqQ77KUPzFjwk="
+  ];
 
   zramSwap = {
     enable = true;
@@ -184,6 +179,8 @@ in
   ];
 
   environment.systemPackages = with pkgs; [
+    # iGPU tooling for this board. undervolt comes in with the service above.
+    intel-gpu-tools
     cudatoolkit
     #cudaPackages.cudnn
     cudaPackages.cuda_cudart
@@ -284,15 +281,16 @@ in
   # late in boot, so niri's spawn-time "power.sh screenpad off" races it and fails
   # silently, leaving the panel lit with no niri output. This service waits for the
   # device (max 30s) and powers it off. Note: screenpad bl_power is inverted —
-  # 0 = off, 4 = on.
-  systemd.services.screenpad-off = {
+  # 0 = off, 4 = on. Guarded like every other screenpad consumer: the host
+  # config allows a machine without the panel.
+  systemd.services.screenpad-off = lib.mkIf (hostConfig.hardware.screenpad != null) {
     description = "Turn off the screenpad panel after boot";
     wantedBy = [ "multi-user.target" ];
     after = [ "systemd-udevd.service" ];
     serviceConfig = {
       Type = "oneshot";
-      ExecStartPre = "${pkgs.bash}/bin/bash -c 'for i in {1..150}; do [ -e /sys/class/backlight/asus_screenpad/bl_power ] && exit 0; sleep 0.2; done; exit 1'";
-      ExecStart = "${pkgs.bash}/bin/bash -c 'echo 0 > /sys/class/backlight/asus_screenpad/bl_power'";
+      ExecStartPre = "${pkgs.bash}/bin/bash -c 'for i in {1..150}; do [ -e /sys/class/backlight/${hostConfig.hardware.screenpad.device}/bl_power ] && exit 0; sleep 0.2; done; exit 1'";
+      ExecStart = "${pkgs.bash}/bin/bash -c 'echo 0 > /sys/class/backlight/${hostConfig.hardware.screenpad.device}/bl_power'";
     };
   };
 

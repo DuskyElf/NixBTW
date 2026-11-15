@@ -1,5 +1,6 @@
 {
   config,
+  hostConfig,
   pkgs,
   ...
 }:
@@ -19,6 +20,6 @@
   };
 
   xdg.configFile."tmux/hotreloaded.conf".source =
-    config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/dotfiles/hot-configs/tmux.conf";
+    config.lib.file.mkOutOfStoreSymlink "${hostConfig.dotsDir}/hot-configs/tmux.conf";
 
 }

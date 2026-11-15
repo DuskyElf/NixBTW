@@ -1,4 +1,6 @@
-# Local LLM lab: ollama on the RTX 2060 plus a bare bones Open WebUI chat.
+# Local LLM lab: ollama plus a bare bones Open WebUI chat. The CUDA build and
+# the context size come from the host's GPU; a host without one gets the plain
+# CPU build and no nvidia-smi probes.
 #
 # `llm-lab` starts both services. Pull any model after (`ollama pull ...`),
 # then chat at http://127.0.0.1:6969. Personas go in the per-chat
@@ -10,22 +12,42 @@
 # Nothing autostarts at login, so idle RAM and VRAM stay free.
 {
   config,
+  hostConfig,
   lib,
   pkgs,
   ...
 }:
 
 let
+  cuda = hostConfig.hardware.gpu.cuda;
+  ollama = if cuda then pkgs.ollama-cuda else pkgs.ollama;
   ollamaUrl = "http://127.0.0.1:11434";
   webuiPort = 6969;
   webuiUrl = "http://127.0.0.1:${toString webuiPort}";
+
+  # nvidia-smi only exists in the CUDA build, and only that build can fall back
+  # to CPU invisibly when a powersave mode removed the card.
+  dgpuStatus = lib.optionalString cuda ''
+    if command -v nvidia-smi >/dev/null && GPU=$(nvidia-smi -L 2>/dev/null | head -n 1) && [ -n "$GPU" ]; then
+      echo "dgpu: $GPU"
+    else
+      echo "dgpu: off (powersave?)"
+    fi
+  '';
+
+  dgpuHint = lib.optionalString cuda ''
+    # The dGPU sleeps in powersave mode, and ollama would quietly use CPU.
+    if ! command -v nvidia-smi >/dev/null || ! nvidia-smi -L >/dev/null 2>&1; then
+      echo "llm-lab: note: dGPU not visible (powersave mode?). Switch to performance mode, then: systemctl --user restart ollama.service"
+    fi
+  '';
 
   llm-lab = pkgs.writeShellScriptBin "llm-lab" ''
     set -euo pipefail
 
     OLLAMA_URL="${ollamaUrl}"
     WEBUI_URL="${webuiUrl}"
-    OLLAMA_BIN="${pkgs.ollama-cuda}/bin/ollama"
+    OLLAMA_BIN="${ollama}/bin/ollama"
     SYSTEMCTL="${pkgs.systemd}/bin/systemctl --user"
     CURL="${pkgs.curl}/bin/curl -sf"
 
@@ -47,11 +69,7 @@ let
       else
         echo "webui chat: down"
       fi
-      if command -v nvidia-smi >/dev/null && GPU=$(nvidia-smi -L 2>/dev/null | head -n 1) && [ -n "$GPU" ]; then
-        echo "dgpu: $GPU"
-      else
-        echo "dgpu: off (powersave?)"
-      fi
+      ${dgpuStatus}
       "$OLLAMA_BIN" ps 2>/dev/null || echo "no models loaded"
       ;;
     start)
@@ -68,11 +86,7 @@ let
         sleep 1
       done
 
-      # The dGPU sleeps in powersave mode, and ollama would quietly use CPU.
-      if ! command -v nvidia-smi >/dev/null || ! nvidia-smi -L >/dev/null 2>&1; then
-        echo "llm-lab: note: dGPU not visible (powersave mode?). Switch to performance mode, then: systemctl --user restart ollama.service"
-      fi
-
+      ${dgpuHint}
       "$OLLAMA_BIN" ps
       echo "llm-lab: pull a model with: ollama pull <model>"
       echo "llm-lab: chat at $WEBUI_URL (set the System Prompt box per chat to test personas)"
@@ -87,21 +101,24 @@ in
 {
   services.ollama = {
     enable = true;
-    package = pkgs.ollama-cuda;
-    acceleration = "cuda";
+    package = ollama;
     host = "127.0.0.1";
     port = 11434;
     environmentVariables = {
-      CUDA_VISIBLE_DEVICES = "0";
-      # 16k context fits small models in 6GB VRAM. If a big model OOMs,
-      # drop CONTEXT_LENGTH back to 4096.
+      # The context the host's VRAM can hold. If a big model OOMs, lower it.
       OLLAMA_KEEP_ALIVE = "5m";
       OLLAMA_MAX_LOADED_MODELS = "1";
       OLLAMA_NUM_PARALLEL = "1";
-      OLLAMA_CONTEXT_LENGTH = "16384";
+      OLLAMA_CONTEXT_LENGTH = toString hostConfig.hardware.gpu.contextLength;
       OLLAMA_KV_CACHE_TYPE = "q8_0";
       OLLAMA_FLASH_ATTENTION = "1";
+    }
+    // lib.optionalAttrs cuda {
+      CUDA_VISIBLE_DEVICES = "0";
     };
+  }
+  // lib.optionalAttrs cuda {
+    acceleration = "cuda";
   };
 
   # Stay off at login; llm-lab starts this when you want it.

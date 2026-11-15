@@ -1,5 +1,6 @@
 {
   config,
+  hostConfig,
   jail,
   pkgs,
   pkgs-unstable-small,
@@ -89,5 +90,5 @@ in
   ] "run ${t3HeadlessChromeShim}";
 
   home.file.".config/opencode".source =
-    config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/dotfiles/opencodeBTW";
+    config.lib.file.mkOutOfStoreSymlink "${hostConfig.dotsDir}/opencodeBTW";
 }

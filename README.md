@@ -21,7 +21,7 @@ closure comes from that wrapper.
 | `base/` | Machine-wide config: system policy and unowned packages in `base/system.nix`, stylix and timers in `base/home.nix` |
 | `apps/` | One app's config per file, with split apps in their own subdirectory. `apps/default.nix` lists which are home modules and which are system modules |
 | `pkgs/` | Packages this repo builds itself, such as the T3 Code pin |
-| `hosts/asus/` | This laptop: firmware, kernel, nvidia, screenpad |
+| `hosts/asus/` | This laptop: `config.nix` holds its identity and hardware values, `system.nix` the firmware, kernel, nvidia, and screenpad work |
 | `scripts/`, `quickshell/`, `hot-configs/` | Linked live, no rebuild |
 
 A file in `apps/` sets config for one app, except `apps/default.nix` itself and
@@ -31,6 +31,22 @@ no config stay in `base/system.nix`; `programs.niri.enable` stays in
 `apps/niri/system.nix` because the compositor's config lives beside it. The list
 a module appears in decides which rebuild applies, so the filename does not have
 to say it.
+
+### Host identity
+
+`hosts/<name>/config.nix` is data, not work: the login user, home directory,
+hostname, time zone, locale, state versions, git identity, niri outputs, and the
+hardware the app modules branch on (screenpad, battery, backlight, GPU). The
+schema is `lib/host.nix`; `lib/mkHost.nix` evaluates it once and passes the
+result to both the NixOS and home-manager configurations as `hostConfig`.
+`base/` and `apps/` read that argument, so a second machine is a new `hosts/`
+directory plus a `config.nix` and one `mkHost` binding with two output lines in
+`flake.nix`, not edits spread through the app modules. The flake output names
+(`nixosConfigurations.asus`, `homeConfigurations."duskyelf@asus"`) come from
+the same values.
+
+What stays in a host's `system.nix` is the work: drivers, kernel tuning, BIOS
+entries, boot services. A value another module reads belongs in `config.nix`.
 
 ## First checkout
 
@@ -189,7 +205,8 @@ rebuilt package at the same version is invisible to it.
 
 Disk UUIDs, BIOS offsets, undervolt values, the screenpad quirk, and the kernel
 tuning all describe one UX581GV. A second machine should get its own
-`hosts/<name>` and a real hardware config, not a copy of `hosts/asus`.
+`hosts/<name>` and a real hardware config, not a copy of `hosts/asus`. Its
+identity goes in `config.nix`; the drivers and tuning go in `system.nix`.
 
 `AGENTS.md` is the operating manual for agents working in this tree. The
 kernel, stylix, screenpad, and power paths each carry the reason they have to
