@@ -137,6 +137,7 @@ Check the parts that have tests or a single answer:
 ```sh
 nix eval --raw .#kernelVersion   # the series the selector picked
 scripts/test-machine-digest.sh   # shape of the weekly report
+scripts/test-update-t3code-main.sh  # t3code pin repair, against a fake nix
 nix fmt                          # nixfmt-tree over the repo
 ```
 
