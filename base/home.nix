@@ -33,10 +33,6 @@
   home.stateVersion = hostConfig.stateVersion.home;
   programs.home-manager.enable = true;
 
-  # The btrfs nodatacow activation lived here. It was removed for the f2fs
-  # /home migration: f2fs has no chattr +C, and the write amplification it
-  # worked around is a btrfs property. See docs/migration.md.
-
   # Store GC for this user, staggered after the 04:00 root run in base/system.nix.
   # Root's run only walks /root and /nix/var/nix/profiles, so generations in
   # ~/.local/state/nix/profiles are never pruned without this, and every one

@@ -11,7 +11,7 @@
 #
 # f2fs reserves uncompressed block counts until f2fs_io release_cblocks runs, so
 # df and du overstate usage on a freshly written tree. The data is compressed;
-# the accounting is not. See docs/migration.md.
+# the accounting is not.
 #
 # Disk mode only. The disko imageSize default is unused here.
 let

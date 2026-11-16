@@ -7,12 +7,12 @@ Control rules:
 
 Before every commit, Review. The change must be reviewed by review agent(s) with appropriate skills before it lands, and the review must take care of the big picture and if the change missed something that must be changed alongside it. Reviewing in your own context does not count; you share the assumptions that produced the diff. Fix what they find, or explain the dismissal in the commit body.
 
-Top level owns the machine: `flake.nix`, `lib/`, `base/`, `apps/`, `pkgs/`, `hosts/`, `scripts/`, `quickshell/`, `hot-configs/`, `docs/`, plus `deploy-system/` (private wrapper flake, gitignored, pushed to `NixBTW-deploy`).
+Top level owns the machine: `flake.nix`, `lib/`, `base/`, `apps/`, `pkgs/`, `hosts/`, `scripts/`, `quickshell/`, `hot-configs/`, plus `deploy-system/` (private wrapper flake, gitignored, pushed to `NixBTW-deploy`).
 
 The layout is the first thing to read:
 * `flake.nix` declares inputs and outputs, nothing else.
 * `lib/` is the plumbing: nixpkgs instances, the jail wrapper, the kernel call, `mkHost`.
-* `base/` is machine-wide config. `base/system.nix` is policy and unconfigured packages, `base/home.nix` is stylix, gc, and timers. The btrfs nodatacow activation was removed for the f2fs migration.
+* `base/` is machine-wide config. `base/system.nix` is policy and unconfigured packages, `base/home.nix` is stylix, gc, and timers.
 * `apps/` is one app's config per file, with split apps in their own subdirectory. `apps/default.nix` splits them into `homeModules` and `systemModules`; that list, not the filename, says which rebuild applies.
 * `pkgs/` is packages this repo builds itself. `pkgs/t3code/` is the T3 Code pin.
 * `hosts/<name>/` is one machine. `config.nix` holds its identity and hardware as data (user, home, hostname, time zone, state versions, panels, battery, GPU); `default.nix` lists that host's modules; `system.nix` holds the driver and kernel work; `disk.nix` holds the disk device and filesystem labels shared by `system.nix` and `disko.nix`; `disko.nix` is the installer layout. `lib/host.nix` is the schema and `lib/mkHost.nix` evaluates it once, passing it to `base/` and `apps/` as `hostConfig`. Never hardcode a username, connector name, or device path in `base/` or `apps/`; add an option to the schema instead.
@@ -24,7 +24,7 @@ Subrepos own their domains. Read their docs when you work inside them and do not
 
 This repo is NOT the deploy flake. `deploy-system/` is a private wrapper flake pinning this repo as `my-dotfiles`. It is gitignored with its own nested git repo, pushed to the private `NixBTW-deploy` repository, and its flake.lock is the only lock source of truth. You may read it and propose edits to it. The user applies them.
 
-Disk migration: both `/` and `/home` become f2fs with zstd:3 compression. `p2` is 200 GiB for the store, `p3` takes the rest for home. The layout is `hosts/asus/disko.nix`; the restore order, the compression recipe (`mkfs -O extra_attr,compression`, `compress_algorithm=zstd:3`, `chattr +c` on `/mnt` and `/mnt/home` before `nixos-install`) and the secret inventory are in `docs/migration.md`; phone control is in `docs/phone.md`. The live disk still uses UUIDs until disko writes the labels. A switch now writes a by-label, all-f2fs generation that cannot boot this disk; the previous UUID generation is the rollback. Do not switch until disko has run. The btrfs `chattr +C` activation was removed from `base/home.nix`; f2fs compresses through `+c` instead.
+Disk: one NVMe, three partitions, mounted by label. `p1` 1 GiB vfat `BOOT` on `/boot`, `p2` 200 GiB f2fs `nixos` on `/`, `p3` the remainder f2fs `home` on `/home`. Both f2fs mounts carry `compress_algorithm=zstd:3` and `compress_mode=fs`, and the trees were created with `chattr +c`, so new files inherit compression. The device and the labels are data in `hosts/asus/disk.nix`; `hosts/asus/disko.nix` is the installer layout. A freshly written f2fs tree makes `df` and `du` overstate usage, because reserved block counts are not released until `f2fs_io release_cblocks` runs.
 
 All rebuilds go through the wrapper with the live-tree override so uncommitted edits apply immediately:
 

@@ -203,9 +203,9 @@ rebuilt package at the same version is invisible to it.
 
 ## This is not a template
 
-Disk UUIDs, BIOS offsets, undervolt values, the screenpad quirk, and the kernel
-tuning all describe one UX581GV. A second machine should get its own
-`hosts/<name>` and a real hardware config, not a copy of `hosts/asus`. Its
+Disk devices and labels, BIOS offsets, undervolt values, the screenpad quirk,
+and the kernel tuning all describe one UX581GV. A second machine should get its
+own `hosts/<name>` and a real hardware config, not a copy of `hosts/asus`. Its
 identity goes in `config.nix`; the drivers and tuning go in `system.nix`.
 
 `AGENTS.md` is the operating manual for agents working in this tree. The
