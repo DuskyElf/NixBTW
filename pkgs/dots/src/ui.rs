@@ -2,6 +2,7 @@
 //! stdout is a tty and `NO_COLOR` is not set, and can always be turned off with
 //! `--no-color`.
 
+use std::cell::Cell;
 use std::io::IsTerminal;
 
 const BOLD: &str = "\x1b[1m";
@@ -15,6 +16,9 @@ const RESET: &str = "\x1b[0m";
 pub struct Ui {
     color: bool,
     verbose: bool,
+    ok_count: Cell<usize>,
+    warn_count: Cell<usize>,
+    bad_count: Cell<usize>,
 }
 
 impl Ui {
@@ -22,11 +26,25 @@ impl Ui {
         let color = !no_color
             && std::env::var_os("NO_COLOR").map_or(true, |v| v.is_empty())
             && std::io::stdout().is_terminal();
-        Ui { color, verbose }
+        Ui {
+            color,
+            verbose,
+            ok_count: Cell::new(0),
+            warn_count: Cell::new(0),
+            bad_count: Cell::new(0),
+        }
     }
 
     pub fn verbose(&self) -> bool {
         self.verbose
+    }
+
+    pub fn counts(&self) -> (usize, usize, usize) {
+        (
+            self.ok_count.get(),
+            self.warn_count.get(),
+            self.bad_count.get(),
+        )
     }
 
     fn paint(&self, code: &str, s: &str) -> String {
@@ -57,11 +75,11 @@ impl Ui {
     }
 
     pub fn heading(&self, s: &str) {
-        println!("\n{}", self.bold(&format!("== {s} ==")));
+        println!("\n{}", self.bold(&format!("▸ {s}")));
     }
 
     pub fn sub(&self, s: &str) {
-        println!("{}", self.bold(&format!("-- {s} --")));
+        println!("{}", self.dim(&format!("  {s}")));
     }
 
     /// A key/value line. Keys are padded so a block reads as a table.
@@ -70,20 +88,18 @@ impl Ui {
     }
 
     pub fn ok(&self, label: &str, value: &str) {
-        println!("{:<18} {} {}", format!("{label}:"), self.green("ok"), value);
+        self.ok_count.set(self.ok_count.get() + 1);
+        println!("{:<18} {} {}", format!("{label}:"), self.green("✓"), value);
     }
 
     pub fn warn(&self, label: &str, value: &str) {
-        println!(
-            "{:<18} {} {}",
-            format!("{label}:"),
-            self.yellow("warn"),
-            value
-        );
+        self.warn_count.set(self.warn_count.get() + 1);
+        println!("{:<18} {} {}", format!("{label}:"), self.yellow("!"), value);
     }
 
     pub fn bad(&self, label: &str, value: &str) {
-        println!("{:<18} {} {}", format!("{label}:"), self.red("FAIL"), value);
+        self.bad_count.set(self.bad_count.get() + 1);
+        println!("{:<18} {} {}", format!("{label}:"), self.red("✗"), value);
     }
 
     pub fn note(&self, s: &str) {
@@ -91,7 +107,26 @@ impl Ui {
     }
 
     pub fn alert(&self, s: &str) {
+        self.warn_count.set(self.warn_count.get() + 1);
         println!("{}", self.red(&self.bold(s)));
+    }
+
+    /// The closing verdict: counts, then one free-form line of consequences.
+    pub fn summary(&self, consequence: &str) {
+        let (ok, warn, bad) = self.counts();
+        let mut parts = vec![self.green(&format!("✓ {ok} passed"))];
+        if warn > 0 {
+            parts.push(self.yellow(&format!("! {warn} warning(s)")));
+        }
+        if bad > 0 {
+            parts.push(self.red(&format!("✗ {bad} failed")));
+        }
+        println!();
+        println!("{}", self.dim(&"─".repeat(72)));
+        println!("{}", parts.join("   "));
+        if !consequence.is_empty() {
+            println!("{consequence}");
+        }
     }
 }
 
@@ -148,10 +183,7 @@ mod tests {
 
     #[test]
     fn ui_never_paints_when_disabled() {
-        let ui = Ui {
-            color: false,
-            verbose: false,
-        };
+        let ui = Ui::new(true, false);
         assert_eq!(ui.red("x"), "x");
         assert_eq!(ui.bold("x"), "x");
     }

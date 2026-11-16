@@ -886,12 +886,18 @@ fn stage_power_static(ctx: &Ctx, state: &State) -> Result<PowerReport> {
             for line in findings.lines() {
                 println!("    {line}");
             }
+            ui.warn(
+                "shellcheck",
+                &format!(
+                    "{} warning-level finding(s) above",
+                    findings.lines().count()
+                ),
+            );
         }
     } else {
-        println!(
-            "  {:<16} not on PATH (skipped; dots never fetches it)",
-            "shellcheck:"
-        );
+        // A check that did not run is a warning, not a pass, and it is the one
+        // skip worth showing without --verbose.
+        ui.warn("shellcheck", "not on PATH; skipped (dots never fetches it)");
     }
 
     // Closure availability: from the store copy the activation links, not from
@@ -923,12 +929,6 @@ fn stage_power_static(ctx: &Ctx, state: &State) -> Result<PowerReport> {
     if available.is_empty() {
         println!("  {:<16} (not built yet)", "invoked commands:");
     } else {
-        println!(
-            "  {:<16} {} ({} bin names in the closure)",
-            "invoked commands:",
-            invoked.join(" "),
-            available.len()
-        );
         for command in &invoked {
             match power::provider(command, &available) {
                 Some(provider) => {
@@ -944,7 +944,17 @@ fn stage_power_static(ctx: &Ctx, state: &State) -> Result<PowerReport> {
             }
         }
         if missing.is_empty() {
-            ui.ok("closure", "every invoked command is provided");
+            ui.ok(
+                "closure",
+                &format!(
+                    "{} invoked command(s), all provided ({} bin names in the closure)",
+                    invoked.len(),
+                    available.len()
+                ),
+            );
+            if ui.verbose() {
+                println!("  {:<16} {}", "  invoked:", invoked.join(" "));
+            }
         } else {
             ui.bad(
                 "closure",
@@ -976,7 +986,9 @@ fn stage_power_static(ctx: &Ctx, state: &State) -> Result<PowerReport> {
                 ),
             );
         }
-        println!("  {:<16} {}", "runtime list:", runtime_inputs.join(" "));
+        if ui.verbose() {
+            println!("  {:<16} {}", "runtime list:", runtime_inputs.join(" "));
+        }
     }
 
     // c) root invariants: the composed sudoers file and the evaluated
@@ -1097,46 +1109,49 @@ fn stage_power_static(ctx: &Ctx, state: &State) -> Result<PowerReport> {
     }
 
     // Informational only: a rule can be declared in extraConfig, in another
-    // module, or outside .nix entirely, so this is not evidence.
-    let mut files: Vec<(String, String)> = Vec::new();
-    for path in git::files(&ctx.dotfiles) {
-        if let Ok(text) = std::fs::read_to_string(&path) {
-            files.push((rel_path(&ctx.dotfiles, &path), text));
+    // module, or outside .nix entirely, so this is not evidence. It also walks
+    // every tracked file, so it stays behind --verbose.
+    if ui.verbose() {
+        let mut files: Vec<(String, String)> = Vec::new();
+        for path in git::files(&ctx.dotfiles) {
+            if let Ok(text) = std::fs::read_to_string(&path) {
+                files.push((rel_path(&ctx.dotfiles, &path), text));
+            }
         }
-    }
-    let apps: Vec<String> = files
-        .iter()
-        .map(|(p, _)| p.clone())
-        .filter(|p| p.starts_with("apps/") && p.ends_with(".nix"))
-        .collect();
-    let sources = power::scan_sources(&files, &apps);
-    println!(
-        "  {:<16} {} NOPASSWD mention(s) in the checked-in files (informational: the composed \
-         file above is authoritative)",
-        "source grep:",
-        sources.nopasswd.len()
-    );
-    let mentioned_files: Vec<String> = {
-        let mut files: Vec<String> = sources
-            .sudo_mentions
+        let apps: Vec<String> = files
             .iter()
-            .filter_map(|entry| entry.rsplit_once(':').map(|(f, _)| f.to_string()))
+            .map(|(p, _)| p.clone())
+            .filter(|p| p.starts_with("apps/") && p.ends_with(".nix"))
             .collect();
-        files.sort();
-        files.dedup();
-        files
-    };
-    println!(
-        "  {:<16} {} sudo mention(s) in {} (informational: the eval'd finalConfig above is \
-         authoritative)",
-        "keybind grep:",
-        sources.sudo_mentions.len(),
-        if mentioned_files.is_empty() {
-            "no app module".to_string()
-        } else {
-            mentioned_files.join(", ")
-        }
-    );
+        let sources = power::scan_sources(&files, &apps);
+        println!(
+            "  {:<16} {} NOPASSWD mention(s) in checked-in .nix files (informational: the composed \
+             file above is authoritative)",
+            "source grep:",
+            sources.nopasswd.len()
+        );
+        let mentioned_files: Vec<String> = {
+            let mut files: Vec<String> = sources
+                .sudo_mentions
+                .iter()
+                .filter_map(|entry| entry.rsplit_once(':').map(|(f, _)| f.to_string()))
+                .collect();
+            files.sort();
+            files.dedup();
+            files
+        };
+        println!(
+            "  {:<16} {} sudo mention(s) in {} (informational: the eval'd finalConfig above is \
+             authoritative)",
+            "keybind grep:",
+            sources.sudo_mentions.len(),
+            if mentioned_files.is_empty() {
+                "no app module".to_string()
+            } else {
+                mentioned_files.join(", ")
+            }
+        );
+    }
 
     match (&runtime.resolved, runtime.uid, runtime.mode) {
         (Some(resolved), Some(uid), Some(mode)) if runtime.ok() => ui.ok(
@@ -1226,6 +1241,37 @@ fn find_dots_binary(closure: &[String]) -> Option<String> {
         .cloned()
 }
 
+/// Paths a NixOS or home-manager toplevel regenerates on every change: `etc`,
+/// unit files, trigger files, the system-path symlink tree, the home-manager
+/// profile files. They are real closure additions, but they are not packages
+/// and listing each one drowns the package table.
+///
+/// `unit-` alone is not enough: nixpkgs has a package literally named `unit`
+/// (NGINX Unit), and packages carry a version while generated unit files do not.
+/// A bare `source` is also excluded: it is a fetch-tree input, not plumbing, and
+/// hiding a new input's source would be the opposite of supply-chain visibility.
+fn regenerated_path(name: &str) -> bool {
+    matches!(
+        name,
+        "etc"
+            | "system-path"
+            | "system-units"
+            | "user-units"
+            | "dbus-1"
+            | "home-manager-path"
+            | "home-manager-files"
+            | "home-manager-generation"
+    ) || (name.starts_with("unit-") && storepath::split_name_version(name).1.is_none())
+        || name.starts_with("X-Restart-Triggers")
+        || name.starts_with("nixos-system-")
+}
+
+fn is_regenerated_store_path(path: &str) -> bool {
+    storepath::parse(path)
+        .map(|parsed| regenerated_path(&parsed.name))
+        .unwrap_or(false)
+}
+
 /// Stage 3: the closure diff, with provenance.
 fn report_packages(ctx: &Ctx, built: &Built) -> Result<()> {
     let ui = &ctx.ui;
@@ -1254,9 +1300,30 @@ fn report_packages(ctx: &Ctx, built: &Built) -> Result<()> {
         "added",
         &format!("{} paths, {}", added.len(), human_size(added_bytes)),
     );
+    let removed_system = removed
+        .iter()
+        .filter(|path| is_regenerated_store_path(path))
+        .count();
+    let removed_other: Vec<&String> = removed
+        .iter()
+        .filter(|path| !is_regenerated_store_path(path))
+        .collect();
+    let removed_note = if removed.is_empty() {
+        String::new()
+    } else if removed_system == removed.len() {
+        " (all regenerated system files)".to_string()
+    } else if removed_system > 0 {
+        format!(" ({removed_system} system files)")
+    } else {
+        String::new()
+    };
     ui.kv(
         "removed",
-        &format!("{} paths, {}", removed.len(), human_size(removed_bytes)),
+        &format!(
+            "{} paths, {}{removed_note}",
+            removed.len(),
+            human_size(removed_bytes)
+        ),
     );
 
     // Declared packages give positions, positions give the input. An archive
@@ -1331,15 +1398,23 @@ fn report_packages(ctx: &Ctx, built: &Built) -> Result<()> {
     }
 
     let mut rows: Vec<(u64, String, String, String, String)> = Vec::new();
+    let mut system_files: Vec<(u64, String)> = Vec::new();
     for path in &added {
-        // Strip the store hash before splitting name from version.
-        let display_name = match storepath::parse(path) {
-            Some(parsed) => match storepath::split_name_version(&parsed.name) {
-                (name, Some(version)) => format!("{name} {version}"),
-                (name, None) => name,
-            },
-            None => storepath::basename(path).to_string(),
-        };
+        let parsed = storepath::parse(path);
+        let display_name = parsed
+            .as_ref()
+            .map(|p| p.display_name())
+            .unwrap_or_else(|| storepath::basename(path).to_string());
+        // A declared package always gets a row, even if its name looks like
+        // plumbing. Regenerated system files do not.
+        let is_regenerated = parsed
+            .as_ref()
+            .map(|p| regenerated_path(&p.name))
+            .unwrap_or(false);
+        if is_regenerated && !declared_by_out.contains_key(path.as_str()) {
+            system_files.push((size_of(path), display_name));
+            continue;
+        }
         let origin = origin_of
             .get(path)
             .cloned()
@@ -1366,66 +1441,128 @@ fn report_packages(ctx: &Ctx, built: &Built) -> Result<()> {
         rows.push((size_of(path), display_name, label, cache.to_string(), note));
     }
     rows.sort_by(|a, b| b.0.cmp(&a.0).then(a.1.cmp(&b.1)));
+    system_files.sort_by(|a, b| b.0.cmp(&a.0).then(a.1.cmp(&b.1)));
 
     println!();
-    println!(
-        "  added paths, largest first{}:",
-        if added.len() > 25 && !ui.verbose() {
-            " (top 25)"
-        } else {
-            ""
-        }
-    );
     if rows.is_empty() {
-        println!("    none");
-    }
-    let limit = if ui.verbose() { usize::MAX } else { 25 };
-    for (size, name, label, cache, note) in rows.iter().take(limit) {
-        let non_nixpkgs = label != "?" && label != "nixpkgs";
-        let marker = if non_nixpkgs {
-            ui.yellow("!")
-        } else {
-            " ".to_string()
-        };
-        let label = if label.chars().count() > 12 {
-            let short: String = label.chars().take(11).collect();
-            format!("{short}…")
-        } else {
-            label.clone()
-        };
+        println!("  packages added: none");
+    } else {
         println!(
-            "  {:>10}  {marker}{:<12} {:<46} {:<11} {}",
-            human_size(*size),
-            label,
-            name,
-            cache,
-            ui.dim(note)
+            "  packages added, largest first{}:",
+            if rows.len() > 25 && !ui.verbose() {
+                " (top 25)"
+            } else {
+                ""
+            }
         );
+        let limit = if ui.verbose() { usize::MAX } else { 25 };
+        for (size, name, label, cache, note) in rows.iter().take(limit) {
+            let non_nixpkgs = label != "?" && label != "nixpkgs";
+            let marker = if non_nixpkgs {
+                ui.yellow("!")
+            } else {
+                " ".to_string()
+            };
+            let label = if label.chars().count() > 12 {
+                let short: String = label.chars().take(11).collect();
+                format!("{short}…")
+            } else {
+                label.clone()
+            };
+            println!(
+                "  {:>10}  {marker}{:<12} {:<46} {:<11} {}",
+                human_size(*size),
+                label,
+                name,
+                cache,
+                ui.dim(note)
+            );
+        }
+        if rows.len() > limit {
+            ui.note(&format!("    … {} more (--verbose)", rows.len() - limit));
+        }
     }
-    if rows.len() > limit {
-        ui.note(&format!("    … {} more (--verbose)", rows.len() - limit));
+    if !system_files.is_empty() {
+        let bytes: u64 = system_files.iter().map(|(size, _)| size).sum();
+        let names: Vec<&str> = system_files
+            .iter()
+            .map(|(_, name)| name.as_str())
+            .take(5)
+            .collect();
+        println!(
+            "  {}  {} system files regenerated ({}): {}{}",
+            ui.dim("↻"),
+            system_files.len(),
+            human_size(bytes),
+            names.join(", "),
+            if system_files.len() > names.len() {
+                ", …"
+            } else {
+                ""
+            }
+        );
+        if ui.verbose() {
+            for (size, name) in &system_files {
+                println!("  {:>10}  {}", human_size(*size), name);
+            }
+        }
+    }
+    if !removed_other.is_empty() {
+        let names: Vec<String> = removed_other
+            .iter()
+            .take(5)
+            .map(|path| {
+                storepath::parse(path)
+                    .map(|parsed| parsed.display_name())
+                    .unwrap_or_else(|| storepath::basename(path).to_string())
+            })
+            .collect();
+        println!(
+            "  {}  {} removed path(s), superseded or gone: {}{}",
+            ui.dim("−"),
+            removed_other.len(),
+            names.join(", "),
+            if removed_other.len() > names.len() {
+                ", …"
+            } else {
+                ""
+            }
+        );
+        if ui.verbose() {
+            for (size, name) in removed
+                .iter()
+                .filter(|path| !is_regenerated_store_path(path))
+                .map(|path| {
+                    (
+                        size_of(path),
+                        storepath::parse(path)
+                            .map(|parsed| parsed.display_name())
+                            .unwrap_or_else(|| storepath::basename(path).to_string()),
+                    )
+                })
+            {
+                println!("  {:>10}  {}", human_size(size), name);
+            }
+        }
     }
 
     // Non-nixpkgs paths deserve their own line: that is the supply-chain
     // question, not a formatting detail.
     let mut by_input: BTreeMap<String, usize> = BTreeMap::new();
     let mut unattributed = 0usize;
-    for path in &added {
-        match input_of.get(path) {
-            Some(input) if input != "nixpkgs" => {
-                *by_input.entry(input.clone()).or_insert(0) += 1;
-            }
-            Some(_) => {}
-            None => unattributed += 1,
+    for (_, _, label, _, _) in &rows {
+        if label == "?" {
+            unattributed += 1;
+        } else if label != "nixpkgs" {
+            *by_input.entry(label.clone()).or_insert(0) += 1;
         }
     }
     if declared_added > 0 || !by_input.is_empty() || unattributed > 0 {
         ui.sub("provenance");
         println!(
-            "  {:<16} {} of {} added paths are declared packages",
-            "declared:",
-            declared_added,
-            added.len()
+            "  {:<16} {declared_added}/{} added package(s) declared",
+            "packages:",
+            rows.len()
         );
         if by_input.is_empty() {
             println!("  {:<16} none", "non-nixpkgs:");
@@ -1441,7 +1578,7 @@ fn report_packages(ctx: &Ctx, built: &Built) -> Result<()> {
         }
         if unattributed > 0 {
             println!(
-                "  {:<16} {unattributed} path(s) — no meta.position or a dependency; origin unknown, not nixpkgs",
+                "  {:<16} {unattributed} package(s) — no meta.position or a dependency; origin unknown, not nixpkgs",
                 "unattributed:"
             );
         }
@@ -1896,6 +2033,7 @@ fn post_switch(ctx: &Ctx, report: &PowerReport, built: &Built) -> Result<()> {
         for problem in &problems {
             println!("  - {problem}");
         }
+        ui.summary("post-switch verification failed; the deploy was not recorded");
         bail!(
             "post-switch verification failed ({} problem(s)); the deploy was not recorded",
             problems.len()
@@ -2135,6 +2273,8 @@ pub fn deploy(ctx: &Ctx, targets: &[Target]) -> Result<()> {
         for problem in &report.problems {
             println!("  - {problem}");
         }
+        ctx.ui
+            .summary("audit failed; nothing was switched and no state was written");
         bail!("audit found hard failures; nothing was switched and no state was written");
     }
 
@@ -2147,11 +2287,8 @@ pub fn deploy(ctx: &Ctx, targets: &[Target]) -> Result<()> {
             parts.extend(args);
             ctx.ui.kv("switch path", &cmd::shell_join(&parts));
         }
-        println!();
-        ctx.ui.kv(
-            "dry run",
-            "built and audited; nothing switched and no state written",
-        );
+        ctx.ui
+            .summary("built and audited; nothing switched, no state written");
         return Ok(());
     }
 
@@ -2169,6 +2306,8 @@ pub fn deploy(ctx: &Ctx, targets: &[Target]) -> Result<()> {
     let mut mutable_state = state;
     for b in &built {
         if !run_switch(ctx, b.target)? {
+            ctx.ui
+                .summary("switch failed; later targets were not switched");
             bail!(
                 "switch failed for {}; later targets were not switched",
                 b.target.label()
@@ -2187,6 +2326,11 @@ pub fn deploy(ctx: &Ctx, targets: &[Target]) -> Result<()> {
             &format!("{} in {}", b.target.label(), ctx.state_dir.display()),
         );
     }
+    ctx.ui.summary(&format!(
+        "switched {} target(s); state recorded in {}",
+        built.len(),
+        ctx.state_dir.display()
+    ));
     Ok(())
 }
 
@@ -2490,16 +2634,30 @@ pub fn audit(ctx: &Ctx) -> Result<()> {
         }
         println!();
         ui.note("static scan; the decisive evidence is the diff and the byte-identical store copy");
+        ui.summary("static audit only; nothing was built or switched");
         bail!("audit found hard failures");
     }
     println!();
     ui.note("static scan; the decisive evidence is the diff and the byte-identical store copy");
+    ui.summary("static audit only; no build, no switch");
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::{confirm_decision, root_changes, same_link};
+
+    #[test]
+    fn regenerated_paths_do_not_swallow_a_package() {
+        // Generated unit files have no version; the nixpkgs package `unit` does.
+        assert!(super::regenerated_path("unit-polkit.service"));
+        assert!(!super::regenerated_path("unit-1.35.0"));
+        assert!(super::regenerated_path("system-path"));
+        assert!(super::regenerated_path("dbus-1"));
+        assert!(super::regenerated_path("home-manager-path"));
+        assert!(!super::regenerated_path("source"));
+        assert!(!super::regenerated_path("dots-0.1.0"));
+    }
 
     #[test]
     fn link_spellings_are_equal() {
