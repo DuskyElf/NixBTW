@@ -1,0 +1,48 @@
+machine: ε → ∅
+machine-digest: ε → ∅
+nixos-system-asus: 26.05.20261108.ac588ef → 26.05.20261113.f1e5c35
+nss: 3.132 → 3.133
+source: 325.1 KiB
+suspend: ε → ∅
+unit-machine-digest.service: ε → ∅
+unit-machine-digest.timer: ε → ∅
+unit-systemd-suspend.service: ε → ∅
+boolbase: 1.0.0.tgz → ∅
+cheerio: 1.2.0.tgz → ∅, -102.5 KiB
+cheerio-select: 2.1.0.tgz → ∅, -11.9 KiB
+css-select: 5.2.2.tgz → ∅, -38.8 KiB
+css-what: 6.2.2.tgz → ∅, -11.0 KiB
+dom-serializer: 2.0.0.tgz → ∅
+domelementtype: 2.3.0.tgz → ∅
+domhandler: 5.0.3.tgz → ∅, -12.4 KiB
+domutils: 3.2.2.tgz → ∅, -23.4 KiB
+electron: 44.10.2 → 44.11.3
+electron-unwrapped: 44.10.2 → 44.11.3, 122.0 KiB
+encoding-sniffer: 0.2.1.tgz → ∅, -22.2 KiB
+entities: 2.2.0.tgz, 4.5.0.tgz, 6.0.1.tgz, 7.0.1.tgz → ∅, -315.8 KiB
+graceful-fs: 4.2.11.tgz → ∅, -9.7 KiB
+htmlparser2: 10.1.0.tgz → ∅, -37.6 KiB
+iconv-lite: 0.6.3.tgz → ∅, -186.3 KiB
+nth-check: 2.1.1.tgz → ∅, -8.5 KiB
+opencode: 2.2.6 → 2.3.0, -142.9 KiB
+parse5: 7.3.0.tgz → ∅, -84.7 KiB
+parse5-htmlparser2-tree-adapter: 7.1.0.tgz → ∅
+parse5-parser-stream: 7.1.2.tgz → ∅
+proper-lockfile: 4.1.2.tgz → ∅, -8.6 KiB
+retry: 0.12.0.tgz → ∅, -10.3 KiB
+rss-parser: 3.13.0.tgz → ∅, -476.3 KiB
+safer-buffer: 2.1.2.tgz → ∅, -11.9 KiB
+sax: 1.6.1.tgz → ∅, -16.5 KiB
+signal-exit: 3.0.7.tgz → ∅
+t3code: 0.1.10-main.031ee2d → 0.1.10-main.6b7027b, 9.3 KiB
+t3code-resource-monitor: 0.1.10-main.031ee2d → 0.1.10-main.6b7027b
+t3code-unwrapped: 0.1.10-main.031ee2d → 0.1.10-main.6b7027b, 559.3 KiB
+undici: 7.29.0.tgz → ∅, -388.1 KiB
+wallpaper-guardian: ∅ → 0.1.0, 9.9 MiB
+wallpaper-guardian-config.toml: ∅ → ε
+wallpaper-guardian-node-modules: 0.0.0 → ∅, -8.6 MiB
+wallpaper-resume.service: ε → ∅
+whatwg-encoding: 3.1.1.tgz → ∅
+whatwg-mimetype: 4.0.0.tgz → ∅
+xml2js: 0.5.0.tgz → ∅, -12.9 KiB
+xmlbuilder: 11.0.1.tgz → ∅, -28.2 KiB
