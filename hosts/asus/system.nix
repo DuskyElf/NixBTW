@@ -9,6 +9,8 @@
   ...
 }:
 let
+  disk = import ./disk.nix;
+
   # setup_var.efi version pinned from upstream releases.
   # Bump version + hash together. Prefetch new hash with:
   # nix-prefetch-url --type sha256 https://github.com/datasone/setup_var.efi/releases/download/<version>/setup_var.efi
@@ -49,9 +51,12 @@ in
   };
 
   boot.tmp.useTmpfs = true;
+  # Names, not UUIDs: a reformat changes every UUID, and disko writes these
+  # labels (see hosts/asus/disko.nix). The live disk still uses UUIDs until
+  # the reinstall, so do not switch this generation before disko runs.
   fileSystems = {
     "/" = {
-      device = "/dev/disk/by-uuid/009aaadc-3753-481f-ba78-b8d29a9fe7f3";
+      device = "/dev/disk/by-label/${disk.labels.root}";
       fsType = "btrfs";
       options = [
         "subvol=@"
@@ -60,15 +65,12 @@ in
       ];
     };
     "/home" = {
-      device = "/dev/disk/by-uuid/b8061842-55cd-4349-bc1b-c463433ef84c";
-      fsType = "btrfs";
-      options = [
-        "noatime"
-        "compress=zstd"
-      ];
+      device = "/dev/disk/by-label/${disk.labels.home}";
+      fsType = "f2fs";
+      options = [ "noatime" ];
     };
     "/boot" = {
-      device = "/dev/disk/by-uuid/5F09-CC9D";
+      device = "/dev/disk/by-label/${disk.labels.boot}";
       fsType = "vfat";
       options = [
         "fmask=0077"
