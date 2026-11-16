@@ -94,10 +94,6 @@ in
       pkgs.gpu-screen-recorder-gtk
       pkgs.wl-clipboard
       pkgs.libnotify
-
-      # Manual rebuilds: `dots system` / `dots home`. It audits git, the flake
-      # inputs and scripts/power.sh, builds, diffs closures, then switches.
-      (pkgs.callPackage ../pkgs/dots { dotfilesDir = hostConfig.dotsDir; })
     ];
 
     environment.sessionVariables = {

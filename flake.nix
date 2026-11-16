@@ -86,11 +86,5 @@
       homeConfigurations."${asus.hostConfig.user.name}@${asus.hostConfig.hostName}" = asus.home;
 
       formatter.${dotfiles.pkgs.system} = dotfiles.pkgs.stable.nixfmt-tree;
-
-      # The audited rebuild tool. Store-pinned, so the self-check has something
-      # immutable to verify; `dots system` / `dots home` are the manual path.
-      packages.${dotfiles.pkgs.system}.dots = dotfiles.pkgs.stable.callPackage ./pkgs/dots {
-        dotfilesDir = asus.hostConfig.dotsDir;
-      };
     };
 }
