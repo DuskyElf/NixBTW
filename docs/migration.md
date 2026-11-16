@@ -159,8 +159,13 @@ live-tree wrapper build produced.
    The live `/` is 79 G used of 115 G. Do not build the new closure on the
    live root. Install into the empty `/mnt` root. If a pre-disko check needs
    space, prune old generations; the wipe removes them anyway.
-9. Boot the installed system. Run the same switch from the machine, restore T3
-   state, Zen, keys, and app state, then verify login, network, and T3 launch.
+9. Boot the installed system. At the console, run `passwd` for `duskyelf`: a
+   freshly installed account has no password, so neither the greeter nor `sudo`
+   works until you set one. Then restore T3 state, Zen, keys, and app state, and
+   run `sudo tailscale up` so the machine rejoins the tailnet. `apps/openssh.nix`
+   allows port 22 on the tailscale interface only, so the phone cannot reach the
+   new machine over the LAN, and the new machine is a new tailscale node.
+   Finally verify login, network, phone ssh, and T3 launch.
 
 ## Minimal first
 
@@ -193,6 +198,8 @@ No GPG, age, sops, or password-store keys exist on this machine.
 | GNOME keyring, including the gh token | `~/.local/share/keyrings/login.keyring` | copy, or run `gh auth login` |
 | npm token | `~/.npmrc` | copy or reissue |
 | Android adb key | `~/.android/adbkey` | copy for phone control |
+| Phone control public key | `~/phone-bundle/keys/id_ed25519_phone.pub` | public, no secret; needed to rebuild trust if the phone is replaced |
+| Tailscale node identity | `/var/lib/tailscale` | do not copy; re-run `tailscale up` and re-auth |
 | Private cache public key | `hosts/asus/system.nix` | already in the repo |
 | Private cache signing key | GitHub Actions secret `NIX_SECRET_KEY` | not on this disk |
 

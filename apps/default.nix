@@ -31,5 +31,6 @@
   systemModules = [
     ./niri/system.nix
     ./keyd.nix
+    ./openssh.nix
   ];
 }
