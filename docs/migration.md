@@ -1,17 +1,17 @@
 # Disk migration and restore
 
 Status: Phase 2. The layout and the label-based `fileSystems` are written. The
-disk is untouched. The live generation still boots from UUIDs and btrfs
-`/home`. Do not switch the label-based generation before disko writes the
-labels.
+disk is untouched. The live generation still boots UUIDs with btrfs `/` and
+btrfs `/home`. Both new filesystems are f2fs. Do not switch the label-based
+generation before disko writes the labels.
 
 ## Rollback before disko
 
-A `nixos-rebuild switch` now writes a by-label, f2fs generation. The current
-disk has neither the labels nor an f2fs `/home`, so that generation cannot
-boot. The previous generation in the systemd-boot menu is the only rollback; it
-still carries the UUID fstab and btrfs `/home`. Do not try to repair it by
-setting labels: the new generation's fsType is still f2fs.
+A `nixos-rebuild switch` now writes a by-label, all-f2fs generation. The
+current disk has neither the labels nor f2fs anywhere, so that generation
+cannot boot. The previous generation in the systemd-boot menu is the only rollback; it
+still carries the UUID fstab and btrfs. Do not try to repair it by setting
+labels: the new generation's fsType is f2fs for both mounts.
 
 The window is short. The 04:00 `nix-gc.timer` deletes system generations older
 than two days. If you need the rollback, boot it before then or stop
@@ -25,22 +25,37 @@ Model `SAMSUNG MZVLB1T0HALR-00000`, serial `S3W6NX0M825927`.
 | Partition | Size | Filesystem | Label | Mount |
 |---|---|---|---|---|
 | p1 | 1 GiB | vfat | `BOOT` | `/boot` |
-| p2 | 115 GiB | btrfs, subvol `@` | `nixos` | `/` |
-| p3 | remainder | f2fs | `home` | `/home` |
+| p2 | 200 GiB | f2fs, compressed | `nixos` | `/` |
+| p3 | remainder | f2fs, compressed | `home` | `/home` |
 
-p1 is 1,073,741,824 bytes and p2 is 123,480,309,760 bytes, the same as the old
-table. p3 is the remainder; the old p3 was 899,654,090,752 bytes. disko uses
-`--align-end`, which can trim a partition's end by alignment. After format,
-check `blockdev --getsize64` for p1 and p2 against those exact values. A
+p1 is 1,073,741,824 bytes and p2 is 214,748,364,800 bytes. p3 is the remainder.
+disko uses `--align-end`, which can trim a partition's end by alignment. After
+format, check `blockdev --getsize64` for p1 and p2 against those exact values. A
 difference of 1 MiB or less is alignment; a larger difference is a real shrink,
 so stop.
 
-`/` stays btrfs. The store is about 120 GiB of logical content, about 73 GB on
-disk with zstd, and `/` uses 79 G of 115 G. f2fs compression exists in the
-kernel, but it is per-file or extension based, not a transparent replacement
-for the store's mixed names. `/home` becomes f2fs because random 4K overwrites
-amplify 11.9x on btrfs and 1.4x with nodatacow. The chattr +C activation in
-`base/home.nix` is removed; f2fs has no equivalent.
+Both filesystems are f2fs with zstd compression. The reason `/home` moved is
+write amplification: random 4K overwrites amplify 11.9x on btrfs and 1.4x with
+nodatacow. The reason `/` moved with it is this disk, which is the only one this
+machine has.
+
+f2fs compression is not a mount-wide switch. All three of these are required,
+and the install does them in this order:
+
+1. `mkfs.f2fs -O extra_attr,compression` when the filesystem is created. disko
+   does this through `extraArgs` in `hosts/asus/disko.nix`.
+2. `compress_algorithm=zstd:3` and `compress_mode=fs` at mount. Both systems are
+   mounted with those options, in the disko layout and in `hosts/asus/system.nix`.
+3. `chattr +c` on the directories that should compress, because the flag is
+   inherited by new files but never applied to existing ones. The installer runs
+   it on `/mnt` and `/mnt/home` before `nixos-install`, so the whole store and
+   home tree is written compressed from the start.
+
+f2fs reserves uncompressed block counts against free space until the
+reservation is released, so `df` and `du` overstate usage on a freshly written
+tree while the data itself is compressed. `f2fs_io release_cblocks <file>`
+releases it. Expect a compressed store to look larger than it is until that
+runs; do not conclude compression failed from `du` alone.
 
 Source of truth for the layout: `hosts/asus/disko.nix`. The device and labels
 come from `hosts/asus/disk.nix`, which the NixOS `fileSystems` also imports.
@@ -54,10 +69,10 @@ script; it does not touch a disk:
 script=$(nix run github:nix-community/disko/1dd30c29c88d99ce295f15e27f93c49bc5fbae07 -- \
   --dry-run --mode destroy,format,mount hosts/asus/disko.nix | tail -n 1)
 grep -q -- '--new=1:0:+1G' "$script" &&
-grep -q -- '--new=2:0:+115G' "$script" &&
+grep -q -- '--new=2:0:+200G' "$script" &&
 grep -q -- '--new=3:0:-0' "$script" &&
 grep -A1 'mkfs.vfat' "$script" | grep -q -- '-n BOOT' &&
-grep -A1 'mkfs.btrfs' "$script" | grep -q -- '-L nixos' &&
+grep -A1 'mkfs.f2fs' "$script" | grep -q -- '-O extra_attr,compression' &&
 grep -A1 'mkfs.f2fs' "$script" | grep -q -- '-l home' &&
 echo PASS
 ```
@@ -134,8 +149,15 @@ live-tree wrapper build produced.
      --mode destroy,format,mount --root-mountpoint /mnt \
      /path/to/dotfiles/hosts/asus/disko.nix
    ```
-   Completion: `findmnt /mnt` shows btrfs, and `/mnt/home` is f2fs with label
-   `home`.
+   Completion: `findmnt /mnt` and `/mnt/home` both show f2fs, and `/mnt/home`
+   carries label `home`. Then set the compression flag before anything is
+   written into them:
+   ```sh
+   chattr +c /mnt /mnt/home   # or: f2fs_io setflags compression /mnt /mnt/home
+   f2fs_io getflags /mnt /mnt/home
+   ```
+   Completion: `getflags` reports `compression` for both. A store written before
+   this stays uncompressed until every file is rewritten.
 5. Restore `/home` from the phone into `/mnt/home/duskyelf`.
 6. Put dotfiles and deploy-system in `/mnt/home/duskyelf/dotfiles`.
 7. Make the wrapper's absolute paths resolve inside the installer:
@@ -156,7 +178,8 @@ live-tree wrapper build produced.
    Completion: it exits 0 without building `t3code` or the kernel. If it starts
    either, stop and install a minimal system first; see "Minimal first".
 
-   The live `/` is 79 G used of 115 G. Do not build the new closure on the
+   The new root is 200 GiB, and the live `/` holds 79 G today. Do not build the
+   new closure on the
    live root. Install into the empty `/mnt` root. If a pre-disko check needs
    space, prune old generations; the wipe removes them anyway.
 9. Boot the installed system. At the console, run `passwd` for `duskyelf`: a

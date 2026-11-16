@@ -57,17 +57,21 @@ in
   fileSystems = {
     "/" = {
       device = "/dev/disk/by-label/${disk.labels.root}";
-      fsType = "btrfs";
+      fsType = "f2fs";
       options = [
-        "subvol=@"
         "noatime"
-        "compress=zstd"
+        "compress_algorithm=zstd:3"
+        "compress_mode=fs"
       ];
     };
     "/home" = {
       device = "/dev/disk/by-label/${disk.labels.home}";
       fsType = "f2fs";
-      options = [ "noatime" ];
+      options = [
+        "noatime"
+        "compress_algorithm=zstd:3"
+        "compress_mode=fs"
+      ];
     };
     "/boot" = {
       device = "/dev/disk/by-label/${disk.labels.boot}";
