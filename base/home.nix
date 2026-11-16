@@ -1,4 +1,5 @@
 {
+  config,
   hostConfig,
   pkgs,
   ...
@@ -31,6 +32,32 @@
   # Don't change
   home.stateVersion = hostConfig.stateVersion.home;
   programs.home-manager.enable = true;
+
+  # btrfs copies a whole extent for every rewritten 4K page. Measured on this
+  # machine: random 4K updates amplify 11.9x, and 1.4x with nodatacow. Agent
+  # sessions, browser storage and sqlite do almost nothing but random 4K
+  # updates, so an idle machine wrote 0.5 MB/s (46 GB/day) while its processes
+  # dirtied only ~3 MB/min. Compression is not the cause: dropping it alone
+  # measured 11.7x.
+  #
+  # What this costs: nodatacow also drops checksums, compression, and the crash
+  # behaviour of copy-on-write, so .config/zen loses integrity checking on
+  # bookmarks and logins. /home has 742G free, so the lost compression is cheap.
+  #
+  # Only directories are flagged, because chattr +C on a file that already has
+  # data is silently ignored: it converts nothing that exists. statev2.sqlite
+  # and opencode.db therefore keep rewriting copy-on-write extents until they
+  # are recreated by hand. What does take effect is everything these apps create
+  # afterwards, including each new -wal. Directories are inherited by new files,
+  # and staying off the 193k files also avoids following symlinks, which chattr
+  # would chase and flag at their target.
+  home.activation.nodatacowAppState =
+    config.lib.dag.entryAfter [ "writeBoundary" ] ''
+      for dir in .t3 .local/share/opencode .config/t3code-v2 .config/zen .cache/zen; do
+        [ -d "$HOME/$dir" ] || continue
+        run find "$HOME/$dir" -xdev -type d -exec ${pkgs.e2fsprogs.bin}/bin/chattr +C {} +
+      done
+    '';
 
   # Store GC for this user, staggered after the 04:00 root run in base/system.nix.
   # Root's run only walks /root and /nix/var/nix/profiles, so generations in
