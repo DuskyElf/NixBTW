@@ -111,6 +111,13 @@ in
     };
   };
 
+  # Everything the language caches write to. Created at boot so the first
+  # sccache or npm start finds it, and so they degrade to the SSD if the mount
+  # is ever missing instead of failing on a root-owned /mnt.
+  systemd.tmpfiles.rules = [
+    "d /mnt/agent-worktrees/caches 1777 root root -"
+  ];
+
   # systemd-boot entries for unlocking undervolting (UX581GV BIOS v309).
   # The .efi is pinned above and installed to the ESP, no manual copy needed.
   boot.loader.systemd-boot.extraFiles."EFI/tools/setup_var.efi" = setupVarEfi;
