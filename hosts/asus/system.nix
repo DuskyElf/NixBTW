@@ -61,8 +61,8 @@ in
   boot.tmp.useTmpfs = true;
   boot.tmp.tmpfsSize = "16G";
   # Names, not UUIDs: a reformat changes every UUID, and disko writes these
-  # labels (see hosts/asus/disko.nix). The live disk still uses UUIDs until
-  # the reinstall, so do not switch this generation before disko runs.
+  # labels (see hosts/asus/disko.nix). The running disk already carries them,
+  # which is why /etc/fstab resolves these on this boot.
   fileSystems = {
     "/" = {
       device = "/dev/disk/by-label/${disk.labels.root}";
