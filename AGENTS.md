@@ -47,3 +47,5 @@ Q. What belongs in this file (AGENTS.md) ?
 Wisdom that a new agent needs about the repo and the machine, the overall context of what's happening. Don't forget to update this file cautiously.
 
 At boot, `screenpad-off` (hosts/asus/system.nix) does the power-off, not niri: the asus_screenpad backlight probes late, so niri spawn-at-startup races and fails silent, leaving the panel lit. The service waits up to 30s for the device.
+
+Agent worktrees belong in a 24 GB tmpfs at `/mnt/agent-worktrees` (point the t3code worktree root there), and nothing in it survives a reboot. zram0 is the only swap (75% of RAM logical, zstd) and `/tmp` stays a 16 GB tmpfs for nix builds; when the worktree mount fills, its pages swap into compressed zram instead of the SSD. Nothing prunes that mount, agents delete their own worktrees when done. `scripts/scratch.sh worktrees|swap` feeds the tmux status bar.

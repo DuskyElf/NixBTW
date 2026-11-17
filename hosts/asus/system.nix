@@ -41,7 +41,11 @@ in
   zramSwap = {
     enable = true;
     algorithm = "zstd";
-    memoryPercent = 50;
+    # This is the logical size of the swap, not the RAM it costs: only pages
+    # that actually get swapped out are held, compressed. The worktree tmpfs
+    # below spills into it, and with no disk swap behind it the real ceiling on
+    # total usage is the OOM killer.
+    memoryPercent = 75;
   };
   boot.kernel.sysctl = {
     "vm.swappiness" = 180;
@@ -50,7 +54,12 @@ in
     "vm.page-cluster" = 0;
   };
 
+  # Build sandboxes unpack under TMPDIR and a chromium or LLVM derivation needs
+  # several GB there, so /tmp keeps its full size. Pinned rather than left at
+  # the 50% default: the agent budgets in this file assume 16 GB, and a RAM
+  # change should not move that silently.
   boot.tmp.useTmpfs = true;
+  boot.tmp.tmpfsSize = "16G";
   # Names, not UUIDs: a reformat changes every UUID, and disko writes these
   # labels (see hosts/asus/disko.nix). The live disk still uses UUIDs until
   # the reinstall, so do not switch this generation before disko runs.
@@ -79,6 +88,25 @@ in
       options = [
         "fmask=0077"
         "dmask=0077"
+      ];
+    };
+
+    # Parallel agent worktrees and every build artifact under them. tmpfs on
+    # purpose: the tree is source and object code, so under pressure those
+    # pages swap into zram0 compressed instead of sitting unevictable in RAM,
+    # and a full mount gives ENOSPC instead of corrupting a journal-less
+    # filesystem. Build output has to be executable, so there is no noexec.
+    # Nothing is here until the t3code worktree root is pointed at it; see
+    # AGENTS.md.
+    "/mnt/agent-worktrees" = {
+      device = "tmpfs";
+      fsType = "tmpfs";
+      options = [
+        "size=24G"
+        "mode=1777"
+        "noatime"
+        "nodev"
+        "nosuid"
       ];
     };
   };
