@@ -78,6 +78,19 @@ it to move the lock later. The rebuilds below assume `/home/duskyelf/dotfiles`.
 Home changes:
 
 ```sh
+~/.config/scripts/hm-switch.sh
+```
+
+The script is the home switch. Evaluation is ~20s of single-core work, so it
+keys each generation by the content of the tree and reuses it: an unchanged
+tree returns in about a second, and `--force` re-activates. Its caches live in
+`~/.local/state/hm-switch`.
+
+The plain `home-manager switch` still works, and is the command for
+`home-manager news`, `rollback` and `generations`; the script wraps only the
+switch itself:
+
+```sh
 home-manager switch \
   --flake /home/duskyelf/dotfiles/deploy-system \
   --override-input my-dotfiles path:/home/duskyelf/dotfiles \
@@ -102,11 +115,11 @@ What needs which rebuild:
 
 | Changed | Apply with |
 | --- | --- |
-| `base/home.nix`, the home list in `apps/default.nix` | `home-manager switch` |
+| `base/home.nix`, the home list in `apps/default.nix` | `hm-switch.sh` |
 | `base/system.nix`, the system list in `apps/default.nix`, `hosts/` | `nixos-rebuild switch` |
 | `apps/niri/system.nix` | `nixos-rebuild switch`; the rest of `apps/niri/` is a home module |
 | `flake.nix`, `lib/` | both, the wiring reaches both configurations |
-| `wallpaper-guardian/` | `home-manager switch`; a submodule bump also needs `nix flake update wallpaper-guardian` in `deploy-system/` |
+| `wallpaper-guardian/` | `hm-switch.sh`; a submodule bump also needs `nix flake update wallpaper-guardian` in `deploy-system/` |
 | `scripts/timers.mjs`, `hot-configs/`, `quickshell/` | nothing, they are linked live |
 | `scripts/power.sh` | `nixos-rebuild switch` (it lands in `/usr/local/sbin`) |
 
@@ -145,8 +158,8 @@ services. `llm-lab` starts ollama and Open WebUI only when you ask.
 
 The user timer `flake-auto-update` runs at 08:30 and catches up after wake. It
 waits for network, runs `nix flake update nixpkgs nixpkgs-unstable-small
-zen-browser` and `scripts/update-t3code-main.sh`, switches home-manager, then
-commits the wrapper lock.
+zen-browser` and `scripts/update-t3code-main.sh`, runs
+`scripts/hm-switch.sh`, then commits the wrapper lock.
 
 The kernel moves on a different track. `.github/workflows/check-kernel-update.yml`
 compares the pinned `nixpkgs-fast-release` rev with `release-26.05` and opens a
@@ -161,8 +174,8 @@ System rebuilds stay manual. The timer only touches home-manager.
 Evaluate both configurations before switching:
 
 ```sh
-nix eval --raw .#nixosConfigurations.asus.config.system.build.toplevel.drvPath
-nix eval --raw '.#homeConfigurations."duskyelf@asus".config.home.activationPackage.drvPath'
+nix eval --raw --no-write-lock-file .#nixosConfigurations.asus.config.system.build.toplevel.drvPath
+nix eval --raw --no-write-lock-file '.#homeConfigurations."duskyelf@asus".config.home.activationPackage.drvPath'
 ```
 
 These read tracked files only, so `git add` a new Nix file before evaluating.
@@ -180,8 +193,9 @@ home-manager build \
 Check the parts that have tests or a single answer:
 
 ```sh
-nix eval --raw .#kernelVersion   # the series the selector picked
+nix eval --raw --no-write-lock-file .#kernelVersion   # the series the selector picked
 scripts/test-update-t3code-main.sh  # t3code pin repair, against a fake nix
+scripts/test-hm-switch.sh           # hm-switch cache, against a fake nix
 nix fmt                          # nixfmt-tree over the repo
 ```
 

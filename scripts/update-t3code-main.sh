@@ -50,7 +50,7 @@ write_lock() {
 
 set_lock_value() { sed -i "s|^  $1 = \".*\";\$|  $1 = \"$2\";|" "$LOCK"; }
 
-# Builds the package exactly the way `home-manager switch` will: the deploy
+# Builds the package exactly the way the home switch will: the deploy
 # wrapper's lock decides nixpkgs-unstable-small, while the package itself is
 # read from the live tree, so an uncommitted lock file still counts.
 build_pkg() {

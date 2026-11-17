@@ -33,6 +33,19 @@
   home.stateVersion = hostConfig.stateVersion.home;
   programs.home-manager.enable = true;
 
+  # Hyprland is not used here, but home-manager imports every module and its
+  # 26.05 default (lua) warns whenever the option itself is forced: the news
+  # feed `home-manager switch` and `build` evaluate, or an `nix eval` that asks
+  # for it. The activationPackage path does not force it, so hm-switch.sh never
+  # warned. Pin the legacy value it asks for until stateVersion reaches 26.05.
+  wayland.windowManager.hyprland.configType = "hyprlang";
+
+  # `home-manager switch` prints how many news items are unread (383 today) on
+  # every switch. This silences that count; it does not save the evaluation
+  # that produces it, only hm-switch.sh does. Migration notices for the next
+  # stateVersion go quiet with it, so run `home-manager news` after a bump.
+  news.display = "silent";
+
   # Store GC for this user, staggered after the 04:00 root run in base/system.nix.
   # Root's run only walks /root and /nix/var/nix/profiles, so generations in
   # ~/.local/state/nix/profiles are never pruned without this, and every one
@@ -101,12 +114,13 @@
           "$HOME/.config/scripts/update-t3code-main.sh" ||
           echo "T3 Code pin update failed, keeping the previous revision"
 
-        # Switch home-manager using the PRIVATE wrapper. The live-tree override
-        # keeps it consistent with manual rebuilds (AGENTS.md): the pinned
-        # my-dotfiles rev in the deploy lock goes stale whenever dotfiles commits
-        # (e.g. the voxtype removal), and without the override the switch
-        # evaluates that stale rev and fails to resolve its inputs.
-        if home-manager switch --flake ${hostConfig.dotsDir}/deploy-system --override-input my-dotfiles path:${hostConfig.dotsDir} --cores 2; then
+        # Switch home-manager through scripts/hm-switch.sh, the same command
+        # manual rebuilds use (AGENTS.md). It evaluates the flake once, unlike
+        # `home-manager switch`, which evaluates a second time for its news
+        # feed, and it reuses the previous generation when the tree content did
+        # not change. Same wrapper, same live-tree override. cores = 2 keeps a
+        # post-lock-bump rebuild polite while the machine is in use.
+        if NIX_CONFIG="cores = 2" "$HOME/.config/scripts/hm-switch.sh"; then
           echo "Home-manager switch successful"
           ${pkgs.libnotify}/bin/notify-send "Update successful" "Successfully updated and switched privately"
 

@@ -37,5 +37,5 @@ git -C "$deploy" -c user.name="deploy-bootstrap" -c user.email="deploy-bootstrap
 echo
 echo "deploy lock written to $deploy/flake.lock"
 echo "rebuild with:"
-echo "  home-manager switch --flake $deploy --override-input my-dotfiles path:$root --cores 16"
+echo "  $root/scripts/hm-switch.sh"
 echo "  sudo nixos-rebuild switch --flake $deploy --override-input my-dotfiles path:$root --cores 16"

@@ -27,11 +27,13 @@ This repo is NOT the deploy flake. `deploy-system/` is a private wrapper flake p
 All rebuilds go through the wrapper with the live-tree override so uncommitted edits apply immediately:
 
 * System (`base/system.nix`, the system list in `apps/default.nix`, `hosts/`): `sudo nixos-rebuild switch --flake /home/duskyelf/dotfiles/deploy-system --override-input my-dotfiles path:/home/duskyelf/dotfiles --cores 16`
-* Home (`base/home.nix`, the home list in `apps/default.nix`): `home-manager switch --flake /home/duskyelf/dotfiles/deploy-system --override-input my-dotfiles path:/home/duskyelf/dotfiles --cores 16`
+* Home (`base/home.nix`, the home list in `apps/default.nix`): `~/.config/scripts/hm-switch.sh`
+
+`hm-switch.sh` is the home switch. Evaluation is ~20s of single-core work and is the floor for any content change, so the script keys the generation derivation by the content of the tree, reuses it, and skips activation when that generation is already active: an unchanged tree returns in about a second. `--force` re-activates. It passes `path:`, so untracked files count. Its state is `~/.local/state/hm-switch` (`drv-cache`, `activated`, `generation`, `lock`), which is where to look when a change seems not to apply, or when a switch waits up to 10 min on another one holding the lock. `home-manager switch --rollback` followed by a switch re-activates the tree's generation, undoing the rollback. The longer `home-manager switch --flake ...deploy-system --override-input my-dotfiles path:...` still works; the script wraps only the switch, so that is the command for `home-manager news`, `rollback` and `generations` (the last two never evaluate the flake). The CLI evaluates the configuration twice, its news feed being a second evaluation, and prints the news count and the overridden-lock notice that the script drops.
 
 Everything on this machine is handled by systemd timers pretty much.
 
-A daily user timer runs `nix flake update nixpkgs nixpkgs-unstable-small zen-browser` (see `base/home.nix`)  in `deploy-system/`, switches home-manager, and commits that lock. Only those 3 inputs auto-update. When the machine disagrees with this repo, suspect that drift first, not a local edit. Do not hand-edit pins the timer owns.
+A daily user timer runs `nix flake update nixpkgs nixpkgs-unstable-small zen-browser` (see `base/home.nix`)  in `deploy-system/`, switches home-manager through `hm-switch.sh`, and commits that lock. Only those 3 inputs auto-update. When the machine disagrees with this repo, suspect that drift first, not a local edit. Do not hand-edit pins the timer owns.
 
 Submodule bumps (e.g. `neovimBTW`) do not reach a switch through the live-tree override alone. The wrapper pins each submodule as its own flake input, so run `nix flake update <name>` inside `deploy-system/` after the bump, then switch. `wallpaper-guardian` is pinned the same way.
 
