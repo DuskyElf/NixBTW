@@ -130,7 +130,7 @@ let
             }
           );
           default = null;
-          description = "A second panel behind its own backlight switch. Null means the host has none.";
+          description = "A second panel behind its own backlight switch. Null means the host has none. A host that runs niri also sets that output's enable = false in niri.outputs, so the compositor leaves it unmapped until screenpad-toggle asks.";
         };
 
         battery = mkOption {

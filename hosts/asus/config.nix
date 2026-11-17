@@ -50,6 +50,9 @@
       };
 
       "DP-2" = {
+        # The screenpad starts dark: niri leaves it unmapped and Mod+1 runs
+        # screenpad-toggle, which powers the panel and maps this output.
+        enable = false;
         mode = {
           width = 3840;
           height = 1100;

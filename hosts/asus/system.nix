@@ -318,20 +318,26 @@ in
     ];
   };
 
-  # Screenpad (secondary display, DP-2): the asus_screenpad backlight device probes
-  # late in boot, so niri's spawn-time "power.sh screenpad off" races it and fails
-  # silently, leaving the panel lit with no niri output. This service waits for the
-  # device (max 30s) and powers it off. Note: screenpad bl_power is inverted —
-  # 0 = off, 4 = on. Guarded like every other screenpad consumer: the host
-  # config allows a machine without the panel.
+  # Screenpad (secondary display, DP-2): the asus_screenpad backlight device
+  # probes late in boot, so waiting for it in a unit beats racing it from niri.
+  # bl_power 4 blanks the panel and 0 lights it (kernel 7.3.4; the driver
+  # inverts the ACPI argument, so 4 is the off value, not 0). The unit drives
+  # power.sh instead of writing sysfs itself, so the values live in one place.
+  # It stays active after the first run and ignores unit changes, so a switch
+  # does not restart it; an inactive unit (the first run or a failed run) still
+  # starts once and blanks the panel. After the first run `systemctl start` is
+  # a no-op and `systemctl restart` re-runs it. Guarded like every other
+  # screenpad consumer.
   systemd.services.screenpad-off = lib.mkIf (hostConfig.hardware.screenpad != null) {
     description = "Turn off the screenpad panel after boot";
     wantedBy = [ "multi-user.target" ];
     after = [ "systemd-udevd.service" ];
+    restartIfChanged = false;
     serviceConfig = {
       Type = "oneshot";
+      RemainAfterExit = true;
       ExecStartPre = "${pkgs.bash}/bin/bash -c 'for i in {1..150}; do [ -e /sys/class/backlight/${hostConfig.hardware.screenpad.device}/bl_power ] && exit 0; sleep 0.2; done; exit 1'";
-      ExecStart = "${pkgs.bash}/bin/bash -c 'echo 0 > /sys/class/backlight/${hostConfig.hardware.screenpad.device}/bl_power'";
+      ExecStart = "${hostConfig.powerScriptPath} screenpad off";
     };
   };
 

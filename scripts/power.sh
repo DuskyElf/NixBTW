@@ -20,13 +20,27 @@ run_user_cmd() {
 
 if [ "$MODE" = "screenpad" ]; then
     STATE=${2:-}
-    if [ "$STATE" = "off" ]; then
-        echo 0 > /sys/class/backlight/asus_screenpad/bl_power
-    elif [ "$STATE" = "on" ]; then
-        echo 4 > /sys/class/backlight/asus_screenpad/bl_power
-    else
+    # Baked into the root-only copy by base/system.nix from the host config, so
+    # no argument can point the NOPASSWD rule at another backlight. The
+    # writable ~/.config copy has no value here and always takes the error
+    # branch; run the root copy instead.
+    DEVICE=${SCREENPAD_DEVICE:-}
+    if [ -z "$DEVICE" ]; then
+        echo "SCREENPAD_DEVICE is unset; use the root copy at /usr/local/sbin/power.sh" >&2
+        exit 1
+    fi
+    if [ "$STATE" != "off" ] && [ "$STATE" != "on" ]; then
         echo "Usage: $0 screenpad <on|off>"
         exit 1
+    fi
+    # bl_power follows the backlight class: 0 unblanks (the panel is lit),
+    # 4 blanks it (dark). The asus-wmi driver inverts the ACPI argument
+    # internally, which is why a raw 0 here is not "off". Verified on this
+    # UX581GV with kernel 7.3.4.
+    if [ "$STATE" = "off" ]; then
+        echo 4 > "/sys/class/backlight/$DEVICE/bl_power"
+    else
+        echo 0 > "/sys/class/backlight/$DEVICE/bl_power"
     fi
 elif [ "$MODE" = "ultra-powersave" ]; then
     # Switch to ultra-powersave mode (force-remove dGPU)

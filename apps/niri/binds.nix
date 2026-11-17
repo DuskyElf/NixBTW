@@ -20,12 +20,24 @@ let
     screenpad = hostConfig.hardware.screenpad;
   };
 
+  # Only forced when a host declares a screenpad, so a null never reaches the
+  # script's text.
+  screenpadToggle = import ./screenpad.nix {
+    inherit pkgs;
+    screenpad = hostConfig.hardware.screenpad;
+    inherit (hostConfig) powerScriptPath;
+  };
+
   wallpaperGuardian = config.services.wallpaper-guardian.package;
 
   # The panel's command line, e.g. ".../brightnessctl -d intel_backlight".
   panel = "${brightness.bin}${brightness.shellArgs}";
 in
 {
+  # The binary Mod+1 runs, also reachable from a terminal so the panel can be
+  # blanked when a bind or niri misbehaves.
+  home.packages = lib.optional (screenpad != null) screenpadToggle;
+
   programs.niri.settings.binds =
     with config.lib.niri.actions;
     {
@@ -188,25 +200,8 @@ in
 
       "Mod+1" = {
         allow-when-locked = true;
-        action = spawn "bash" "-c" ''
-          # Toggle the screenpad (bl_power: 0 = off, 4 = on). Turning it
-          # on is bare on purpose: the DP link trains marginal and i915
-          # rejects the modeset mid-training (EINVAL), so only a fresh
-          # bl_power cycle re-trains it, and the kernel hotplug uevent
-          # about 1.5s later auto-connects the output. No sleeps,
-          # retries or flock: the retry is another Mod+1. `niri msg
-          # output ${screenpad.output} on` exits 0 even on an unmapped
-          # connector, so never trust its exit code.
-          if [ "$(cat /sys/class/backlight/${screenpad.device}/bl_power 2>/dev/null)" = "4" ]; then
-            niri msg output ${screenpad.output} off || true
-            sudo ${hostConfig.powerScriptPath} screenpad off || true
-            notify-send "Secondary Display" "Turned OFF" -t 1000
-          else
-            sudo ${hostConfig.powerScriptPath} screenpad on || true
-            niri msg output ${screenpad.output} on || true
-            notify-send "Secondary Display" "Turned ON" -t 1000
-          fi
-        '';
+        repeat = false;
+        action = spawn "${lib.getExe screenpadToggle}";
       };
     };
 }

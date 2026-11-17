@@ -78,16 +78,14 @@ in
         { argv = [ "kitty" ]; }
       ]
       ++ lib.optionals (screenpad != null) [
-        {
-          argv = [
-            "bash"
-            "-c"
-            "niri msg output ${screenpad.output} off || true"
-          ];
-        }
+        # The output config keeps DP-2 unmapped at every compositor start, but
+        # a niri restart does not run screenpad-off.service, so without this the
+        # backlight would stay lit on a panel nothing is showing. Blanking here
+        # is the same default as boot; Mod+1 turns it back on.
         {
           argv = [
             "sudo"
+            "-n"
             hostConfig.powerScriptPath
             "screenpad"
             "off"

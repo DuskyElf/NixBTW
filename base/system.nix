@@ -32,7 +32,18 @@ let
     # ls -l | grep parses /proc/<pid>/fd symlink targets; a glob is not
     # equivalent, so this is the one shellcheck check worth excluding.
     excludeShellChecks = [ "SC2010" ];
-    text = lib.removePrefix "#!/usr/bin/env bash\n" (builtins.readFile ../scripts/power.sh);
+    # The screenpad device is host data, so bake it into this root-only copy
+    # instead of accepting it as an argument. The NOPASSWD rule allows power.sh
+    # with any arguments, and a device argument would let that rule blank any
+    # backlight, the internal panel included. The writable ~/.config copy has
+    # no baked value and cannot write sysfs as the login user anyway.
+    text =
+      ''
+        SCREENPAD_DEVICE=${lib.escapeShellArg (
+          if hostConfig.hardware.screenpad == null then "" else hostConfig.hardware.screenpad.device
+        )}
+      ''
+      + lib.removePrefix "#!/usr/bin/env bash\n" (builtins.readFile ../scripts/power.sh);
   };
 in
 {
