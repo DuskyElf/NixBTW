@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
-# The two numbers that say whether the agent scratch space is about to run out:
-# the tmpfs the worktrees live on, and what zram swap is holding. Both read
-# /proc and /sys, so a status bar refresh touches no disk.
+# The numbers that say whether the RAM the machine fakes as disk is about to run
+# out: the two tmpfs mounts, the worktrees agents use and /tmp for builds, plus
+# what zram swap is holding. All read /proc and /sys, so a status bar refresh
+# touches no disk.
 set -euo pipefail
 
 worktrees=/mnt/agent-worktrees
+tmpdir=/tmp
 
 fmt_bytes() {
   awk -v b="$1" 'BEGIN{
@@ -16,17 +18,18 @@ fmt_bytes() {
   }'
 }
 
-# Used and total of the worktree mount, in findmnt's own units. Asking findmnt
-# about the mountpoint is what makes an unmounted path a dash instead of the
-# parent filesystem's numbers.
+# Used and total of a tmpfs mount, in findmnt's own units. Asking findmnt
+# about the mountpoint and the fstype is what makes an unmounted path a dash
+# instead of the parent filesystem's numbers, and a /tmp that is a real disk
+# a dash instead of disk usage reported as RAM.
 tmpfs() {
-  local used size
-  read -r used size < <(findmnt -n -o USED,SIZE --mountpoint "$worktrees" 2>/dev/null) || true
+  local label=$1 mnt=$2 used size
+  read -r used size < <(findmnt -n -o USED,SIZE -t tmpfs --mountpoint "$mnt" 2>/dev/null) || true
   if [ -z "${used:-}" ]; then
-    printf "wt -"
+    printf "%s -" "$label"
     return
   fi
-  printf "wt %s/%s" "$used" "$size"
+  printf "%s %s/%s" "$label" "$used" "$size"
 }
 
 # Swap pages stored, then the RAM they cost. TOTAL includes the compression
@@ -44,10 +47,11 @@ swap() {
 }
 
 case "${1:-}" in
-  worktrees) tmpfs ;;
+  worktrees) tmpfs wt "$worktrees" ;;
+  tmp) tmpfs tmp "$tmpdir" ;;
   swap) swap ;;
   *)
-    printf 'usage: %s worktrees|swap\n' "${0##*/}" >&2
+    printf 'usage: %s worktrees|tmp|swap\n' "${0##*/}" >&2
     exit 2
     ;;
 esac
