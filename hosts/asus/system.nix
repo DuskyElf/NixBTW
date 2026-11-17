@@ -96,8 +96,8 @@ in
     # pages swap into zram0 compressed instead of sitting unevictable in RAM,
     # and a full mount gives ENOSPC instead of corrupting a journal-less
     # filesystem. Build output has to be executable, so there is no noexec.
-    # Nothing is here until the t3code worktree root is pointed at it; see
-    # AGENTS.md.
+    # Nothing is here until the t3code worktree root is pointed at it, and
+    # nothing prunes it: agents delete their own worktrees when they are done.
     "/mnt/agent-worktrees" = {
       device = "tmpfs";
       fsType = "tmpfs";

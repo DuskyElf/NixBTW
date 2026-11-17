@@ -24,8 +24,6 @@ Subrepos own their domains. Read their docs when you work inside them and do not
 
 This repo is NOT the deploy flake. `deploy-system/` is a private wrapper flake pinning this repo as `my-dotfiles`. It is gitignored with its own nested git repo, pushed to the private `NixBTW-deploy` repository, and its flake.lock is the only lock source of truth. You may read it and propose edits to it. The user applies them.
 
-Disk: one NVMe, three partitions, mounted by label. `p1` 1 GiB vfat `BOOT` on `/boot`, `p2` 200 GiB f2fs `nixos` on `/`, `p3` the remainder f2fs `home` on `/home`. Both f2fs mounts carry `compress_algorithm=zstd:3` and `compress_mode=fs`, and the trees were created with `chattr +c`, so new files inherit compression. The device and the labels are data in `hosts/asus/disk.nix`; `hosts/asus/disko.nix` is the installer layout. A freshly written f2fs tree makes `df` and `du` overstate usage, because reserved block counts are not released until `f2fs_io release_cblocks` runs.
-
 All rebuilds go through the wrapper with the live-tree override so uncommitted edits apply immediately:
 
 * System (`base/system.nix`, the system list in `apps/default.nix`, `hosts/`): `sudo nixos-rebuild switch --flake /home/duskyelf/dotfiles/deploy-system --override-input my-dotfiles path:/home/duskyelf/dotfiles --cores 16`
@@ -47,5 +45,3 @@ Q. What belongs in this file (AGENTS.md) ?
 Wisdom that a new agent needs about the repo and the machine, the overall context of what's happening. Don't forget to update this file cautiously.
 
 At boot, `screenpad-off` (hosts/asus/system.nix) does the power-off, not niri: the asus_screenpad backlight probes late, so niri spawn-at-startup races and fails silent, leaving the panel lit. The service waits up to 30s for the device.
-
-Agent worktrees belong in a 24 GB tmpfs at `/mnt/agent-worktrees` (point the t3code worktree root there), and nothing in it survives a reboot. zram0 is the only swap (75% of RAM logical, zstd) and `/tmp` stays a 16 GB tmpfs for nix builds; when the worktree mount fills, its pages swap into compressed zram instead of the SSD. Nothing prunes that mount, agents delete their own worktrees when done. `scripts/scratch.sh worktrees|swap` feeds the tmux status bar.
