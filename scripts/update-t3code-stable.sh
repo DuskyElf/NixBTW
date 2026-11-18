@@ -124,10 +124,13 @@ release_json=$(curl -fsSL "$RELEASE_API") || {
   echo "t3code: could not fetch the latest stable release"
   exit 1
 }
-# Parse from the variable, not the pipe: with no `head` in any pipeline, a
-# reader closing the pipe early cannot SIGPIPE-fail the run under pipefail.
-# The match quits after the first tag_name, which is the only one present.
-tag=$(printf '%s\n' "$release_json" | sed -n '/"tag_name"/{s/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p;q}')
+# Parse from the variable, not the network. A reader that quits on the match
+# would close the pipe while printf is still writing the multi-line release
+# JSON, and pipefail turns that SIGPIPE into exit 141: read to the end and keep
+# the first match instead. The release carries one tag_name, and the first line
+# is the answer even if a body mentions the word later.
+tag=$(printf '%s\n' "$release_json" | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+tag=${tag%%$'\n'*}
 if [ -z "${tag:-}" ]; then
   echo "t3code: could not resolve the latest stable release"
   exit 1

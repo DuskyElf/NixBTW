@@ -20,6 +20,7 @@
 #   9. rev disagrees        same tag with a stale rev: rev fixed, hashes relearned
 #  10. nightly refused      API serves a nightly-shaped tag: pin kept, exit 0
 #  11. older refused        API serves an older stable tag: pin kept, exit 0
+#  12. large body           multi-line release JSON parses without a SIGPIPE
 set -euo pipefail
 
 here=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
@@ -496,5 +497,28 @@ cmp -s "$work/before.nix" "$lock" || fail "case 11: lock was touched by a refusa
 if [ -s "$commits" ]; then fail "case 11: older tag was committed"; fi
 ok "case 11: older stable tag is refused, pin untouched"
 
+# --------------------------------------------------------------- case 12 ----
+# GitHub's release JSON is multi-line, with tag_name early and a long body
+# after it. A parser that quits on the match closes the pipe while printf is
+# still writing, and pipefail turns that SIGPIPE into exit 141.
+reset_case
+lockfile "$new_tag" "$new" "$new_src" "$new_pnpm" "$new_cargo" > "$lock"
+cp "$lock" "$head"
+cp "$lock" "$truth"
+printf '%s\n' "$new" > "$rev"
+{
+    printf '{\n  "url": "https://api.github.com/repos/pingdotgg/t3code/releases/1",\n  "tag_name": "%s",\n  "body": "' "$new_tag"
+    head -c 200000 /dev/zero | tr '\0' 'x'
+    printf '"\n}\n'
+} > "$work/release.json"
+
+if ! out=$(run); then
+    printf '%s\n' "$out" >&2
+    fail "case 12: large release body killed the run"
+fi
+grep -Fq "is current and builds" <<<"$out" || fail "case 12: current pin not reported"
+diff -u "$truth" "$lock" || fail "case 12: lock changed"
+ok "case 12: a large release body does not SIGPIPE the parse"
+
 echo
-echo "PASS: 11 cases"
+echo "PASS: 12 cases"
