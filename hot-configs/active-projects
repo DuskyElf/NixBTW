@@ -14,3 +14,5 @@
 # projects come back. Leave out devshells that override stdenv to pkgsStatic
 # (the old list dropped tangled/core and tangled/ting/core for that reason),
 # because pinning those compiles a static Rust/Go toolchain locally.
+
+ting
