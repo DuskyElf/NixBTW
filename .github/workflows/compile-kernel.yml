@@ -142,6 +142,33 @@ jobs:
             echo "X86_NATIVE_CPU leaked into kernel .config" >&2
             exit 1
           fi
+
+          # ignoreConfigErrors = true silences both of generate-config.pl's
+          # failure channels: a symbol that no longer exists (renamed or
+          # dropped upstream) and one whose value was rewritten by a `select` or
+          # an unmet dependency. Neither prints anything. So the tuned settings
+          # are asserted against the generated .config here, before the build,
+          # and a bump that quietly reverts one fails in seconds instead of
+          # two hours. Each line is the literal text the file must contain.
+          while IFS= read -r expected; do
+            [ -n "$expected" ] || continue
+            if ! grep -qxF "$expected" ./result-config; then
+              echo "kernel .config lost a tuned setting: $expected" >&2
+              exit 1
+            fi
+          done <<'EOF'
+          CONFIG_NR_CPUS=32
+          CONFIG_NET_SCH_FQ=y
+          CONFIG_DEFAULT_BBR=y
+          # CONFIG_CPU_IDLE_GOV_MENU is not set
+          # CONFIG_SND_SOC is not set
+          # CONFIG_MEMORY_HOTPLUG is not set
+          # CONFIG_DRM_AMDGPU is not set
+          CONFIG_MEDIA_SUPPORT=m
+          CONFIG_USB_VIDEO_CLASS=m
+          CONFIG_DRM_I915=m
+          CONFIG_ASUS_NB_WMI=m
+          EOF
           nix build --no-link --print-out-paths \
             "$KERNEL^out" "$KERNEL^modules" "$KERNEL^dev" > /dev/null
           for p in "${PATHS[@]}"; do

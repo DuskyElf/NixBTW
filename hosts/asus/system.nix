@@ -52,6 +52,10 @@ in
     "vm.watermark_boost_factor" = 0;
     "vm.watermark_scale_factor" = 125;
     "vm.page-cluster" = 0;
+    # The kernel built here defaults to BBR, and BBR paces through fq. Without
+    # it the link still works, but the pacing that keeps the wifi queue from
+    # bursting is gone.
+    "net.core.default_qdisc" = "fq";
   };
 
   # Build sandboxes unpack under TMPDIR and a chromium or LLVM derivation needs
@@ -287,7 +291,7 @@ in
     # GCC build.
     kernelPatches = [
       {
-        name = "skylake-tune-preempt";
+        name = "skylake-march";
         patch = ./skylake-march.patch;
         structuredExtraConfig = with lib.kernel; {
           # Do NOT use X86_NATIVE_CPU. It sniffs the *build* host's CPU at
@@ -313,6 +317,144 @@ in
           SCHED_SMT = yes;
           SCHED_MC = yes;
           SCHED_MC_PRIO = yes;
+
+          # TEO decides the idle state from the next timer event; menu uses
+          # interactivity heuristics and rates 20 against TEO's 19, so menu has
+          # to go for TEO to be the one that runs. CPU_IDLE only selects menu
+          # when TEO is off, so these two lines are the whole change.
+          CPU_IDLE_GOV_TEO = yes;
+          CPU_IDLE_GOV_MENU = no;
+
+          # 512 CPUs of per-CPU state in the image: nixpkgs' common-config pins
+          # NR_CPUS at 512 for x86. This part has 16 threads, so 32 keeps
+          # headroom and stays inside the 2..512 range x86 allows.
+          NR_CPUS = lib.mkForce (freeform "32");
+
+          # KFENCE samples the allocator every 100 ms for the life of the
+          # machine, which is a debug tax no shipping kernel pays.
+          KFENCE = lib.mkForce no;
+
+          # Soldered RAM, one socket, no memory hotplug and no damon consumer in
+          # sysfs. Turning hotplug off takes ZONE_DEVICE and DEVICE_PRIVATE with
+          # it; HMM_MIRROR is independent and stays. Nothing here does P2P DMA,
+          # and nvidia-peermem has no RDMA device to attach to.
+          MEMORY_HOTPLUG = lib.mkForce no;
+          DAMON = lib.mkForce no;
+
+          # MODULE_DECOMPRESS is off, so kmod unpacks every modprobe in
+          # userspace; zstd does that several times faster than xz at a slightly
+          # worse ratio. That is boot and hotplug time, paid on every load.
+          MODULE_COMPRESS_XZ = lib.mkForce no;
+          MODULE_COMPRESS_ZSTD = yes;
+
+          # Data symbols exist for livepatching and data-symbol kprobes only;
+          # bpftrace, perf and oops decoding still work without them.
+          KALLSYMS_ALL = no;
+
+          # DEBUG_LIST walks and validates every list operation, and its own
+          # Kconfig points at LIST_HARDENED as the cheap half. LIST_HARDENED
+          # stays: BUG_ON_DATA_CORRUPTION selects it.
+          DEBUG_LIST = lib.mkForce no;
+
+          # Coffee Lake predates CET, so ENDBR decodes as a NOP and userspace
+          # can never claim a shadow stack. The cost is padding at every
+          # indirect target plus an objtool pass, and the build no longer
+          # selects the compiler's IBT capability probe.
+          X86_KERNEL_IBT = no;
+          X86_USER_SHADOW_STACK = lib.mkForce no;
+
+          # systemd, bpftrace and nftables all reach for BPF; with the JIT
+          # always on there is no interpreter to fall back to.
+          BPF_JIT_ALWAYS_ON = lib.mkForce yes;
+
+          # The only link is an AX200. BBR holds throughput on paths that lose
+          # packets for reasons other than congestion, and DEFAULT_BBR needs the
+          # algorithm built in rather than modular. fq is a built-in for the same
+          # reason: the default_qdisc sysctl above runs before any module could
+          # autoload.
+          TCP_CONG_BBR = yes;
+          DEFAULT_BBR = yes;
+          DEFAULT_CUBIC = no;
+          NET_SCH_FQ = yes;
+
+          # Hardware this laptop does not have. These are modules nothing can
+          # bind, so they cost build time, store size and cache space, never
+          # runtime. The audit behind that claim: the bound drivers are i915,
+          # nvidia, iwlwifi, snd_hda_intel, nvme, xhci, asus-nb-wmi, the I2C-HID
+          # touchpads and one USB webcam. Hidden children disappear with their
+          # parent and are not listed.
+
+          # Media: no tuner, capture card, camera sensor, radio or SDR. The
+          # MEDIA_*_SUPPORT type switches have no prompt while the filter is off
+          # (EXPERT is on), and a promptless bool is forced to its default, so
+          # the filter line is what makes the rest reachable. The webcam survives
+          # because MEDIA_CAMERA_SUPPORT and MEDIA_USB_SUPPORT in nixpkgs'
+          # config keep it reachable; CEC_CORE is sourced outside this subtree.
+          MEDIA_SUPPORT_FILTER = yes;
+          MEDIA_DIGITAL_TV_SUPPORT = lib.mkForce no;
+          MEDIA_ANALOG_TV_SUPPORT = lib.mkForce no;
+          MEDIA_PCI_SUPPORT = lib.mkForce no;
+          MEDIA_RADIO_SUPPORT = no;
+          MEDIA_SDR_SUPPORT = no;
+          MEDIA_TEST_SUPPORT = no;
+          MEDIA_PLATFORM_SUPPORT = no;
+
+          # Audio is snd_hda_intel on ALC295 plus Intel HDMI. The SOF/AVS/
+          # SoundWire stack loads and binds nothing here; snd/core, the HDA
+          # codecs and snd_usb_audio are untouched.
+          SND_SOC = no;
+
+          # No /sys/bus/iio device exists on this machine.
+          IIO = no;
+
+          # Radios: WLAN_VENDOR_INTEL is the only one that has a device, there is
+          # no WWAN modem and no NFC controller. cfg80211, mac80211, bluetooth
+          # and iwlwifi stay.
+          WLAN_VENDOR_ADMTEK = no;
+          WLAN_VENDOR_ATH = no;
+          WLAN_VENDOR_ATMEL = no;
+          WLAN_VENDOR_BROADCOM = no;
+          WLAN_VENDOR_INTERSIL = no;
+          WLAN_VENDOR_MARVELL = no;
+          WLAN_VENDOR_MEDIATEK = no;
+          WLAN_VENDOR_MICROCHIP = no;
+          WLAN_VENDOR_MORSEMICRO = no;
+          WLAN_VENDOR_NXP = no;
+          WLAN_VENDOR_PURELIFI = no;
+          WLAN_VENDOR_RALINK = no;
+          WLAN_VENDOR_REALTEK = no;
+          WLAN_VENDOR_RSI = no;
+          WLAN_VENDOR_SILABS = no;
+          WLAN_VENDOR_ST = no;
+          WLAN_VENDOR_TI = no;
+          WLAN_VENDOR_ZYDAS = no;
+          WLAN_VENDOR_QUANTENNA = no;
+          WWAN = no;
+          NFC = no;
+
+          # GPUs that are not in this machine. i915, simpledrm, efifb, the DRM
+          # helpers and the out-of-tree nvidia module stay. Dropping DRM_AMDGPU
+          # also drops the promptless CEC_NOTIFIER it selects, so i915 loses its
+          # HDMI-CEC hook; CEC_CORE and dp-aux-cec are unaffected, and nothing
+          # on this laptop speaks CEC.
+          DRM_AMDGPU = no;
+          DRM_RADEON = no;
+          DRM_NOUVEAU = no;
+          DRM_XE = no;
+          DRM_VMWGFX = no;
+          DRM_QXL = no;
+          DRM_BOCHS = no;
+          DRM_CIRRUS_QEMU = no;
+          DRM_VIRTIO_GPU = no;
+          DRM_VKMS = no;
+          DRM_GUD = no;
+          DRM_AST = no;
+          DRM_MGAG200 = no;
+          DRM_VBOXVIDEO = no;
+          DRM_GMA500 = lib.mkForce no;
+          DRM_HISI_HIBMC = no;
+          DRM_UDL = no;
+          DRM_GM12U320 = no;
         };
       }
     ];
