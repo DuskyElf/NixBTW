@@ -46,21 +46,21 @@
   # stateVersion go quiet with it, so run `home-manager news` after a bump.
   news.display = "silent";
 
-  # One daily run. scripts/daily-update.sh moves the three floating inputs,
-  # moves the T3 Code stable pin, switches this configuration, commits the
-  # wrapper lock, pins the devshells the collection has to keep, and collects
-  # the user store. The marker it writes at the end wakes the root half of the
-  # collection (base/system.nix); the monthly optimiser is the only other store
-  # unit. The pin had to run before the collection and the collection after
-  # the switch; three timers used to encode that with clock times, and now it
-  # is the order of one script's steps.
+  # One daily run. scripts/daily-update.sh pulls merged work, locks the
+  # checkout, moves the floating inputs and the T3 Code stable pin, rebuilds the
+  # system and this configuration, commits the wrapper lock, pins the devshells
+  # the collection has to keep, and collects the user store. The marker it
+  # writes on exit wakes the root half of the collection (base/system.nix); the
+  # monthly optimiser is the only other store unit. The pin had to run before the
+  # collection and the collection after the switch; three timers used to encode
+  # that with clock times, and now it is the order of one script's steps.
   # Part of the graphical session, so the collection needs a login; the switch
   # needs the user manager anyway. A machine left at the greeter collects
   # nothing until someone logs in, which is the price of collecting right after
   # the switch instead of on a clock.
   systemd.user.services.daily-update = {
     Unit = {
-      Description = "Daily flake update, switch, and store collection";
+      Description = "Daily pull, system and home switch, and store collection";
       IgnoreOnIsolate = true;
       X-SwitchMethod = "keep-old";
       # Persistent timers fire right after login, often before wifi is up.
@@ -72,11 +72,14 @@
       Type = "oneshot";
       # hostConfig.gcRequest is the path the system unit watches, so the user
       # half and the root half cannot drift onto separate markers.
-      ExecStart = "%h/.config/scripts/daily-update.sh ${hostConfig.gcRequest}";
+      # hostConfig.systemSwitchPath is the store-pinned helper the NOPASSWD rule
+      # in base/system.nix names, so the script and the rule share one path.
+      ExecStart = "%h/.config/scripts/daily-update.sh ${hostConfig.gcRequest} ${hostConfig.systemSwitchPath}";
       # Type=oneshot disables the manager's start timeout, so a wedged run
       # would sit in "activating" and the next elapse would find the unit
       # already started. Twelve hours is a bound, not an expectation: it covers
-      # a from-scratch static devshell build in the pin and a T3 Code bump.
+      # a kernel that has to compile because the signed cache missed, a
+      # from-scratch static devshell build in the pin, and a T3 Code bump.
       TimeoutStartSec = "12h";
       # No RemainAfterExit: it keeps the unit active after exit, which breaks
       # this timer's re-arm on this system (next elapse sticks at infinity).

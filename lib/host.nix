@@ -182,5 +182,10 @@ in
       # base/system.nix watches. Derived here so the user unit that writes it
       # and the system unit that watches it read one path.
       gcRequest = "${config.user.home}/.local/state/daily-update/gc-request";
+
+      # The daily update's system rebuild. It sits beside power.sh because both
+      # are root helpers linked into /usr/local/sbin, and sudo matches that
+      # path; deriving it from powerScriptPath keeps one option, not two.
+      systemSwitchPath = "${builtins.dirOf config.powerScriptPath}/nixos-switch.sh";
     };
 }

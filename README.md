@@ -124,10 +124,15 @@ What needs which rebuild:
 | `scripts/power.sh` | `nixos-rebuild switch` (it lands in `/usr/local/sbin`) |
 
 A `neovimBTW` or `wallpaper-guardian` submodule bump also needs
-`nix flake update <name>` inside `deploy-system/`, then a switch. The private
-wrapper must list `wallpaper-guardian` as an input first; `scripts/deploy-system.nix`
-shows the shape for a fresh bootstrap. `opencodeBTW` is symlinked, not a flake
-input.
+`nix flake update <name>` inside `deploy-system/`, then a switch; the daily run
+does that for both after its pull. The private wrapper must list
+`wallpaper-guardian` as an input first; `scripts/deploy-system.nix` shows the
+shape for a fresh bootstrap. `opencodeBTW` is symlinked, not a flake input.
+
+A hand edit still needs the rebuild from the table, but the daily run applies
+whatever a pull brings to both configurations on its own. The system half goes
+through `sudo nixos-rebuild switch` when you do it, and through
+`/usr/local/sbin/nixos-switch.sh` when the timer does.
 
 ## What is pinned
 
@@ -141,44 +146,80 @@ input.
 The other inputs float through the private lock, including system nixpkgs,
 unstable for niri, unstable-small for the agents, home-manager, stylix,
 jail-nix, neovimBTW, wallpaper-guardian, and zen-browser. The daily timer
-updates three of them. The kernel pin has its own rotation, described below.
+updates three of them, and the two submodule inputs follow their checkouts
+whenever a pull moves one. The kernel pin has its own rotation, described
+below.
 
 ## What runs
 
 Systemd units do the background work, not shell daemons. One daily user timer
-does the morning's work: `scripts/daily-update.sh` updates the floating inputs,
-moves the T3 Code pin, switches home-manager, commits the wrapper lock, pins the
-listed devshells, and collects the user store. It then wakes a system path unit
-that collects root's profiles, so both sides keep two days of generations. The
-monthly store optimiser is the only other store unit. The wallpaper fetch,
-rotate, resume, and startup units come from the `wallpaper-guardian`
-home-manager module enabled in `apps/wallpaper.nix`, next to `awww-daemon`.
-`quickshell`, `wl-gammarelay`, and `break-timer` are `apps/quickshell.nix`,
-`apps/gammarelay.nix`, and `apps/idle.nix`. `battery-threshold-control` and
-`screenpad-off` are one-shot system services. `llm-lab` starts ollama and Open
-WebUI only when you ask.
+does the morning's work: `scripts/daily-update.sh` pulls the merged changes,
+updates the floating inputs, moves the T3 Code pin, rebuilds the system through
+the `nixos-switch.sh` helper, switches home-manager, commits the wrapper lock,
+pins the listed devshells, and collects the user store. It then wakes a system
+path unit that collects root's profiles, so both sides keep two days of
+generations. The monthly store optimiser is the only other store unit. The
+wallpaper fetch, rotate, resume, and startup units come from the
+`wallpaper-guardian` home-manager module enabled in `apps/wallpaper.nix`, next
+to `awww-daemon`. `quickshell`, `wl-gammarelay`, and `break-timer` are
+`apps/quickshell.nix`, `apps/gammarelay.nix`, and `apps/idle.nix`.
+`battery-threshold-control` and `screenpad-off` are one-shot system services.
+`llm-lab` starts ollama and Open WebUI only when you ask.
 
 ## The daily update
 
 The user timer `daily-update` fires from 08:30, with up to half an hour of
 jitter, and catches up after wake. `scripts/daily-update.sh` waits for network,
-runs `nix flake update nixpkgs nixpkgs-unstable-small zen-browser` and
-`scripts/update-t3code-stable.sh`, runs `scripts/hm-switch.sh`, commits the
-wrapper lock, pins the listed devshells, and collects the user store with
-`--delete-older-than 2d`. The marker it writes last starts
-`nix-gc-root.service`, which collects root's profiles with the same window. A
-failed update, switch or commit still pins and collects, and the run exits
-nonzero. The unit is part of the graphical session, so the run needs a login;
-the old GC timers did not, and that is the trade for collecting right after the
-switch.
+pulls `origin/main` with `git pull --rebase --autostash` (the timer's own T3
+Code commits are the only local work in the way), syncs the submodules, locks
+this checkout's ignored `flake.lock`, runs
+`nix flake update nixpkgs nixpkgs-unstable-small zen-browser neovimBTW
+wallpaper-guardian` and `scripts/update-t3code-stable.sh`, rebuilds the system,
+runs `scripts/hm-switch.sh`, commits the wrapper lock, pins the listed
+devshells, and collects the user store with `--delete-older-than 2d`. The marker
+it writes starts `nix-gc-root.service`, which collects root's profiles with the
+same window; the marker is written from an exit trap, so a run killed with
+SIGTERM still asks for root's collection (the user half is skipped). A failed pull, update, switch or commit still pins and
+collects, and the run exits nonzero. The unit is part of the graphical session,
+so the run needs a login; the old GC timers did not, and that is the trade for
+collecting right after the switch.
+
+Only three inputs float from the network. `neovimBTW` and `wallpaper-guardian`
+are re-locked from their checkouts, which is what lets a merged submodule bump
+reach the switch.
+
+A pull that conflicts aborts its own rebase and the run continues on the tree it
+already has, with a notification; a pull that rewrites `daily-update.sh` itself
+makes the run hand over to the new copy as a child before touching anything
+else. Three pull states stop the update half instead: a rebase, merge, or
+cherry-pick already in progress in the checkout, which a timer must not abort or
+rebuild over; an autostash that conflicts after the rebase succeeded, where git
+exits 0 with unmerged paths and the stash holding the edits; and unmerged paths
+an earlier run left behind. A failed submodule sync or tree lock stops it too. In every one of those the checkout is left for you, both switches
+skip, and the devshell pin and the collection still run. A failed system switch
+skips the home switch too, because a home generation that calls into the system
+half is the half-applied state the order exists to avoid.
+
+The system half goes through `/usr/local/sbin/nixos-switch.sh`, a store-pinned
+script built in `base/system.nix` from the same command AGENTS.md documents by
+hand, with the fixed live-tree override, `--cores 16`, and a pinned `PATH`. Its
+NOPASSWD rule names that path with an empty argument list, which is the sudoers
+way to allow the command only with no arguments, so the account cannot hand
+`nixos-rebuild` another flake, attribute, or bootloader operation. That does not
+make the checkout trusted: `nixos-rebuild` evaluates the login user's tree, so
+whoever can write a module can install a system generation as root on the next
+run, which is what a hand rebuild already allows minus the password.
+`--no-write-lock-file` keeps root from writing a lock file the account then
+cannot.
 
 The kernel moves on a different track. `.github/workflows/check-kernel-update.yml`
 compares the pinned `nixpkgs-fast-release` rev with `release-26.05` and opens a
 PR when the stable kernel changes. Merging it triggers `compile-kernel.yml`,
 which publishes the kernel to the signed cache at `duskyelf.github.io/NixBTW`.
-The next `nixos-rebuild` substitutes it instead of compiling for two hours.
-
-System rebuilds stay manual. The timer only touches home-manager.
+The next daily run pulls the merge, and its system rebuild substitutes the
+cached kernel instead of compiling for two hours. Merging the PR is the only
+manual step left; the new kernel is the boot default after that switch and runs
+from the next reboot, because nothing here reboots the machine.
 
 ## Checks
 

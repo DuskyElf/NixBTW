@@ -11,7 +11,9 @@ name: "Check Kernel Update"
 #
 # Nothing lands on main by itself: merging the PR is the manual gate.
 # The merge triggers compile-kernel (path filter), which deploys the signed
-# binary to gh-pages; the next local nixos-rebuild substitutes it.
+# binary to gh-pages; the next daily run pulls the merge and its system switch
+# substitutes the binary instead of compiling for two hours. Nothing reboots,
+# so the new kernel runs from the next reboot.
 
 on:
   schedule:
@@ -118,8 +120,9 @@ jobs:
           BODY="${CHANNEL} moved the stable kernel ${OLD_VER} -> ${NEW_VER}.
 
           Merging this PR triggers the compile-kernel build; once CI deploys
-          the binary to gh-pages, run nixos-rebuild locally (cache hit, no
-          2h compile) and reboot."
+          the binary to gh-pages, the next daily run's system switch picks it
+          up (cache hit, no 2h compile). Nothing reboots, so boot it when you
+          next reboot."
           # Only an OPEN PR may be edited. gh resolves a head branch whatever its
           # state, so the merged PR from an earlier bump still answers to
           # kernel-bump; editing it renames a dead PR and leaves this bump with

@@ -47,6 +47,36 @@ let
     ''
     + lib.removePrefix "#!/usr/bin/env bash\n" (builtins.readFile ../scripts/power.sh);
   };
+
+  # The system half of the daily update (scripts/daily-update.sh) runs through
+  # this store copy. The sudo rule below names this path, so the body has to be
+  # immutable and every argument fixed: the account can ask for this rebuild and
+  # cannot point nixos-rebuild at another flake, attribute, or bootloader
+  # operation. What the rule does not do is make the tree trustworthy, because
+  # nixos-rebuild evaluates the login user's checkout: whoever can write a
+  # module can install a system generation as root on the next run. That is the
+  # same power a hand rebuild has, only without the password, and the reason the
+  # rule lives in AGENTS.md as a documented exception.
+  #
+  # /run/current-system/sw/bin/nixos-rebuild is the copy PATH resolves for a
+  # hand run, and the running generation's copy is the one that exists while the
+  # next one is being built. --no-write-lock-file keeps root from writing a
+  # lock file it cannot own: scripts/daily-update.sh locks as the login user
+  # before this runs.
+  systemSwitch = pkgs.writeShellScript "nixos-switch.sh" ''
+    set -euo pipefail
+    # sudo keeps the caller's PATH on this system (no secure_path), and the
+    # caller is the login account. Pin it to the system profile, which has
+    # every tool this script and nixos-rebuild's own lookups need.
+    export PATH=/run/current-system/sw/bin
+    # Keep root's working directory out of the checkout being evaluated.
+    cd /root
+    exec /run/current-system/sw/bin/nixos-rebuild switch \
+      --no-write-lock-file \
+      --flake ${hostConfig.dotsDir}/deploy-system \
+      --override-input my-dotfiles path:${hostConfig.dotsDir} \
+      --cores 16
+  '';
 in
 {
   config = {
@@ -271,9 +301,12 @@ in
       LC_TIME = hostConfig.locale.extra;
     };
 
-    system.activationScripts.powerScript = ''
-      mkdir -p ${builtins.dirOf hostConfig.powerScriptPath}
+    # Both root helpers: the keybind one and the daily update's system half.
+    # One snippet, so the two links cannot land in different activation runs.
+    system.activationScripts.rootHelpers = ''
+      mkdir -p ${builtins.dirOf hostConfig.powerScriptPath} ${builtins.dirOf hostConfig.systemSwitchPath}
       ln -sfn ${lib.getExe powerScript} ${hostConfig.powerScriptPath}
+      ln -sfn ${systemSwitch} ${hostConfig.systemSwitchPath}
     '';
 
     # Disable the credential cache: a fresh sudo timestamp (e.g. from a
@@ -288,6 +321,16 @@ in
         commands = [
           {
             command = hostConfig.powerScriptPath;
+            options = [ "NOPASSWD" ];
+          }
+          {
+            # The daily update's system half. The helper ignores its arguments,
+            # and the empty argument string is what makes sudo enforce that: a
+            # rule with a bare path lets any arguments through (sudoers(5)),
+            # while "" allows the command only with none. Both halves are
+            # needed, because the helper is what fixes the flake and the
+            # override.
+            command = ''${hostConfig.systemSwitchPath} ""'';
             options = [ "NOPASSWD" ];
           }
         ];

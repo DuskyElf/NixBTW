@@ -1,23 +1,36 @@
 #!/usr/bin/env bash
-# The one daily run: move the floating wrapper inputs, move the T3 Code stable
-# pin, switch home-manager, commit the wrapper lock, pin the devshells the
-# collection has to keep, and collect the store.
+# The one daily run: pull the merged work, lock the checkout, move the
+# floating wrapper inputs and the T3 Code stable pin, rebuild the system and
+# home-manager, commit the wrapper lock, pin the devshells the collection has to
+# keep, and collect the store.
 #
-#   daily-update.sh   the whole run; the `daily-update` user timer calls it
-#                     (base/home.nix) and a hand-run update is the same thing
+#   daily-update.sh [marker] [system-switch]
+#                   the whole run; the `daily-update` user timer calls it
+#                   (base/home.nix) and a hand-run update is the same thing.
+#                   The unit passes hostConfig.gcRequest and
+#                   hostConfig.systemSwitchPath so both halves of each pair read
+#                   one value; the fallbacks only keep a hand run working. Pass
+#                   both or neither: a lone argument is read as the marker.
+#
+# The system is rebuilt before home-manager. Both configurations read this
+# tree, and a change that spans them (a power.sh argument and its niri caller)
+# needs the new store copy installed before the home activation calls it.
 #
 # The user half of the collection cannot prune generations under
 # /nix/var/nix/profiles or /root, so the script writes a marker when it is done
-# and a system path unit (base/system.nix) collects root's profiles.
+# and a system path unit (base/system.nix) collects root's profiles. The marker
+# is written on exit, including an interrupted one: a system switch can restart
+# the display manager and take this unit's cgroup with it, and the collection
+# must not depend on the update finishing.
 #
 # The collection runs even when the update did not: generations age whether or
 # not a lock moved, so the day's collection must not depend on the network or
-# on a working switch. A failed update, switch, commit or collection exits
+# on a working switch. A failed update, pull, switch, commit or collection exits
 # nonzero and notifies.
 #
 # Every tool comes from the login PATH the user manager hands a unit; nix,
-# nix-collect-garbage, git, curl and notify-send all live there. The inline
-# unit this replaces relied on the same PATH for its bare nix and git.
+# nix-collect-garbage, git, sudo, curl and notify-send all live there. The
+# inline unit this replaces relied on the same PATH for its bare nix and git.
 set -euo pipefail
 
 dots=$(cd -- "$(dirname -- "$(readlink -f -- "$0")")/.." && pwd)
@@ -27,6 +40,12 @@ deploy=$dots/deploy-system
 # path. The fallback only keeps a hand run working; changing it here alone does
 # not move the marker the system unit watches.
 marker=${1:-$HOME/.local/state/daily-update/gc-request}
+# base/system.nix links this store copy for the NOPASSWD rule, and lib/host.nix
+# derives its path from powerScriptPath; the fallback is that derivation with
+# its default, kept here only so a hand run works. The helper takes no arguments
+# and holds the flake, the override and the core count. Passing the path in is
+# what lets the test run a stub instead of the real thing.
+system_switch=${2:-/usr/local/sbin/nixos-switch.sh}
 
 log() { printf '%s %s\n' "$(date '+%F %T')" "$*"; }
 notify() { notify-send "$@" 2>/dev/null || true; }
@@ -43,6 +62,58 @@ wait_for_network() {
     sleep 5
   done
   return 1
+}
+
+# A rebase, a merge, or a cherry-pick in progress means someone is working in
+# this checkout. A timer must not abort that work, and must not switch a tree in
+# that state.
+work_in_progress() {
+  local dir
+  dir=$(git -C "$dots" rev-parse --absolute-git-dir 2>/dev/null) || return 1
+  [ -e "$dir/rebase-merge" ] || [ -e "$dir/rebase-apply" ] ||
+    [ -e "$dir/MERGE_HEAD" ] || [ -e "$dir/CHERRY_PICK_HEAD" ]
+}
+
+# Merging upstream is the one manual gate left in the kernel rotation (the
+# check workflow opens a PR, the merge is the gate, CI publishes the binary), so
+# the run picks the merge up instead of waiting for a hand pull. The timer's own
+# T3 Code commits are the only local work in the way, hence the rebase.
+#
+# Returns 0 on a clean pull, 1 when the pull did not happen and the tree is
+# untouched, 2 when work is already in progress and the pull was skipped, 3 when
+# the pull landed but its autostash conflicts, and 4 when an earlier run left
+# unmerged paths behind. Git exits 0 for both 3 and 4, and neither leaves an
+# operation marker, so the unmerged index is the only evidence.
+pull_merged() {
+  local before
+  if work_in_progress; then
+    log "a rebase, merge, or cherry-pick is in progress in $dots"
+    return 2
+  fi
+  # Checked before the pull, not only after it: once the pull has landed, the
+  # next day's merge-base answers "already contained" and returns 0 without
+  # ever reaching the post-pull check, so yesterday's conflict would be rebuilt.
+  if [ -n "$(git -C "$dots" diff --name-only --diff-filter=U)" ]; then
+    log "the checkout still has unmerged paths"
+    return 4
+  fi
+  before=$(git -C "$dots" rev-parse HEAD)
+  git -C "$dots" fetch --quiet origin || return 1
+  if git -C "$dots" merge-base --is-ancestor origin/main HEAD; then
+    log "tree already has every merged change"
+    return 0
+  fi
+  if ! git -C "$dots" pull --quiet --rebase --autostash origin main; then
+    # Only this pull could have started the rebase, since the probe above found
+    # none, so the abort cannot be tearing down a human's resolution.
+    git -C "$dots" rebase --abort >/dev/null 2>&1 || true
+    return 1
+  fi
+  if [ -n "$(git -C "$dots" diff --name-only --diff-filter=U)" ]; then
+    return 3
+  fi
+  log "pulled $(git -C "$dots" rev-list --count "$before..origin/main" 2>/dev/null || echo 0) commit(s)"
+  return 0
 }
 
 # A failed commit must not take the collection with it, and it must not pass
@@ -63,32 +134,147 @@ commit_lock() {
 }
 cd -- "$deploy" || exit 1
 
+# The root collection is triggered by a file, not by a clean exit. Writing it
+# from the trap keeps that true when the run is killed mid-switch: the
+# collection is idempotent inside its two-day window, so an early marker costs
+# nothing and a lost one costs a day of generations.
+write_marker() {
+  mkdir -p -- "$(dirname -- "$marker")" 2>/dev/null || true
+  date -Is >"$marker" 2>/dev/null || true
+  log "asked the system unit to collect root's profiles"
+}
+trap write_marker EXIT
+trap 'exit 143' TERM
+trap 'exit 130' INT
+
+# This file lives in the tree the pull rewrites, and a shell reads its script as
+# it goes: a checkout that replaces the file under it could feed the run half of
+# one version and half of the other. Hash it before the pull and hand over to
+# the new copy when it moved. The rerun's pull is a no-op, so it cannot loop.
+self=$(readlink -f -- "$0")
+self_hash=$(sha256sum -- "$self" | cut -d' ' -f1)
+
 log "daily update starting"
 status=0
+# Cleared when the checkout is not in a state a rebuild may read: a conflict, an
+# unfinished operation, or a lock that would not settle. The update half is then
+# skipped whole, and the day still pins and collects.
+tree_ok=1
 
 if ! wait_for_network; then
   notify -u critical "Update failed" "No network after 10 minutes"
   status=1
-elif ! nix flake update nixpkgs nixpkgs-unstable-small zen-browser; then
-  notify -u critical "Update failed" "Failed to update flakes"
-  status=1
 else
-  # A tag that does not build keeps the previous pin and never blocks the day.
-  log "moving the T3 Code stable pin"
-  DOTFILES=$dots DEPLOY=$deploy "$dots/scripts/update-t3code-stable.sh" ||
-    log "T3 Code pin update failed, keeping the previous pin"
+  pull_rc=0
+  pull_merged && pull_rc=0 || pull_rc=$?
+  case "$pull_rc" in
+    0)
+      if [ ! -f "$self" ] || [ ! -x "$self" ]; then
+        log "this script is gone or not executable after the pull, staying on the running copy"
+      elif [ "$(sha256sum -- "$self" | cut -d' ' -f1)" != "$self_hash" ]; then
+        if [ "${DAILY_UPDATE_RERUN:-0}" = 1 ]; then
+          log "the pull changed this script again, staying on the running copy"
+        else
+          # A child, not exec: if the handover fails, this process still reaches
+          # its exit trap and asks for the collection. The child writes the
+          # marker too, and the root unit is idempotent inside its window.
+          log "the pull changed this script, handing over to the new copy"
+          DAILY_UPDATE_RERUN=1 "$self" "$@" || exit $?
+          exit 0
+        fi
+      fi
+      ;;
+    2)
+      notify -u normal "Update skipped" "A rebase or merge is in progress in $dots"
+      status=1
+      tree_ok=0
+      ;;
+    3)
+      notify -u critical "Update stopped" "The pull's autostash conflicts with local edits; the stash is kept"
+      status=1
+      tree_ok=0
+      ;;
+    4)
+      notify -u critical "Update stopped" "Unmerged paths from an earlier pull are still in $dots"
+      status=1
+      tree_ok=0
+      ;;
+    1)
+      # The fetch failed or the pull's own rebase was aborted, so the tree is
+      # the one the run started with and can still be switched.
+      notify -u critical "Update failed" "Could not pull the merged changes"
+      status=1
+      ;;
+    *)
+      # Defensive: every return above is one of 0 to 4, so this only catches a
+      # future status nobody mapped. The tree's state would be unknown, so it
+      # must not be switched.
+      notify -u critical "Update failed" "Could not pull the merged changes"
+      status=1
+      tree_ok=0
+      ;;
+  esac
 
-  # cores = 2 keeps a post-lock-bump rebuild polite while the machine is in use.
-  if NIX_CONFIG="cores = 2" "$dots/scripts/hm-switch.sh"; then
-    if commit_lock; then
-      notify "Update successful" "Updated and switched privately"
+  # A merged submodule bump moves the gitlink only, so the checkout has to
+  # follow before anything evaluates it or the wrapper pins it.
+  if [ "$tree_ok" -eq 1 ] &&
+    ! git -C "$dots" submodule update --init --recursive --quiet; then
+    log "the submodule checkouts did not follow the pull"
+    notify -u critical "Update failed" "Could not update the submodule checkouts"
+    status=1
+    tree_ok=0
+  fi
+
+  # This checkout ships no tracked flake.lock (it is gitignored), and a merged
+  # kernel PR moves the URL in flake.nix without touching it. A `path:` override
+  # reads this file for inputs whose URL did not move, while a standalone
+  # git-flake eval ignores it and resolves from flake.nix. Locking here makes the
+  # file name the revs flake.nix now names, so neither reading can land on a
+  # stale entry, and keeps the write with the login account instead of root. The
+  # wrapper's own lock cannot cover this input: it deliberately does not follow
+  # nixpkgs-fast-release.
+  if [ "$tree_ok" -eq 1 ] && ! nix flake lock "$dots"; then
+    notify -u critical "Update failed" "Could not refresh this checkout's flake.lock"
+    status=1
+    tree_ok=0
+  fi
+
+  if [ "$tree_ok" -eq 0 ]; then
+    log "checkout is not settled, skipping the flake update, the pin, and both switches"
+  elif ! nix flake update nixpkgs nixpkgs-unstable-small zen-browser neovimBTW wallpaper-guardian; then
+    notify -u critical "Update failed" "Failed to update flakes"
+    status=1
+  else
+    # A tag that does not build keeps the previous pin and never blocks the day.
+    log "moving the T3 Code stable pin"
+    DOTFILES=$dots DEPLOY=$deploy "$dots/scripts/update-t3code-stable.sh" ||
+      log "T3 Code pin update failed, keeping the previous pin"
+
+    # The helper is the hand-run command with the password taken out: fixed
+    # flake, fixed live-tree override, --cores 16. A cache hit costs a minute,
+    # and a kernel that has to compile is the one case where the count matters.
+    log "switching the system"
+    if sudo -n "$system_switch"; then
+      # cores = 2 keeps a post-lock-bump rebuild polite while the machine is in
+      # use.
+      if NIX_CONFIG="cores = 2" "$dots/scripts/hm-switch.sh"; then
+        if commit_lock; then
+          notify "Update successful" "Updated, system and home switched"
+        else
+          notify -u critical "Update failed" "Switched, but the wrapper lock did not commit"
+          status=1
+        fi
+      else
+        notify -u critical "Update failed" "Failed to switch configuration"
+        status=1
+      fi
     else
-      notify -u critical "Update failed" "Switched, but the wrapper lock did not commit"
+      # Home-manager is skipped on purpose: if the system half does not apply,
+      # a home generation that calls into it (power.sh, a system unit) would be
+      # the half-applied state the order above exists to avoid.
+      notify -u critical "Update failed" "Failed to switch the system, home switch skipped"
       status=1
     fi
-  else
-    notify -u critical "Update failed" "Failed to switch configuration"
-    status=1
   fi
 fi
 
@@ -102,10 +288,6 @@ if ! nix-collect-garbage --delete-older-than 2d; then
   notify -u critical "Store collection failed" "nix-collect-garbage exited nonzero"
   status=1
 fi
-
-mkdir -p -- "$(dirname -- "$marker")"
-date -Is >"$marker"
-log "asked the system unit to collect root's profiles"
 
 log "daily update finished with status $status"
 exit "$status"
