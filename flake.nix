@@ -22,8 +22,9 @@
 
     nixpkgs-unstable.url = "nixpkgs/nixos-unstable";
 
-    # for opencode and the T3 Code pin
-    # which I want to be on the latest version but don't want to wait for the whole nixpkgs-unstable to build
+    # opencode tracks latest upstream here, and pkgs/t3code reuses this
+    # channel's recipe for its stable-tag build, instead of waiting on the
+    # full nixpkgs-unstable build set.
     nixpkgs-unstable-small.url = "nixpkgs/nixos-unstable-small";
 
     jail-nix = {

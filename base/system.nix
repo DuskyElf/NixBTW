@@ -200,10 +200,13 @@ in
     # Daily store hygiene at 04:00, keeping two days of generations. The GC
     # only drops paths no generation, profile, or gcroot references, so a
     # devshell pinned by scripts/projects.sh survives no matter its age. Two
-    # days is deliberate: the t3code pin moves daily and each build leaves
-    # about 4 GiB of dead paths behind. The optimiser stays weekly because it
-    # rewrites the whole store, and because hardlinked identical files are why
-    # du and df disagree on /nix/store. Home-manager and profile generations
+    # days is deliberate: the daily lock update already turns over other large
+    # package closures every day, and a T3 Code stable bump adds about 4 GiB
+    # of its own, so anything older than one spare rollback generation is dead
+    # weight even though stable tags land infrequently.
+    # The optimiser stays weekly because it rewrites the whole store, and
+    # because hardlinked identical files are why du and df disagree on
+    # /nix/store. Home-manager and profile generations
     # live in ~/.local/state/nix/profiles, which root cannot see; home.nix has
     # the matching user-level run.
     nix.gc = {

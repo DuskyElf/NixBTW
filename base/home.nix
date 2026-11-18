@@ -106,13 +106,13 @@
           exit 1
         fi
 
-        # T3 Code follows upstream main. This moves the rev and the three
-        # hashes before the switch; a build that fails upstream leaves the
-        # previous pin in place and lets the update carry on.
-        echo "Updating T3 Code main pin..."
+        # T3 Code follows upstream stable releases. This moves the tag, the rev,
+        # and the three hashes before the switch; a tag that fails to build
+        # leaves the previous pin in place and lets the update carry on.
+        echo "Updating T3 Code stable pin..."
         DOTFILES=${hostConfig.dotsDir} DEPLOY=${hostConfig.dotsDir}/deploy-system \
-          "$HOME/.config/scripts/update-t3code-main.sh" ||
-          echo "T3 Code pin update failed, keeping the previous revision"
+          "$HOME/.config/scripts/update-t3code-stable.sh" ||
+          echo "T3 Code pin update failed, keeping the previous pin"
 
         # Switch home-manager through scripts/hm-switch.sh, the same command
         # manual rebuilds use (AGENTS.md). It evaluates the flake once, unlike

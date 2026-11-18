@@ -1,15 +1,14 @@
-# T3 Code built from the tip of pingdotgg/t3code main.
+# T3 Code built from upstream's latest stable release tag.
 #
-# nixpkgs ships the newest tagged release, so its recipe is reused here with the
-# source swapped for a commit. A new commit moves three fixed-output hashes: the
-# repo tarball, the pnpm store, and the resource monitor's cargo vendor tree.
-# They live in ./lock.nix, which scripts/update-t3code-main.sh rewrites during
-# the daily flake auto-update. `baseVersion` is cosmetic (it lands in `t3
-# --version` and the store path); bump it when upstream cuts a new minor,
-# nothing breaks if you don't.
+# nixpkgs ships an older tagged release, so its recipe is reused here with the
+# source swapped for the stable tag. A new tag moves three fixed-output hashes:
+# the repo tarball, the pnpm store, and the resource monitor's cargo vendor
+# tree. They live in ./lock.nix, which scripts/update-t3code-stable.sh rewrites
+# during the daily flake auto-update. The version follows the tag with the
+# leading v stripped (it lands in `t3 --version` and the store path).
 #
 # The package is built twice per bump: once by the update script to validate the
-# commit, once by the home-manager switch (a cache hit by then).
+# tag, once by the home-manager switch (a cache hit by then).
 {
   pkgs,
   lockPath ? ./lock.nix,
@@ -17,8 +16,8 @@
 let
   inherit (pkgs) lib;
   lock = import lockPath;
-  inherit (lock) rev;
-  version = "0.1.10-main.${builtins.substring 0 7 rev}";
+  inherit (lock) tag rev;
+  version = lib.removePrefix "v" tag;
 
   src = pkgs.fetchFromGitHub {
     owner = "pingdotgg";
@@ -27,7 +26,7 @@ let
     hash = lock.srcHash;
   };
 
-  # nixos-unstable-small at d63e5b96ca17 carries codex 0.167.0 without the
+  # nixos-unstable-small at d63e5b96ca17 carried codex 0.167.0 without the
   # system-library inputs that nixpkgs 16b463698a added. codex replaces its
   # cargoDeps with overrideAttrs, which drops the default crate overrides, so
   # aws-lc-sys sees AWS_LC_SYS_USE_SYSTEM=1 and no system AWS-LC and fails the
@@ -57,7 +56,7 @@ let
     };
   });
 
-  # Built from the same src, so its version and vendor hash track main too.
+  # Built from the same src, so its version and vendor hash track the stable tag too.
   resourceMonitor = base.resourceMonitor.overrideAttrs (old: {
     inherit version src;
     cargoHash = lock.cargoHash;

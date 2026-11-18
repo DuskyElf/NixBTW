@@ -1,9 +1,9 @@
 # NixBTW
 
 The NixOS and home-manager config for my laptop (`asus`, a UX581GV), plus the
-small tools around it: the status scripts, the T3 Code pin, and the kernel
-cache. The Guardian wallpaper pool lives in `wallpaper-guardian/`, a separate
-flake and submodule.
+small tools around it: the status scripts, the T3 Code stable pin, and the
+kernel cache. The Guardian wallpaper pool lives in `wallpaper-guardian/`, a
+separate flake and submodule.
 
 This repo is the source tree, not the deploy unit. `deploy-system/` is a
 gitignored wrapper flake that pins every input and holds `flake.lock`. It stays
@@ -20,7 +20,7 @@ closure comes from that wrapper.
 | `lib/` | nixpkgs instances, the jail wrapper, the kernel selection, `mkHost` |
 | `base/` | Machine-wide config: system policy and unowned packages in `base/system.nix`, stylix and timers in `base/home.nix` |
 | `apps/` | One app's config per file, with split apps in their own subdirectory. `apps/default.nix` lists which are home modules and which are system modules |
-| `pkgs/` | Packages this repo builds itself, such as the T3 Code pin |
+| `pkgs/` | Packages this repo builds itself, such as the T3 Code stable pin |
 | `hosts/asus/` | This laptop: `config.nix` holds its identity and hardware values, `system.nix` the firmware, kernel, nvidia, and screenpad work |
 | `scripts/`, `quickshell/`, `hot-configs/` | Linked live, no rebuild |
 
@@ -134,7 +134,7 @@ input.
 | Thing | Where | Why |
 | --- | --- | --- |
 | kernel nixpkgs | `flake.nix` | CI builds the same kernel derivation as the laptop, so the signed cache hits |
-| T3 Code main | `pkgs/t3code/lock.nix` | upstream commit plus the three vendor hashes, moved daily |
+| T3 Code stable | `pkgs/t3code/lock.nix` | upstream stable tag plus the three vendor hashes, moved by the daily timer |
 | `setup_var.efi` | `hosts/asus/system.nix` | BIOS unlock entry, by version and hash |
 | NVIDIA driver | `hosts/asus/system.nix` | must match the custom kernel, and this closure is in no public cache |
 
@@ -158,7 +158,7 @@ services. `llm-lab` starts ollama and Open WebUI only when you ask.
 
 The user timer `flake-auto-update` runs at 08:30 and catches up after wake. It
 waits for network, runs `nix flake update nixpkgs nixpkgs-unstable-small
-zen-browser` and `scripts/update-t3code-main.sh`, runs
+zen-browser` and `scripts/update-t3code-stable.sh`, runs
 `scripts/hm-switch.sh`, then commits the wrapper lock.
 
 The kernel moves on a different track. `.github/workflows/check-kernel-update.yml`
@@ -194,7 +194,7 @@ Check the parts that have tests or a single answer:
 
 ```sh
 nix eval --raw --no-write-lock-file .#kernelVersion   # the series the selector picked
-scripts/test-update-t3code-main.sh  # t3code pin repair, against a fake nix
+scripts/test-update-t3code-stable.sh  # t3code stable pin, against fakes
 scripts/test-hm-switch.sh           # hm-switch cache, against a fake nix
 nix fmt                          # nixfmt-tree over the repo
 ```

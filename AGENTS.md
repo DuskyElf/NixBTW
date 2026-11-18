@@ -14,7 +14,7 @@ The layout is the first thing to read:
 * `lib/` is the plumbing: nixpkgs instances, the jail wrapper, the kernel call, `mkHost`.
 * `base/` is machine-wide config. `base/system.nix` is policy and unconfigured packages, `base/home.nix` is stylix, gc, and timers.
 * `apps/` is one app's config per file, with split apps in their own subdirectory. `apps/default.nix` splits them into `homeModules` and `systemModules`; that list, not the filename, says which rebuild applies.
-* `pkgs/` is packages this repo builds itself. `pkgs/t3code/` is the T3 Code pin.
+* `pkgs/` is packages this repo builds itself. `pkgs/t3code/` is the T3 Code stable pin.
 * `hosts/<name>/` is one machine. `config.nix` holds its identity and hardware as data (user, home, hostname, time zone, state versions, panels, battery, GPU); `default.nix` lists that host's modules; `system.nix` holds the driver and kernel work; `disk.nix` holds the disk device and filesystem labels shared by `system.nix` and `disko.nix`; `disko.nix` is the installer layout. `lib/host.nix` is the schema and `lib/mkHost.nix` evaluates it once, passing it to `base/` and `apps/` as `hostConfig`. Never hardcode a username, connector name, or device path in `base/` or `apps/`; add an option to the schema instead.
 
 Subrepos own their domains. Read their docs when you work inside them and do not duplicate them here:
@@ -37,7 +37,7 @@ A daily user timer runs `nix flake update nixpkgs nixpkgs-unstable-small zen-bro
 
 Submodule bumps (e.g. `neovimBTW`) do not reach a switch through the live-tree override alone. The wrapper pins each submodule as its own flake input, so run `nix flake update <name>` inside `deploy-system/` after the bump, then switch. `wallpaper-guardian` is pinned the same way.
 
-T3 Code is not the nixpkgs package. `pkgs/t3code/default.nix` reuses that recipe on upstream main, and `pkgs/t3code/lock.nix` holds the rev plus the three fixed-output hashes that follow a rev. `scripts/update-t3code-main.sh` moves that pin inside the daily timer, before the switch, and keeps the old pin when a commit does not build. Do not swap it back to the nixpkgs `t3code` attribute or edit the hashes by hand.
+T3 Code is not the nixpkgs package. `pkgs/t3code/default.nix` reuses that recipe on upstream's latest stable release tag, and `pkgs/t3code/lock.nix` holds the tag, the rev, and the three fixed-output hashes that follow a tag. `scripts/update-t3code-stable.sh` moves that pin inside the daily timer, before the switch, and keeps the old pin when a tag does not build. Do not swap it back to the nixpkgs `t3code` attribute or edit the hashes by hand.
 
 `scripts/` is symlinked into `~/.config` via mkOutOfStoreSymlink, so edits go live at once, no rebuild. Exception: `power.sh` is store-pinned and symlinked into `/usr/local/sbin`, so it needs a nixos-rebuild. Any root action from a keybind must route through `power.sh` or sudo hangs the keybind.
 
