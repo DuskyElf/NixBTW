@@ -46,102 +46,46 @@
   # stateVersion go quiet with it, so run `home-manager news` after a bump.
   news.display = "silent";
 
-  # Store GC for this user, staggered after the 04:00 root run in base/system.nix.
-  # Root's run only walks /root and /nix/var/nix/profiles, so generations in
-  # ~/.local/state/nix/profiles are never pruned without this, and every one
-  # of them pins the packages it references. Two days of history is deliberate;
-  # see base/system.nix for why.
-  nix.gc = {
-    automatic = true;
-    dates = "*-*-* 05:00:00";
-    options = "--delete-older-than 2d";
-  };
-
-  # auto-update flakes and home-manager on login
-  systemd.user.services.flake-auto-update = {
+  # One daily run. scripts/daily-update.sh moves the three floating inputs,
+  # moves the T3 Code stable pin, switches this configuration, commits the
+  # wrapper lock, pins the devshells the collection has to keep, and collects
+  # the user store. The marker it writes at the end wakes the root half of the
+  # collection (base/system.nix); the monthly optimiser is the only other store
+  # unit. The pin had to run before the collection and the collection after
+  # the switch; three timers used to encode that with clock times, and now it
+  # is the order of one script's steps.
+  # Part of the graphical session, so the collection needs a login; the switch
+  # needs the user manager anyway. A machine left at the greeter collects
+  # nothing until someone logs in, which is the price of collecting right after
+  # the switch instead of on a clock.
+  systemd.user.services.daily-update = {
     Unit = {
-      Description = "Auto-update flakes and switch home-manager on login";
+      Description = "Daily flake update, switch, and store collection";
       IgnoreOnIsolate = true;
       X-SwitchMethod = "keep-old";
-      # Persistent timer fires right after login, often before wifi is up.
+      # Persistent timers fire right after login, often before wifi is up.
       # Order after network-online so we don't fail on DNS on every boot.
       Wants = [ "network-online.target" ];
       After = [ "network-online.target" ];
     };
     Service = {
       Type = "oneshot";
+      # hostConfig.gcRequest is the path the system unit watches, so the user
+      # half and the root half cannot drift onto separate markers.
+      ExecStart = "%h/.config/scripts/daily-update.sh ${hostConfig.gcRequest}";
+      # Type=oneshot disables the manager's start timeout, so a wedged run
+      # would sit in "activating" and the next elapse would find the unit
+      # already started. Twelve hours is a bound, not an expectation: it covers
+      # a from-scratch static devshell build in the pin and a T3 Code bump.
+      TimeoutStartSec = "12h";
       # No RemainAfterExit: it keeps the unit active after exit, which breaks
       # this timer's re-arm on this system (next elapse sticks at infinity).
-      ExecStart = "${pkgs.writeShellScript "flake-update-script" ''
-        trap 'echo "Caught SIGTERM, exiting..."; exit 143' TERM
-
-        # Change to the PRIVATE wrapper repo
-        DEPLOY_DIR="${hostConfig.dotsDir}/deploy-system"
-        cd "$DEPLOY_DIR" || exit 1
-
-        echo "Starting flake auto-update at $(date)"
-
-        # Wifi usually connects after login; the Persistent timer fires
-        # immediately, so wait for real connectivity instead of failing
-        # on the first DNS miss (channels.nixos.org unresolvable).
-        for i in $(seq 1 60); do
-          if ${pkgs.curl}/bin/curl -sf --max-time 5 -o /dev/null https://channels.nixos.org/flake-registry.json; then
-            break
-          fi
-          echo "No network yet ($i/60), waiting..."
-          sleep 5
-          if [ "$i" -eq 60 ]; then
-            echo "No network after 5min, aborting"
-            ${pkgs.libnotify}/bin/notify-send -u critical "Update failed" "No network after 5 minutes"
-            exit 1
-          fi
-        done
-
-        echo "Updating flake inputs..."
-        if nix flake update nixpkgs nixpkgs-unstable-small zen-browser; then
-          echo "Private flake update successful"
-        else
-          echo "Flake update failed"
-          ${pkgs.libnotify}/bin/notify-send -u critical "Update failed" "Failed to update flakes"
-          exit 1
-        fi
-
-        # T3 Code follows upstream stable releases. This moves the tag, the rev,
-        # and the three hashes before the switch; a tag that fails to build
-        # leaves the previous pin in place and lets the update carry on.
-        echo "Updating T3 Code stable pin..."
-        DOTFILES=${hostConfig.dotsDir} DEPLOY=${hostConfig.dotsDir}/deploy-system \
-          "$HOME/.config/scripts/update-t3code-stable.sh" ||
-          echo "T3 Code pin update failed, keeping the previous pin"
-
-        # Switch home-manager through scripts/hm-switch.sh, the same command
-        # manual rebuilds use (AGENTS.md). It evaluates the flake once, unlike
-        # `home-manager switch`, which evaluates a second time for its news
-        # feed, and it reuses the previous generation when the tree content did
-        # not change. Same wrapper, same live-tree override. cores = 2 keeps a
-        # post-lock-bump rebuild polite while the machine is in use.
-        if NIX_CONFIG="cores = 2" "$HOME/.config/scripts/hm-switch.sh"; then
-          echo "Home-manager switch successful"
-          ${pkgs.libnotify}/bin/notify-send "Update successful" "Successfully updated and switched privately"
-
-          echo "Committing flake.lock..."
-          git add flake.lock
-          git commit -m "chore: private auto-update" --no-gpg-sign \
-            || echo "flake.lock unchanged, nothing to commit"
-        else
-          echo "Home-manager switch failed"
-          ${pkgs.libnotify}/bin/notify-send -u critical "Update failed" "Failed to switch configuration"
-          exit 1
-        fi
-
-        echo "Flake auto-update completed at $(date)"
-      ''}";
     };
   };
 
-  systemd.user.timers.flake-auto-update = {
+  systemd.user.timers.daily-update = {
     Unit = {
-      Description = "Timer for flake auto-update";
+      Description = "Timer for the daily update";
       PartOf = [ "graphical-session.target" ];
     };
     Timer = {
@@ -151,32 +95,6 @@
       OnCalendar = "*-*-* 08:30:00";
       Persistent = true;
       RandomizedDelaySec = "30min";
-    };
-    Install.WantedBy = [ "timers.target" ];
-  };
-
-  # Keeps the devshells of the projects listed in dotfiles/hot-configs/
-  # active-projects alive across GC. A plain `nix develop` creates no gc root,
-  # so the GC collects the shell and every package in it; projects.sh pin
-  # links each listed devshell under ~/.local/state/nix/gcroots/projects.
-  # 03:30 puts it ahead of both GC timers, and Persistent catches up after a
-  # wake. Removing a project from the list unpins it on the next run.
-  systemd.user.services.projects-pin = {
-    Unit.Description = "Pin active project devshells as gc roots";
-    Service = {
-      Type = "oneshot";
-      ExecStart = "%h/.config/scripts/projects.sh pin";
-      # A lock bump can mean building a toolchain from scratch, which takes
-      # far longer than the 90s default start timeout.
-      TimeoutStartSec = "infinity";
-    };
-  };
-
-  systemd.user.timers.projects-pin = {
-    Unit.Description = "Daily devshell pin, ahead of the nix store GC";
-    Timer = {
-      OnCalendar = "*-*-* 03:30:00";
-      Persistent = true;
     };
     Install.WantedBy = [ "timers.target" ];
   };

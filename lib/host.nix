@@ -165,7 +165,7 @@ let
   };
 in
 {
-  # Evaluates host files against the schema and fills in the one derived value.
+  # Evaluates host files against the schema and fills in the derived values.
   # Every option has a default or is required, so a host file states only what
   # differs from the next machine.
   load =
@@ -176,5 +176,11 @@ in
     config
     // lib.optionalAttrs (config.dotsDir == null) {
       dotsDir = "${config.user.home}/dotfiles";
+    }
+    // {
+      # The daily update's last step, and the trigger the system path unit in
+      # base/system.nix watches. Derived here so the user unit that writes it
+      # and the system unit that watches it read one path.
+      gcRequest = "${config.user.home}/.local/state/daily-update/gc-request";
     };
 }

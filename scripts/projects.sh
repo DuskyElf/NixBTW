@@ -86,8 +86,11 @@ pinned_rev() {
 # Hidden directories are skipped so vendored checkouts (.repos) and
 # node_modules do not show up as projects.
 cmd_find() {
+  [ -d "$projects_dir" ] || {
+    echo "no projects dir at $projects_dir" >&2
+    exit 1
+  }
   printf '%-37s %-24s %-11s %s\n' project nixpkgs lock-date listed
-
   find "$projects_dir" -mindepth 1 -maxdepth 4 -name flake.nix \
     -not -path "*/.*" -not -path "*/node_modules/*" -print0 |
     sort -z |
@@ -105,6 +108,8 @@ cmd_find() {
 # Prints one row per listed project: name, pinned rev, lock rev, state.
 cmd_list() {
   printf '%-22s %-8s %-8s %s\n' project pinned lock state
+  # An empty list is a real state (a fresh home), not one nameless project.
+  [ "${#active[@]}" -gt 0 ] || return 0
 
   while read -r name; do
     dir="$projects_dir/$name"
@@ -156,6 +161,9 @@ cmd_pin() {
   failed=0
 
   while read -r name; do
+    # An empty list is a real state (a fresh home); printf still emits one
+    # blank line for it, and there is nothing to pin.
+    [ -n "$name" ] || continue
     dir="$projects_dir/$name"
 
     if [ ! -d "$dir" ]; then

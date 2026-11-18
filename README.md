@@ -145,21 +145,32 @@ updates three of them. The kernel pin has its own rotation, described below.
 
 ## What runs
 
-Systemd units do the background work, not shell daemons. The daily wrapper
-update has a timer. Store hygiene is daily: the devshell pin runs at 03:30, the
-root GC at 04:00, and your own GC at 05:00, the two GCs keeping two days of
-generations. The wallpaper fetch, rotate, resume, and startup units come from
-the `wallpaper-guardian` home-manager module enabled in `apps/wallpaper.nix`,
-next to `awww-daemon`. `quickshell`, `wl-gammarelay`, and `break-timer` are
-`apps/quickshell.nix`, `apps/gammarelay.nix`, and `apps/idle.nix`. `battery-threshold-control` and `screenpad-off` are one-shot system
-services. `llm-lab` starts ollama and Open WebUI only when you ask.
+Systemd units do the background work, not shell daemons. One daily user timer
+does the morning's work: `scripts/daily-update.sh` updates the floating inputs,
+moves the T3 Code pin, switches home-manager, commits the wrapper lock, pins the
+listed devshells, and collects the user store. It then wakes a system path unit
+that collects root's profiles, so both sides keep two days of generations. The
+monthly store optimiser is the only other store unit. The wallpaper fetch,
+rotate, resume, and startup units come from the `wallpaper-guardian`
+home-manager module enabled in `apps/wallpaper.nix`, next to `awww-daemon`.
+`quickshell`, `wl-gammarelay`, and `break-timer` are `apps/quickshell.nix`,
+`apps/gammarelay.nix`, and `apps/idle.nix`. `battery-threshold-control` and
+`screenpad-off` are one-shot system services. `llm-lab` starts ollama and Open
+WebUI only when you ask.
 
 ## The daily update
 
-The user timer `flake-auto-update` runs at 08:30 and catches up after wake. It
-waits for network, runs `nix flake update nixpkgs nixpkgs-unstable-small
-zen-browser` and `scripts/update-t3code-stable.sh`, runs
-`scripts/hm-switch.sh`, then commits the wrapper lock.
+The user timer `daily-update` fires from 08:30, with up to half an hour of
+jitter, and catches up after wake. `scripts/daily-update.sh` waits for network,
+runs `nix flake update nixpkgs nixpkgs-unstable-small zen-browser` and
+`scripts/update-t3code-stable.sh`, runs `scripts/hm-switch.sh`, commits the
+wrapper lock, pins the listed devshells, and collects the user store with
+`--delete-older-than 2d`. The marker it writes last starts
+`nix-gc-root.service`, which collects root's profiles with the same window. A
+failed update, switch or commit still pins and collects, and the run exits
+nonzero. The unit is part of the graphical session, so the run needs a login;
+the old GC timers did not, and that is the trade for collecting right after the
+switch.
 
 The kernel moves on a different track. `.github/workflows/check-kernel-update.yml`
 compares the pinned `nixpkgs-fast-release` rev with `release-26.05` and opens a
@@ -196,6 +207,7 @@ Check the parts that have tests or a single answer:
 nix eval --raw --no-write-lock-file .#kernelVersion   # the series the selector picked
 scripts/test-update-t3code-stable.sh  # t3code stable pin, against fakes
 scripts/test-hm-switch.sh           # hm-switch cache, against a fake nix
+scripts/test-daily-update.sh        # the daily run, against fakes
 nix fmt                          # nixfmt-tree over the repo
 ```
 

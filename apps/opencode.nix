@@ -9,7 +9,7 @@
 let
   # Built from upstream's latest stable release tag, not the older tagged
   # release in nixpkgs. The tag and the fixed-output hashes live in
-  # pkgs/t3code/lock.nix and move with the daily flake auto-update
+  # pkgs/t3code/lock.nix and move with the daily update
   # (scripts/update-t3code-stable.sh).
   t3code = import ../pkgs/t3code { pkgs = pkgs-unstable-small; };
 

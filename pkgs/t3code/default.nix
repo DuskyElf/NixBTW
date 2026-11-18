@@ -4,7 +4,7 @@
 # source swapped for the stable tag. A new tag moves three fixed-output hashes:
 # the repo tarball, the pnpm store, and the resource monitor's cargo vendor
 # tree. They live in ./lock.nix, which scripts/update-t3code-stable.sh rewrites
-# during the daily flake auto-update. The version follows the tag with the
+# during the daily update. The version follows the tag with the
 # leading v stripped (it lands in `t3 --version` and the store path).
 #
 # The package is built twice per bump: once by the update script to validate the

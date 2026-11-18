@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Moves pkgs/t3code/lock.nix to upstream's latest stable release tag.
 #
-# Runs from the daily flake auto-update, between `nix flake update` and the
+# Runs from scripts/daily-update.sh, between `nix flake update` and the
 # home-manager switch:
 #   1. resolve the stable tag through the GitHub releases API, then the tag to
 #      a commit
