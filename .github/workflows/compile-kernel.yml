@@ -15,18 +15,31 @@ name: "Compile Optimized Kernel"
 #   Assets allow 2 GB per file and are free on public repos. Nix follows the
 #   redirect to the storage backend.
 #
-# Only the kernel's four outputs are published: out, modules, dev and
-# configfile, about 305 MB. The rest of the closure is the compiler toolchain
-# that kernel-dev points at, and cache.nixos.org already has all of it, so
-# publishing it again would double the download and leave unsigned narinfos in
-# a cache this laptop trusts. The build checks every reference against upstream
-# instead, so a rev that ships one upstream lacks fails here, not on the laptop.
+# The kernel's four outputs are published, out, modules, dev and configfile,
+# about 305 MB, plus the nvidia module built against that kernel. The rest of
+# the closure is the compiler toolchain that kernel-dev points at, and
+# cache.nixos.org already has all of it, so publishing it again would double the
+# download and leave unsigned narinfos in a cache this laptop trusts. The build
+# checks every reference against upstream instead, so a rev that ships one
+# upstream lacks fails here, not on the laptop.
+#
+# The driver module is published because nothing upstream can ever hold it: it
+# compiles against this kernel's dev output, which exists only after this run
+# builds it, and the laptop pins a driver release newer than nixpkgs knows.
+# Leaving it out made it the one thing a kernel bump still compiled here, during
+# the switch, and the only compile that could fail after the merge. Built here,
+# a driver that no longer knows the kernel is a red run at merge time instead of
+# a failed switch. The userspace half of the driver does not move with the
+# kernel, so it stays a one-time local build.
 #
 # A kernel is built at most once. The release carries a PACKAGED manifest,
-# uploaded last, and the plan step checks for it before spending two hours. So
-# dispatching this against a published kernel is a two minute no-op, which is
-# also how to rehearse a change to this file: plan, gather, deploy and verify
-# run, nothing compiles.
+# uploaded last, and the plan step compares it against every path this run would
+# publish before spending two hours. So dispatching this against a published
+# kernel is a two minute no-op, which is also how to rehearse a change to this
+# file: plan, gather, deploy and verify run, nothing compiles. Adding a path to
+# the list, as the driver module did, makes that comparison fail and republishes
+# the release with it, which costs a full kernel build again: the runner starts
+# with an empty store and substitutes nothing, not even from this cache.
 #
 # Retention keeps the newest KEEP_KERNELS releases. Deleting a release whose
 # kernel a generation still runs turns that rollback into a local build, so the
@@ -36,10 +49,12 @@ name: "Compile Optimized Kernel"
 # Which kernel gets built is never named here: hosts/asus/stable-kernel.nix
 # picks the newest series with a stable patch release.
 #
-# Two things make the artifact identical on the runner and on this laptop, so
+# Two things make the artifacts identical on the runner and on this laptop, so
 # the store paths match and the cache hits: fixed -march=skylake from
 # skylake-march.patch (never X86_NATIVE_CPU, which sniffs the build host), and
-# nixpkgs-fast-release pinned by rev in flake.nix.
+# nixpkgs-fast-release pinned by rev in flake.nix. The driver module inherits
+# both: it is a fixed-output fetch of an upstream tag compiled by the kernel's
+# own build system, and its output references nothing but itself.
 
 env:
   CACHE_URL: https://duskyelf.github.io/NixBTW
@@ -47,10 +62,15 @@ env:
   # The signer name. base/system.nix holds the public half the laptop trusts; the
   # name there and here must be identical, so keep them in one place each.
   CACHE_KEY_NAME: i9-kernel-cache
-  # Kernel releases to keep. Each one is ~305 MB of release assets.
+  # Kernel releases to keep. Each one is ~305 MB of kernel assets plus the
+  # driver module.
   KEEP_KERNELS: 2
   # Long enough that repeating it by hand invites a typo in one of the outputs.
   KERNEL: .#nixosConfigurations.asus.config.boot.kernelPackages.kernel
+  # The out-of-tree driver module for that same kernel, open flavour because
+  # hosts/asus/system.nix sets hardware.nvidia.open. It has to be built after
+  # the kernel, and no upstream cache can hold it.
+  NVIDIA: .#nixosConfigurations.asus.config.hardware.nvidia.package.open
 
 on:
   workflow_dispatch:
@@ -102,15 +122,28 @@ jobs:
           # costs hours. These are the only paths this workflow must publish;
           # the rest of the closure comes along because a cache cannot be
           # partial, but nothing else ever asks the laptop to trust it.
-          nix eval --json --apply 'k: [ k.out k.modules k.dev k.configfile ]' "$KERNEL" \
-            | jq -r '.[]' > ./published-paths
+          {
+            nix eval --json --apply 'k: [ k.out k.modules k.dev k.configfile ]' "$KERNEL"
+            nix eval --json --apply 'n: [ n ]' "$NVIDIA"
+          } | jq -r '.[]' > ./published-paths
 
           # PACKAGED is uploaded last, so its presence means every nar and
-          # narinfo in the release made it. Anything less and we build again.
+          # narinfo in the release made it, and its content is the path list it
+          # was built for. The planned list has to be a subset of it: equal is
+          # the normal case, a planned path the manifest lacks means this run
+          # publishes something new (the driver module, or a shorter republish),
+          # and a manifest with paths this run no longer plans is harmless.
           need_build=true
-          if gh release view "$TAG" --repo "$RELEASE_REPO" --json assets \
-               -q '.assets[].name' 2>/dev/null | grep -qx PACKAGED; then
-            need_build=false
+          if gh release download "$TAG" --repo "$RELEASE_REPO" \
+               --pattern PACKAGED --output ./PACKAGED.published --clobber 2>/dev/null; then
+            missing=$(comm -23 <(sort ./published-paths) <(sort ./PACKAGED.published)) \
+              || { echo "could not compare against the published manifest" >&2; exit 1; }
+            if [ -z "$missing" ]; then
+              need_build=false
+            else
+              echo "not in the published manifest yet:"
+              printf '  %s\n' "$missing"
+            fi
           fi
 
           echo "kernel $VER, release $TAG, need_build=$need_build"
@@ -170,7 +203,7 @@ jobs:
           CONFIG_ASUS_NB_WMI=m
           EOF
           nix build --no-link --print-out-paths \
-            "$KERNEL^out" "$KERNEL^modules" "$KERNEL^dev" > /dev/null
+            "$KERNEL^out" "$KERNEL^modules" "$KERNEL^dev" "$NVIDIA^out" > /dev/null
           for p in "${PATHS[@]}"; do
             [ -e "$p" ] || { echo "planned path $p is missing after the build" >&2; exit 1; }
           done
@@ -226,8 +259,6 @@ jobs:
             grep -q "^URL: $ASSET_BASE/$nar\$" "./narinfos/$h.narinfo" \
               || { echo "narinfo $h still points at a relative URL" >&2; exit 1; }
           done
-          [ "${#nars[@]}" -eq "${#PATHS[@]}" ] \
-            || { echo "collected ${#nars[@]} nars for ${#PATHS[@]} paths" >&2; exit 1; }
 
           # Upload before anything else can fail, and upload PACKAGED last so a
           # half-finished upload never looks complete to the next run.

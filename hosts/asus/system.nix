@@ -193,8 +193,9 @@ in
       # Hashes copied from linuxPackages.nvidiaPackages.new_feature in
       # nixos-unstable; bump by hand. Cost: this exact driver closure is not in
       # any binary cache, so the userspace build happens locally once, then
-      # stays in the store. (The kernel module always builds locally anyway,
-      # custom kernel.)
+      # stays in the store. The kernel module is the half that moves with every
+      # kernel, so CI builds and publishes that one together with the kernel
+      # (.github/workflows/compile-kernel.yml).
       package = config.boot.kernelPackages.nvidiaPackages.mkDriver {
         version = "615.78.08";
         sha256_64bit = "sha256-Pj9t3cLudnoIGFMAr3vjyyhuznZpjS3eNSRZl4LQf/4=";
