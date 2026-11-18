@@ -1,0 +1,10 @@
+StorePath: /nix/store/azjb02hssbhw5d5ack17ag298c0c9y9y-linux-7.3.5-dev
+URL: https://github.com/DuskyElf/NixBTW/releases/download/kernel-7.3.5/1fdckc80zv5ak8qaqfz00c2a5v17p1axrgmndxhjl7kxsvaqrcbv.nar.xz
+Compression: xz
+FileHash: sha256:1fdckc80zv5ak8qaqfz00c2a5v17p1axrgmndxhjl7kxsvaqrcbv
+FileSize: 157145888
+NarHash: sha256:1hgnk22vc6xaiwkcbai59w0ag13l5ssasl992q508dln7akvwlk3
+NarSize: 712857584
+References: 07cyn5i8qazrk1cf27qvqnxq2lkp7ycb-gnumake-4.4.1 1pin5ppvqb4k98yms7xw7xpwb88gilwh-gcc-wrapper-15.3.0 37yblhzz9f3fm5sfj1qm5qn76j9z3qan-python3-minimal-3.13.18 3zv0slhf2ppzi3c26152d14mac395ga4-binutils-2.46 4rjdy6b81diqiz3jg8ml11rpfwf9z99l-gawk-5.4.1 7ccr4alkm6zx34kq9l2sdw0mzqg69scw-rustc-1.95.0 7npg499d1xbb604shcwfzvx7gv3s1mcp-binutils-wrapper-2.46 8favl12dxjfxwzgqq5jh53k2kjn19nn9-bash-5.3p9 azjb02hssbhw5d5ack17ag298c0c9y9y-linux-7.3.5-dev cb7d4q7zpd9mhr3mr4a32845cqj8nqdy-glibc-2.42-103-dev f41qarmcx7bdva55fg3b4mlwk93w12s4-perl-5.42.3 fxiw0q1avh119jmhxqz1b5avrk163nic-elfutils-0.194 gphsgj05lizm67smlig8jw0phdi2hwww-elfutils-0.194-dev p7ip75rls2g87d1yy4568djpa244c7ww-coreutils-9.11 pagq7gjgxqbi09g0091x2cxwq2kwxyx8-glibc-2.42-103 pkb2bibhgwnnnjcngk6h95db9mjfy7k0-gcc-15.3.0 r3fwyjb1k9v7y6qd5l2jq1sx3b46dx2y-gnused-4.10 r8hyq4mkr0adw3lbz4jc3szjz3dn3p27-rust-lib-src ssqngilym71i37kf95y5ziczrmc4kwss-zlib-1.3.2-dev w6l9irr4v2vwb1d36yxqh9qsf1gn3s9k-linux-7.3.5 z40ci0k5kkb1b9w7hb3lnabr8h6dmjsj-zlib-1.3.2 zsxcf54ml6jr2wjqh29a30lh46h166wi-gcc-15.3.0-lib
+Deriver: si4z3srkfk8r0dyxa4ayns8axm42dpdn-linux-7.3.5.drv
+Sig: i9-kernel-cache:2qFsNsjSLoeqhu58KzXSbU1gX4upcEqlpw0AcsV2hUsgjWXVppnsffZTcPYvy9leHAPfuHGozVg12H3khfCqAQ==

@@ -1,0 +1,10 @@
+StorePath: /nix/store/2kiamlylk6s674jxbnn2wpc0sn20rd1b-linux-config-7.3.5
+URL: https://github.com/DuskyElf/NixBTW/releases/download/kernel-7.3.5/0gf7y8nrmawiqpn2iljw7r84wxwkmk29s1pn0xhiq01rhn37wrpl.nar.xz
+Compression: xz
+FileHash: sha256:0gf7y8nrmawiqpn2iljw7r84wxwkmk29s1pn0xhiq01rhn37wrpl
+FileSize: 54964
+NarHash: sha256:00sz9vf04x3jaghdqdqxx94js1684isxyrk2nq29pdp4acva78ia
+NarSize: 262080
+References: 
+Deriver: fn8y9iyas1wmh5225xx4gwkz9gyd2f1x-linux-config-7.3.5.drv
+Sig: i9-kernel-cache:vb2/b1hz6V4Pk3aJ4bbgGgdH1CxWxlEHcAP99dUWtJQzvYcC8yVTPi5vyhR+vaJER3K5nZDDilgzM626xoNCCQ==
