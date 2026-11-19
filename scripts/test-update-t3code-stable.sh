@@ -21,6 +21,7 @@
 #  10. nightly refused      API serves a nightly-shaped tag: pin kept, exit 0
 #  11. older refused        API serves an older stable tag: pin kept, exit 0
 #  12. large body           multi-line release JSON parses without a SIGPIPE
+#  13. pin in place fails   build fails with the tag current: blames the recipe
 set -euo pipefail
 
 here=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
@@ -520,5 +521,30 @@ grep -Fq "is current and builds" <<<"$out" || fail "case 12: current pin not rep
 diff -u "$truth" "$lock" || fail "case 12: lock changed"
 ok "case 12: a large release body does not SIGPIPE the parse"
 
+# --------------------------------------------------------------- case 13 ----
+# The pin is current and the build still fails. The tag did not move, so what
+# broke is the recipe or the package set behind it, and the report must say so
+# instead of blaming a tag that is still the one in the lock.
+reset_case
+lockfile "$new_tag" "$new" "$new_src" "$new_pnpm" "$new_cargo" > "$lock"
+cp "$lock" "$head"
+lockfile "$new_tag" broken "$new_src" "$new_pnpm" "$new_cargo" > "$truth"
+release "$new_tag" > "$work/release.json"
+printf '%s\n' "$new" > "$rev"
+cp "$lock" "$work/before.nix"
+
+if ! out=$(run); then
+    printf '%s\n' "$out" >&2
+    fail "case 13: script exited non-zero on a failed build with the pin in place"
+fi
+cmp -s "$work/before.nix" "$lock" || fail "case 13: lock changed on a failed build"
+grep -Fq "did not build; the pin did not move" <<<"$out" \
+    || fail "case 13: failure not attributed to the recipe"
+if grep -Fq "does not build, keeping" <<<"$out"; then fail "case 13: blamed the tag"; fi
+if grep -Fq "still on" "$work/notify"; then fail "case 13: notify blamed the tag"; fi
+if [ -s "$commits" ]; then fail "case 13: failed build was committed"; fi
+[ "$(build_count)" -eq 1 ] || fail "case 13: expected 1 build, saw $(build_count)"
+ok "case 13: a failed build with the pin in place blames the recipe"
+
 echo
-echo "PASS: 12 cases"
+echo "PASS: 13 cases"

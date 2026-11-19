@@ -67,16 +67,33 @@ write_lock() {
 
 set_lock_value() { sed -i "s|^  $1 = \".*\";\$|  $1 = \"$2\";|" "$LOCK"; }
 
-# Builds the package exactly the way the home switch will: the deploy
-# wrapper's lock decides nixpkgs-unstable-small, while the package itself is
-# read from the live tree, so an uncommitted lock file still counts.
+# Builds the package exactly the way the home switch will: the package set comes
+# from lib/pkgs.nix, read through the deploy wrapper's locked inputs, which is
+# the set home-manager evaluates (the wrapper overrides my-dotfiles with the
+# live tree, so the module and this expression resolve the same inputs). Config
+# and overlays therefore live in one place instead of here.
+#
+# The recipe and codex come from the unstable-small pin: that tree carries a
+# recipe new enough for a 0.1.x tag, and a codex new enough for T3 to trust.
+# Building against the stable set is what keeps this cheap: its channel cache
+# carries electron, and unstable-small's does not, so a build from that set
+# would compile Chromium. The wrapper's lock is the one source of truth; a hand
+# `nix flake update` on the checkout alone is the one way these can drift.
 build_pkg() {
   nix build --no-link --impure --cores "${CORES:-4}" --expr "
     let
       deploy = builtins.getFlake \"path:$DEPLOY\";
-      pkgs = deploy.inputs.nixpkgs-unstable-small.legacyPackages.x86_64-linux;
+      # The wrapper's pins, which my-dotfiles follows, so this is the same set
+      # home-manager evaluates. Reading deploy.inputs.my-dotfiles.inputs instead
+      # would re-resolve the whole dotfiles graph, submodules included, for a
+      # minute of nothing.
+      dotfiles = import $DOTFILES/lib/pkgs.nix { inputs = deploy.inputs; };
     in
-    import $PKG { inherit pkgs; }
+    import $PKG {
+      pkgs = dotfiles.stable;
+      recipeSrc = dotfiles.unstable-small.path;
+      codex = dotfiles.unstable-small.codex;
+    }
   "
 }
 
@@ -269,9 +286,17 @@ for _ in 1 2 3 4 5 6; do
 done
 
 if [ "$built" -ne 1 ]; then
-  echo "t3code: stable $tag (${rev:0:7}) does not build, keeping ${old_tag:-none}"
+  # A failing build with the pin in place is not about the tag: the tag and rev
+  # already matched the lock, so what broke is the recipe or the package set
+  # behind it. Say that instead of blaming a tag that did not move.
+  if [ "$tag" != "$old_tag" ] || [ "$rev" != "$old_rev" ]; then
+    echo "t3code: stable $tag (${rev:0:7}) does not build, keeping ${old_tag:-none}"
+    notify -u normal "T3 Code update skipped" "stable $tag does not build; still on ${old_tag:-none}"
+  else
+    echo "t3code: $tag (${rev:0:7}) did not build; the pin did not move, so the recipe or its package set is at fault"
+    notify -u normal "T3 Code build failed" "$tag did not build; the pin did not move, so the unstable-small recipe or stable's packages are at fault"
+  fi
   printf '%s\n' "$log" | tail -40
-  notify -u normal "T3 Code update skipped" "stable $tag does not build; still on ${old_tag:-none}"
   exit 0
 fi
 
