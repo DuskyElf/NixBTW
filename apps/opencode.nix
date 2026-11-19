@@ -89,6 +89,13 @@ in
     #))
   ];
 
+  # T3 Code calls `xdg-mime default` for its own scheme at launch, which does
+  # nothing while mimeapps.list is a read-only store link (base/home.nix owns
+  # it), so the scheme is declared here. It points at the packaged entry, not
+  # T3's com.t3tools.T3Code.desktop: that one execs bare electron because the
+  # wrapper sets no T3CODE_DESKTOP_LAUNCHER_PATH.
+  xdg.mimeApps.defaultApplications."x-scheme-handler/t3code" = "t3code.desktop";
+
   # T3's downloads are already on disk by the time a switch runs, so this
   # repairs them without a watcher. Any T3 upgrade that downloads a newer build
   # is healed by the next switch (the daily auto-update) or by running

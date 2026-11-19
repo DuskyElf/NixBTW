@@ -11,6 +11,15 @@
   home.username = hostConfig.user.name;
   home.homeDirectory = hostConfig.user.home;
 
+  # Default applications are declared, not set at runtime. Enabling this makes
+  # home-manager own ~/.config/mimeapps.list, a read-only store link that each
+  # switch rewrites, so an app module under apps/ only states its defaults.
+  # `force` replaces the file an app wrote before home-manager owned it; after
+  # that the target is already a link and no switch conflicts.
+  xdg.mimeApps.enable = true;
+  xdg.configFile."mimeapps.list".force = true;
+  xdg.dataFile."applications/mimeapps.list".force = true;
+
   # Don't change
   home.stateVersion = hostConfig.stateVersion.home;
   programs.home-manager.enable = true;
