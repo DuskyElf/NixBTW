@@ -6,7 +6,8 @@
 #
 #   daily-update.sh [marker] [system-switch]
 #                   the whole run; the `daily-update` user timer calls it
-#                   (base/home.nix) and a hand-run update is the same thing.
+#                   (base/home-workstation.nix) and a hand-run update is the
+#                   same thing.
 #                   The unit passes hostConfig.gcRequest and
 #                   hostConfig.systemSwitchPath so both halves of each pair read
 #                   one value; the fallbacks only keep a hand run working. Pass
@@ -18,10 +19,10 @@
 #
 # The user half of the collection cannot prune generations under
 # /nix/var/nix/profiles or /root, so the script writes a marker when it is done
-# and a system path unit (base/system.nix) collects root's profiles. The marker
-# is written on exit, including an interrupted one: a system switch can restart
-# the display manager and take this unit's cgroup with it, and the collection
-# must not depend on the update finishing.
+# and a system path unit (base/workstation.nix) collects root's profiles. The
+# marker is written on exit, including an interrupted one: a system switch can
+# restart the display manager and take this unit's cgroup with it, and the
+# collection must not depend on the update finishing.
 #
 # The collection runs even when the update did not: generations age whether or
 # not a lock moved, so the day's collection must not depend on the network or
@@ -36,15 +37,16 @@ set -euo pipefail
 dots=$(cd -- "$(dirname -- "$(readlink -f -- "$0")")/.." && pwd)
 deploy=$dots/deploy-system
 # The daily-update unit passes hostConfig.gcRequest, the same value the system
-# path unit in base/system.nix watches, so production has one source for this
-# path. The fallback only keeps a hand run working; changing it here alone does
-# not move the marker the system unit watches.
+# path unit in base/workstation.nix watches, so production has one source for
+# this path. The fallback only keeps a hand run working; changing it here alone
+# does not move the marker the system unit watches.
 marker=${1:-$HOME/.local/state/daily-update/gc-request}
-# base/system.nix links this store copy for the NOPASSWD rule, and lib/host.nix
-# derives its path from powerScriptPath; the fallback is that derivation with
-# its default, kept here only so a hand run works. The helper takes no arguments
-# and holds the flake, the override and the core count. Passing the path in is
-# what lets the test run a stub instead of the real thing.
+# base/workstation.nix links this store copy for the NOPASSWD rule, and
+# lib/host.nix derives its path from powerScriptPath; the fallback is that
+# derivation with its default, kept here only so a hand run works. The helper
+# takes no arguments and holds the flake, the override and the core count.
+# Passing the path in is what lets the test run a stub instead of the real
+# thing.
 system_switch=${2:-/usr/local/sbin/nixos-switch.sh}
 
 log() { printf '%s %s\n' "$(date '+%F %T')" "$*"; }

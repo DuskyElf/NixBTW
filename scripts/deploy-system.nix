@@ -11,6 +11,7 @@
     nixpkgs-unstable.url = "nixpkgs/nixos-unstable";
     nixpkgs-unstable-small.url = "nixpkgs/nixos-unstable-small";
     jail-nix.url = "sourcehut:~alexdavid/jail.nix";
+    disko.url = "github:nix-community/disko";
     home-manager.url = "github:nix-community/home-manager/release-26.05";
     stylix.url = "github:nix-community/stylix/release-26.05";
     niri.url = "github:sodiboo/niri-flake";
@@ -25,12 +26,14 @@
     my-dotfiles.inputs.nixpkgs-unstable.follows = "nixpkgs-unstable";
     my-dotfiles.inputs.nixpkgs-unstable-small.follows = "nixpkgs-unstable-small";
     my-dotfiles.inputs.jail-nix.follows = "jail-nix";
+    my-dotfiles.inputs.disko.follows = "disko";
     my-dotfiles.inputs.home-manager.follows = "home-manager";
     my-dotfiles.inputs.stylix.follows = "stylix";
     my-dotfiles.inputs.niri.follows = "niri";
     my-dotfiles.inputs.neovimBTW.follows = "neovimBTW";
     my-dotfiles.inputs.wallpaper-guardian.follows = "wallpaper-guardian";
     my-dotfiles.inputs.zen-browser.follows = "zen-browser";
+    disko.inputs.nixpkgs.follows = "nixpkgs";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
     stylix.inputs.nixpkgs.follows = "nixpkgs";
     neovimBTW.inputs.nixpkgs.follows = "nixpkgs";

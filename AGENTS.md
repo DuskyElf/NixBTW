@@ -10,12 +10,12 @@ Before every commit, Review. The change must be reviewed by review agent(s) with
 Top level owns the machine: `flake.nix`, `lib/`, `base/`, `apps/`, `pkgs/`, `hosts/`, `scripts/`, `quickshell/`, `hot-configs/`, plus `deploy-system/` (private wrapper flake, gitignored, pushed to `NixBTW-deploy`).
 
 The layout is the first thing to read:
-* `flake.nix` declares inputs and outputs, nothing else.
+* `flake.nix` declares inputs and outputs, nothing else. The `disko` input is used only by a host that carries a `disko.nix`.
 * `lib/` is the plumbing: nixpkgs instances, the jail wrapper, the kernel call, `mkHost`.
-* `base/` is machine-wide config. `base/system.nix` is policy and unconfigured packages, `base/home.nix` is stylix, gc, and timers.
-* `apps/` is one app's config per file, with split apps in their own subdirectory. `apps/default.nix` splits them into `homeModules` and `systemModules`; that list, not the filename, says which rebuild applies.
+* `base/` is machine-wide config, split by machine type. `base/core.nix` is what every host gets: the account, bootloader, hostname, firewall, time zone, locale, nix daemon settings, and the six core packages. `base/workstation.nix` is the desktop policy (NetworkManager, tailscale, bluetooth, battery, the root helpers, store hygiene) and a host opts into it by listing the file. On the home side `base/home.nix` is the minimum every host gets and `base/home-workstation.nix` adds stylix, the dark-mode portal key, the flake modules only a desktop needs, and the daily update.
+* `apps/` is one app's config per file, with split apps in their own subdirectory. `apps/default.nix` is a registry keyed by app name, each name mapping to the `home` and `system` modules it contributes; a host lists names, so the filename says nothing about which rebuild applies.
 * `pkgs/` is packages this repo builds itself. `pkgs/t3code/` is the T3 Code stable pin.
-* `hosts/<name>/` is one machine. `config.nix` holds its identity and hardware as data (user, home, hostname, time zone, state versions, panels, battery, GPU); `default.nix` lists that host's modules; `system.nix` holds the driver and kernel work; `disk.nix` holds the disk device and filesystem labels shared by `system.nix` and `disko.nix`; `disko.nix` is the installer layout. `lib/host.nix` is the schema and `lib/mkHost.nix` evaluates it once, passing it to `base/` and `apps/` as `hostConfig`. Never hardcode a username, connector name, or device path in `base/` or `apps/`; add an option to the schema instead.
+* `hosts/<name>/` is one machine. `config.nix` holds its identity and hardware as data (user, home, hostname, time zone, state versions, panels, battery, GPU); `default.nix` lists the base modules and the app names that machine opts into; `system.nix` holds the driver and kernel work; `disk.nix` holds the disk device and filesystem labels that `disko.nix` reads; `disko.nix` is the installer layout, and `lib/mkHost.nix` adds the disko module only when that key is set. A host that is already installed leaves the key out and keeps its `disko.nix` only for a reinstall; asus is that case. `lib/host.nix` is the schema and `lib/mkHost.nix` evaluates it once, passing it to `base/` and `apps/` as `hostConfig`. Never hardcode a username, connector name, or device path in `base/` or `apps/`; add an option to the schema instead.
 
 Subrepos own their domains. Read their docs when you work inside them and do not duplicate them here:
 * `neovimBTW/`
@@ -26,26 +26,26 @@ This repo is NOT the deploy flake. `deploy-system/` is a private wrapper flake p
 
 All rebuilds go through the wrapper with the live-tree override so uncommitted edits apply immediately:
 
-* System (`base/system.nix`, the system list in `apps/default.nix`, `hosts/`): `sudo nixos-rebuild switch --flake /home/duskyelf/dotfiles/deploy-system --override-input my-dotfiles path:/home/duskyelf/dotfiles --cores 16`
-* Home (`base/home.nix`, the home list in `apps/default.nix`): `~/.config/scripts/hm-switch.sh`
+* System (`base/core.nix`, `base/workstation.nix`, the system side of a host's app list in `apps/default.nix`, `hosts/`): `sudo nixos-rebuild switch --flake /home/duskyelf/dotfiles/deploy-system --override-input my-dotfiles path:/home/duskyelf/dotfiles --cores 16`
+* Home (`base/home.nix`, `base/home-workstation.nix`, the home side of a host's app list in `apps/default.nix`): `~/.config/scripts/hm-switch.sh`
 
 `hm-switch.sh` is the home switch. Evaluation is ~20s of single-core work and is the floor for any content change, so the script keys the generation derivation by the content of the tree, reuses it, and skips activation when that generation is already active: an unchanged tree returns in about a second. `--force` re-activates. It passes `path:`, so untracked files count. Its state is `~/.local/state/hm-switch` (`drv-cache`, `activated`, `generation`, `lock`), which is where to look when a change seems not to apply, or when a switch waits up to 10 min on another one holding the lock. `home-manager switch --rollback` followed by a switch re-activates the tree's generation, undoing the rollback. The longer `home-manager switch --flake ...deploy-system --override-input my-dotfiles path:...` still works; the script wraps only the switch, so that is the command for `home-manager news`, `rollback` and `generations` (the last two never evaluate the flake). The CLI evaluates the configuration twice, its news feed being a second evaluation, and prints the news count and the overridden-lock notice that the script drops.
 
-Everything on this machine is handled by systemd timers pretty much.
+Everything on the laptop is handled by systemd timers pretty much.
 
-A daily user timer (`daily-update`, fires from 08:30 with up to 30 minutes of jitter, see `base/home.nix`) runs `scripts/daily-update.sh`: it pulls `origin/main` with `git pull --rebase --autostash`, syncs the submodules, locks this checkout's ignored `flake.lock`, runs `nix flake update nixpkgs nixpkgs-unstable-small zen-browser neovimBTW wallpaper-guardian` in `deploy-system/`, moves the T3 Code pin, rebuilds the system through `/usr/local/sbin/nixos-switch.sh`, runs `hm-switch.sh`, commits the wrapper lock, pins the devshells, and collects the user store. Three inputs float from the network; `neovimBTW` and `wallpaper-guardian` are re-locked from their checkouts, which is what carries a merged submodule bump into the switch. The system switch comes first: a change that spans both halves needs the new store copy installed before home activation calls into it, and a failed system switch skips the home switch rather than leaving a half-applied pair.
+A daily user timer (`daily-update`, fires from 08:30 with up to 30 minutes of jitter, see `base/home-workstation.nix`, so only a host that lists that home file has it; its system half, the `nix-gc-root` path unit, is in `base/workstation.nix`) runs `scripts/daily-update.sh`: it pulls `origin/main` with `git pull --rebase --autostash`, syncs the submodules, locks this checkout's ignored `flake.lock`, runs `nix flake update nixpkgs nixpkgs-unstable-small zen-browser neovimBTW wallpaper-guardian` in `deploy-system/`, moves the T3 Code pin, rebuilds the system through `/usr/local/sbin/nixos-switch.sh`, runs `hm-switch.sh`, commits the wrapper lock, pins the devshells, and collects the user store. Three inputs float from the network; `neovimBTW` and `wallpaper-guardian` are re-locked from their checkouts, which is what carries a merged submodule bump into the switch. The system switch comes first: a change that spans both halves needs the new store copy installed before home activation calls into it, and a failed system switch skips the home switch rather than leaving a half-applied pair.
 
 The last step touches `~/.local/state/daily-update/gc-request`, and the system path unit `nix-gc-root` turns that into the root collection, so there is one collection round per day, after the switch, keeping two days of generations on both sides. The marker is written from an exit trap, so a run killed with SIGTERM (a system switch can restart the display manager and take the unit's cgroup) still asks for root's collection; only SIGKILL loses it, and the user half is skipped either way. The collection runs even when the update or the switch failed: a bad week must not keep a week of generations. The unit is part of the graphical session, so a laptop left at the greeter collects nothing until a login; the old GC timers ran without one, and collecting right after the switch is worth that. Only the monthly store optimiser has a timer of its own. When the machine disagrees with this repo, suspect that drift first, not a local edit. Do not hand-edit pins the timer owns.
 
 The pull is how merged work lands: the kernel PR is the one manual gate, and the daily run takes the merge, rebuilds, and substitutes the published kernel. A conflicted pull aborts its own rebase, notifies, and the run continues on the tree it already has. Four states stop the update half: a rebase, merge, or cherry-pick already in progress in the checkout, which a timer must not abort or rebuild over; an autostash conflict after a successful rebase, where git exits 0 with unmerged paths and the stash still holds the edits; unmerged paths an earlier run left behind (the pull would otherwise short-circuit on "already contained"); and a failed submodule sync or tree lock. The devshell pin and the collection still run in all of them. If the pull changes `daily-update.sh` itself, the run hands over to the new copy as a child before doing anything else, because a shell reads its script as it goes.
 
-The system half runs as root through `/usr/local/sbin/nixos-switch.sh`: store-pinned in `base/system.nix`, the fixed flake and live-tree override, `--cores 16`, a pinned PATH, and `--no-write-lock-file` so root never writes the checkout's lock. That is the second NOPASSWD path after `power.sh`, and it is the one place this repo widens the trust boundary. The rule carries an empty argument list, which is how sudoers says "no arguments at all", and the helper ignores argv anyway, so the command line is fixed; but nixos-rebuild evaluates the login user's writable checkout, so anything written into the tree is installed as root on the next run. That is the same power a hand rebuild has, minus the password. Do not add a third NOPASSWD path without saying why here.
+The system half runs as root through `/usr/local/sbin/nixos-switch.sh`: store-pinned in `base/workstation.nix`, the fixed flake and live-tree override, `--cores 16`, a pinned PATH, and `--no-write-lock-file` so root never writes the checkout's lock. That is the second NOPASSWD path after `power.sh`, and it is the one place this repo widens the trust boundary. The rule carries an empty argument list, which is how sudoers says "no arguments at all", and the helper ignores argv anyway, so the command line is fixed; but nixos-rebuild evaluates the login user's writable checkout, so anything written into the tree is installed as root on the next run. That is the same power a hand rebuild has, minus the password. Do not add a third NOPASSWD path without saying why here.
 
 Submodule bumps (e.g. `neovimBTW`) do not reach a switch through the live-tree override alone. The wrapper pins each submodule as its own flake input, so run `nix flake update <name>` inside `deploy-system/` after the bump, then switch. The daily timer does this for `neovimBTW` and `wallpaper-guardian` on every run, so a merged bump needs no hand step.
 
 T3 Code is not the nixpkgs package. `pkgs/t3code/default.nix` takes upstream's latest stable release tag and builds it with the recipe and codex from the unstable-small pin and the other packages from the stable pin: stable's cache carries electron, unstable-small's does not, so building it from that channel means compiling Chromium for hours whenever electron patches, and stable's codex is below the 0.149 T3 Code 0.1.10 marks broken. `pkgs/t3code/lock.nix` holds the tag, the rev, and the three fixed-output hashes that follow a tag. `scripts/update-t3code-stable.sh` moves that pin inside the daily timer, before the switch, and keeps the old pin when a tag does not build. That recipe rides the daily bump of the unstable-small pin, so a recipe that outgrows stable's package set breaks the home evaluation rather than the tags' hashes; revert the pin or vendor the recipe when it happens. Do not swap it back to the nixpkgs `t3code` attribute or edit the hashes by hand.
 
-`scripts/` is symlinked into `~/.config` via mkOutOfStoreSymlink, so edits go live at once, no rebuild. Exception: `power.sh` is store-pinned and symlinked into `/usr/local/sbin`, so it needs a nixos-rebuild. Any root action from a keybind must route through `power.sh` or sudo hangs the keybind. The daily system switch is the same shape but is not in `scripts/`: `base/system.nix` builds `nixos-switch.sh`, the activation script links it into `/usr/local/sbin`, and the sudo rule names that path only.
+`scripts/` is symlinked into `~/.config` via mkOutOfStoreSymlink, so edits go live at once, no rebuild. Exception: `power.sh` is store-pinned and symlinked into `/usr/local/sbin`, so it needs a nixos-rebuild. Any root action from a keybind must route through `power.sh` or sudo hangs the keybind. The daily system switch is the same shape but is not in `scripts/`: `base/workstation.nix` builds `nixos-switch.sh`, the activation script links it into `/usr/local/sbin`, and the sudo rule names that path only.
 
 Packages are as jailed as possible using `lib/jail.nix`, see each app module to check their perms.
 
@@ -53,3 +53,42 @@ Q. What belongs in this file (AGENTS.md) ?
 Wisdom that a new agent needs about the repo and the machine, the overall context of what's happening. Don't forget to update this file cautiously.
 
 At boot, `screenpad-off` (hosts/asus/system.nix) blanks the screenpad, not niri. On this kernel `bl_power` 4 is dark and 0 is lit, so the old unit writing 0 kept the panel lit; power.sh and the toggle use the same values. The service waits up to 30s for the late-probing `asus_screenpad`, stays active, and ignores unit changes, so after its first run a switch leaves the panel alone; an inactive unit (first run or a failed run) still starts once and blanks it. niri configures DP-2 with `enable = false` and blanks the panel in spawn-at-startup too, because a compositor restart does not run the boot unit; Mod+1 runs `screenpad-toggle`, which powers the panel and retries the map until the output attaches. When a change spans both halves, switch the system before home-manager: the niri half calls the store copy at `/usr/local/sbin/power.sh`, and a home-only switch runs the old script with the new arguments.
+
+The second machine is `homelab`, a 2012 AMD A10 laptop (UEFI, 500 GB HDD) that
+lives on the LAN as a headless server. It has no desktop: it does not list
+`base/workstation.nix`, and its home configuration is `base/home.nix`, the
+`bash` app, and `hosts/homelab/home.nix` for the git identity. Its address is
+`192.168.1.200/24`, configured statically in `hosts/homelab/system.nix` and
+matched by MAC rather than by interface name, with a MAC-independent DHCP
+fallback so a wrong address cannot lose the box; `/mnt/personal-storage` is the
+250G ext4 partition for data. `disk.nix` and `disko.nix` describe the whole
+disk, the fileSystems entries come from that disko module, and
+`hosts/homelab/hardware.nix` is a stub the install replaces. The firmware flag
+that regeneration would drop lives in `system.nix` on purpose.
+
+Install it from the laptop with the target booted from a live ISO:
+
+    nixos-anywhere --flake path:/home/duskyelf/dotfiles#homelab \
+      --generate-hardware-config nixos-generate-config /home/duskyelf/dotfiles/hosts/homelab/hardware.nix \
+      root@<live-iso-address>
+
+The path form reads the live tree, including the regenerated hardware file.
+Commit the regenerated `hardware.nix` afterwards. Redeploy with the wrapper, so
+the pinned inputs are the ones the install used:
+
+    sudo nixos-rebuild switch --flake /home/duskyelf/dotfiles/deploy-system#homelab \
+      --override-input my-dotfiles path:/home/duskyelf/dotfiles \
+      --target-host duskyelf@192.168.1.200 --use-remote-sudo --cores 16
+
+The home generation is not part of `nixos-install` and this host has no daily
+timer to activate it, so copy and activate it once (the copy goes through the
+remote nix daemon, which is why it is `ssh-ng`):
+
+    nix copy --to ssh-ng://duskyelf@192.168.1.200 \
+      path:/home/duskyelf/dotfiles#homeConfigurations."duskyelf@homelab".activationPackage
+    gen=$(nix build --no-link --print-out-paths \
+      path:/home/duskyelf/dotfiles#homeConfigurations."duskyelf@homelab".activationPackage)
+    ssh duskyelf@192.168.1.200 "$gen/activate"
+
+Both root and `duskyelf` start with the password `nixos`; change both after the
+install. sshd is key-only, so those passwords are for the local console.

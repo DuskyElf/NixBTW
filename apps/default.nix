@@ -1,36 +1,77 @@
-# Every app module, split by which configuration consumes it. Adding an app is a
-# file in this directory plus one line below. A split app keeps its parts in a
-# subdirectory and is reached through its own home.nix (see niri/). A helper that
-# is not a module at all, like niri/notify.nix, is imported by the module that
-# uses it.
+# Every app module, in one registry: a name maps to the modules it contributes
+# to each configuration. A host lists names in hosts/<name>/default.nix and
+# lib/mkHost.nix resolves them, so an app can be home-only, system-only, or
+# split across both (see niri/). A split app keeps its parts in a subdirectory
+# and is reached through its own home.nix. A helper that is not a module at all,
+# like niri/notify.nix, is imported by the module that uses it.
 #
 # The rule for what belongs here: a file sets config for one app. Machine
 # plumbing, and a bare `programs.<app>.enable` for something the machine just
-# needs, stay in base/system.nix.
+# needs, stay in base/.
 {
-  homeModules = [
-    ./sh.nix
-    ./git.nix
-    ./tmux.nix
-    ./nvim.nix
-    ./languages.nix
-    ./local-llm.nix
-    ./opencode.nix
-    ./kitty.nix
-    ./zen-browser.nix
-    ./chromium.nix
-    ./blender.nix
-    ./gnucash.nix
-    ./idle.nix
-    ./niri/home.nix
-    ./wallpaper.nix
-    ./quickshell.nix
-    ./gammarelay.nix
-  ];
+  sh = {
+    home = [ ./sh.nix ];
+  };
+  git = {
+    home = [ ./git.nix ];
+  };
+  tmux = {
+    home = [ ./tmux.nix ];
+  };
+  nvim = {
+    home = [ ./nvim.nix ];
+  };
+  languages = {
+    home = [ ./languages.nix ];
+  };
+  local-llm = {
+    home = [ ./local-llm.nix ];
+  };
+  opencode = {
+    home = [ ./opencode.nix ];
+  };
+  kitty = {
+    home = [ ./kitty.nix ];
+  };
+  zen-browser = {
+    home = [ ./zen-browser.nix ];
+  };
+  chromium = {
+    home = [ ./chromium.nix ];
+  };
+  blender = {
+    home = [ ./blender.nix ];
+  };
+  gnucash = {
+    home = [ ./gnucash.nix ];
+  };
+  idle = {
+    home = [ ./idle.nix ];
+  };
+  niri = {
+    home = [ ./niri/home.nix ];
+    system = [ ./niri/system.nix ];
+  };
+  wallpaper = {
+    home = [ ./wallpaper.nix ];
+  };
+  quickshell = {
+    home = [ ./quickshell.nix ];
+  };
+  gammarelay = {
+    home = [ ./gammarelay.nix ];
+  };
 
-  systemModules = [
-    ./niri/system.nix
-    ./keyd.nix
-    ./openssh.nix
-  ];
+  keyd = {
+    system = [ ./keyd.nix ];
+  };
+  openssh = {
+    system = [ ./openssh.nix ];
+  };
+  auto-cpufreq = {
+    system = [ ./auto-cpufreq.nix ];
+  };
+  bash = {
+    home = [ ./bash.nix ];
+  };
 }

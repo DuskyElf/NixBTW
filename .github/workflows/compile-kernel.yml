@@ -59,7 +59,7 @@ name: "Compile Optimized Kernel"
 env:
   CACHE_URL: https://duskyelf.github.io/NixBTW
   RELEASE_REPO: DuskyElf/NixBTW
-  # The signer name. base/system.nix holds the public half the laptop trusts; the
+  # The signer name. hosts/asus/system.nix holds the public half the laptop trusts; the
   # name there and here must be identical, so keep them in one place each.
   CACHE_KEY_NAME: i9-kernel-cache
   # Kernel releases to keep. Each one is ~305 MB of kernel assets plus the
@@ -82,7 +82,8 @@ on:
       # trigger a rebuild or the laptop compiles the new one locally.
       - "hosts/asus/**"
       - "lib/**"
-      - "base/system.nix"
+      - "base/core.nix"
+      - "base/workstation.nix"
       - ".github/workflows/compile-kernel.yml"
 
 permissions:

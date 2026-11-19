@@ -23,6 +23,7 @@
     name = "duskyelf";
     home = "/home/duskyelf";
     description = "DuskyElf";
+    shell = "zsh";
     git = {
       name = "DuskyElf";
       email = "duskyelf.dev+git@gmail.com";

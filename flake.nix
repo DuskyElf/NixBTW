@@ -47,6 +47,13 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # Only a host that carries a hosts/<name>/disko.nix uses this: it is the
+    # module and CLI nixos-anywhere formats that host's disk with.
+    disko = {
+      url = "github:nix-community/disko";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     stylix = {
       url = "github:nix-community/stylix/release-26.05";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -65,16 +72,25 @@
   };
 
   # Declarations and wiring. Everything that computes lives in lib/, the
-  # machine-wide config in base/, apps in apps/, this laptop in hosts/asus/.
+  # machine-wide config in base/, apps in apps/, the machines in hosts/.
   outputs =
     inputs:
     let
       dotfiles = import ./lib { inherit inputs; };
       apps = import ./apps;
-      asus = dotfiles.mkHost {
-        host = import ./hosts/asus;
-        inherit (apps) homeModules systemModules;
-      };
+
+      # One binding per machine, all built the same way. A new host is a
+      # hosts/<name>/ directory plus a line here.
+      hosts = [
+        (dotfiles.mkHost {
+          host = import ./hosts/asus;
+          inherit apps;
+        })
+        (dotfiles.mkHost {
+          host = import ./hosts/homelab;
+          inherit apps;
+        })
+      ];
     in
     {
       # The stable kernel series this machine tracks (see
@@ -82,10 +98,20 @@
       # pin: nix eval --raw .#kernelVersion --override-input nixpkgs-fast-release <rev>
       kernelVersion = dotfiles.kernel.version;
 
-      # Both names come from hosts/asus/config.nix, so the outputs follow a
+      # Both names come from hosts/<name>/config.nix, so the outputs follow a
       # host rename or a new user without an edit here.
-      nixosConfigurations.${asus.hostConfig.hostName} = asus.nixos;
-      homeConfigurations."${asus.hostConfig.user.name}@${asus.hostConfig.hostName}" = asus.home;
+      nixosConfigurations = builtins.listToAttrs (
+        map (host: {
+          name = host.hostConfig.hostName;
+          value = host.nixos;
+        }) hosts
+      );
+      homeConfigurations = builtins.listToAttrs (
+        map (host: {
+          name = "${host.hostConfig.user.name}@${host.hostConfig.hostName}";
+          value = host.home;
+        }) hosts
+      );
 
       formatter.${dotfiles.pkgs.system} = dotfiles.pkgs.stable.nixfmt-tree;
     };

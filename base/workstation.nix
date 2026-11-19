@@ -1,3 +1,8 @@
+# The desktop policy: everything here assumes a monitor, a keyboard, a battery,
+# and a person sitting in front of it. It is a module a host opts into, so a
+# headless box does not get NetworkManager, tailscale, bluetooth, the root
+# helpers, or the store-collection path unit. base/core.nix is the half every
+# machine gets.
 {
   config,
   lib,
@@ -80,37 +85,26 @@ let
 in
 {
   config = {
-    nixpkgs.config.allowUnfree = true;
+    # NetworkManager is the desktop radio/wifi stack; a server uses
+    # systemd-networkd and says so in its own system.nix.
+    networking.networkmanager.enable = true;
 
-    # The login account every machine has. Groups are policy, so they stay
-    # here; a host with a different login name changes only config.nix.
-    users.users.${hostConfig.user.name} = {
-      isNormalUser = true;
-      shell = pkgs.zsh;
-      description = hostConfig.user.description;
-      # The system account and home-manager must agree; both read one value.
-      home = hostConfig.user.home;
-      extraGroups = [
-        "networkmanager"
-        # No "input": that group reads /dev/input and could keylog the sudo
-        # password. keyd runs as a system service; evdev tools get sudo instead.
-        "wheel"
-      ];
-    };
+    users.users.${hostConfig.user.name}.extraGroups = [
+      "networkmanager"
+    ];
 
     console.useXkbConfig = true;
 
     # Very bare bones setup for root, everything else is handled by
     # home-manager. A package that needs config of its own belongs in apps/
-    # instead, so it stays findable by name.
+    # instead, so it stays findable by name. The core six are in
+    # base/core.nix and must not be repeated here.
     programs.zsh.enable = true;
     programs.gpu-screen-recorder.enable = true;
     programs.thunderbird.enable = true;
 
     environment.systemPackages = [
       pkgs.gcc
-      pkgs.vim
-      pkgs.git
       (jail "wget" pkgs.wget (
         c: with c; [
           network
@@ -123,15 +117,11 @@ in
           mount-cwd
         ]
       ))
-      pkgs.btop
       pkgs.brightnessctl
-      pkgs.coreutils-full
 
-      pkgs.fd
       pkgs.fzf
       pkgs.bat
       pkgs.dust
-      pkgs.ripgrep
       pkgs.tealdeer
 
       pkgs.gpu-screen-recorder-gtk
@@ -147,23 +137,6 @@ in
     fonts.packages = with pkgs; [
       nerd-fonts.jetbrains-mono
     ];
-
-    boot.loader = {
-      systemd-boot.enable = true;
-      efi.canTouchEfiVariables = true;
-    };
-
-    boot.initrd.systemd.enable = true;
-
-    networking = {
-      networkmanager.enable = true;
-      hostName = hostConfig.hostName;
-      # No LAN ports open on purpose. t3code on 3773 is reached over
-      # tailscale serve, never over the local network, which IOT devices
-      # share. Keep the app's "Network access" toggle off so it binds
-      # loopback only.
-      firewall.enable = true;
-    };
 
     # Tailscale gives the phone a stable private route to the t3code
     # server on 3773 from any network. MagicDNS name:
@@ -186,47 +159,6 @@ in
         echo "${toString hostConfig.hardware.battery.chargeLimit}" > /sys/class/power_supply/${hostConfig.hardware.battery.device}/charge_control_end_threshold
       '';
       wantedBy = [ "multi-user.target" ];
-    };
-
-    # Governs the CPU on battery and charger. It is a laptop policy, so a host
-    # with no battery does not install it.
-    services.auto-cpufreq = lib.mkIf (hostConfig.hardware.battery != null) {
-      enable = true;
-      settings = {
-        battery = {
-          governor = "powersave";
-          turbo = "never";
-        };
-        charger = {
-          governor = "powersave";
-          turbo = "auto";
-        };
-      };
-    };
-
-    time.timeZone = hostConfig.timeZone;
-    i18n.defaultLocale = hostConfig.locale.default;
-
-    nix.settings = {
-      # Trusted users can make the daemon run a post-build hook as root and
-      # disable the sandbox, so trust belongs to root only.
-      trusted-users = lib.mkForce [ "root" ];
-
-      # Caches every host can use. A host that publishes its own builds adds
-      # them, with the matching key, in its system.nix.
-      substituters = [
-        "https://cache.nixos.org"
-        "https://cache.nixos-cuda.org"
-      ];
-
-      trusted-public-keys = [
-        "cache.nixos-cuda.org:74DUi4Ye579gUqzH4ziL9IyiJBlDpMRn9MBN8oNan9M="
-      ];
-
-      experimental-features = [
-        "nix-command"
-        "flakes"
-      ];
     };
 
     # Store hygiene runs at the tail of the daily user update, not on a clock.
@@ -289,18 +221,6 @@ in
       dates = [ "monthly" ];
     };
 
-    i18n.extraLocaleSettings = lib.mkIf (hostConfig.locale.extra != null) {
-      LC_ADDRESS = hostConfig.locale.extra;
-      LC_IDENTIFICATION = hostConfig.locale.extra;
-      LC_MEASUREMENT = hostConfig.locale.extra;
-      LC_MONETARY = hostConfig.locale.extra;
-      LC_NAME = hostConfig.locale.extra;
-      LC_NUMERIC = hostConfig.locale.extra;
-      LC_PAPER = hostConfig.locale.extra;
-      LC_TELEPHONE = hostConfig.locale.extra;
-      LC_TIME = hostConfig.locale.extra;
-    };
-
     # Both root helpers: the keybind one and the daily update's system half.
     # One snippet, so the two links cannot land in different activation runs.
     system.activationScripts.rootHelpers = ''
@@ -336,7 +256,5 @@ in
         ];
       }
     ];
-
-    system.stateVersion = hostConfig.stateVersion.system; # Leave it as it is
   };
 }

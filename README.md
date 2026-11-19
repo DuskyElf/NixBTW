@@ -1,9 +1,9 @@
 # NixBTW
 
-The NixOS and home-manager config for my laptop (`asus`, a UX581GV), plus the
-small tools around it: the status scripts, the T3 Code stable pin, and the
-kernel cache. The Guardian wallpaper pool lives in `wallpaper-guardian/`, a
-separate flake and submodule.
+The NixOS and home-manager config for my laptop (`asus`, a UX581GV) and the
+headless LAN box (`homelab`), plus the small tools around it: the status
+scripts, the T3 Code stable pin, and the kernel cache. The Guardian wallpaper
+pool lives in `wallpaper-guardian/`, a separate flake and submodule.
 
 This repo is the source tree, not the deploy unit. `deploy-system/` is a
 gitignored wrapper flake that pins every input and holds `flake.lock`. It stays
@@ -18,19 +18,20 @@ closure comes from that wrapper.
 | --- | --- |
 | `flake.nix` | Inputs and outputs. Nothing computes here. |
 | `lib/` | nixpkgs instances, the jail wrapper, the kernel selection, `mkHost` |
-| `base/` | Machine-wide config: system policy and unowned packages in `base/system.nix`, stylix and timers in `base/home.nix` |
-| `apps/` | One app's config per file, with split apps in their own subdirectory. `apps/default.nix` lists which are home modules and which are system modules |
+| `base/` | Machine-wide config, split by machine type: `base/core.nix` for every host, `base/workstation.nix` for a desktop, `base/home.nix` plus `base/home-workstation.nix` on the home side |
+| `apps/` | One app's config per file, with split apps in their own subdirectory. `apps/default.nix` is a registry of app names, each mapping to its home and system modules |
 | `pkgs/` | Packages this repo builds itself, such as the T3 Code stable pin |
 | `hosts/asus/` | This laptop: `config.nix` holds its identity and hardware values, `system.nix` the firmware, kernel, nvidia, and screenpad work |
+| `hosts/homelab/` | The headless LAN box: its own config, disk layout, and a placeholder `hardware.nix` the install replaces |
 | `scripts/`, `quickshell/`, `hot-configs/` | Linked live, no rebuild |
 
 A file in `apps/` sets config for one app, except `apps/default.nix` itself and
 the helpers a module imports, such as `apps/niri/notify.nix`. Machine policy
 (network, power, sudo), a bare `programs.<app>.enable`, and packages that need
-no config stay in `base/system.nix`; `programs.niri.enable` stays in
-`apps/niri/system.nix` because the compositor's config lives beside it. The list
-a module appears in decides which rebuild applies, so the filename does not have
-to say it.
+no config stay in `base/core.nix` and `base/workstation.nix`; `programs.niri.enable`
+stays in `apps/niri/system.nix` because the compositor's config lives beside it.
+The list a host puts an app name in decides which rebuild applies, so the
+filename does not have to say it.
 
 ### Host identity
 
@@ -40,8 +41,8 @@ hardware the app modules branch on (screenpad, battery, backlight, GPU). The
 schema is `lib/host.nix`; `lib/mkHost.nix` evaluates it once and passes the
 result to both the NixOS and home-manager configurations as `hostConfig`.
 `base/` and `apps/` read that argument, so a second machine is a new `hosts/`
-directory plus a `config.nix` and one `mkHost` binding with two output lines in
-`flake.nix`, not edits spread through the app modules. The flake output names
+directory plus a `config.nix` and a line in the host list in `flake.nix`, not
+edits spread through the app modules. The flake output names
 (`nixosConfigurations.asus`, `homeConfigurations."duskyelf@asus"`) come from
 the same values.
 
@@ -115,8 +116,8 @@ What needs which rebuild:
 
 | Changed | Apply with |
 | --- | --- |
-| `base/home.nix`, the home list in `apps/default.nix` | `hm-switch.sh` |
-| `base/system.nix`, the system list in `apps/default.nix`, `hosts/` | `nixos-rebuild switch` |
+| `base/home.nix`, `base/home-workstation.nix`, an app's home modules in `apps/default.nix` | `hm-switch.sh` |
+| `base/core.nix`, `base/workstation.nix`, an app's system modules in `apps/default.nix`, `hosts/` | `nixos-rebuild switch` |
 | `apps/niri/system.nix` | `nixos-rebuild switch`; the rest of `apps/niri/` is a home module |
 | `flake.nix`, `lib/` | both, the wiring reaches both configurations |
 | `wallpaper-guardian/` | `hm-switch.sh`; a submodule bump also needs `nix flake update wallpaper-guardian` in `deploy-system/` |
@@ -145,15 +146,15 @@ through `sudo nixos-rebuild switch` when you do it, and through
 
 The other inputs float through the private lock, including system nixpkgs,
 unstable for niri, unstable-small for the agents, home-manager, stylix,
-jail-nix, neovimBTW, wallpaper-guardian, and zen-browser. The daily timer
+jail-nix, disko, neovimBTW, wallpaper-guardian, and zen-browser. The daily timer
 updates three of them, and the two submodule inputs follow their checkouts
 whenever a pull moves one. The kernel pin has its own rotation, described
 below.
 
 ## What runs
 
-Systemd units do the background work, not shell daemons. One daily user timer
-does the morning's work: `scripts/daily-update.sh` pulls the merged changes,
+Systemd units do the background work, not shell daemons. On the laptop one daily
+user timer does the morning's work: `scripts/daily-update.sh` pulls the merged changes,
 updates the floating inputs, moves the T3 Code pin, rebuilds the system through
 the `nixos-switch.sh` helper, switches home-manager, commits the wrapper lock,
 pins the listed devshells, and collects the user store. It then wakes a system
@@ -168,8 +169,10 @@ to `awww-daemon`. `quickshell`, `wl-gammarelay`, and `break-timer` are
 
 ## The daily update
 
-The user timer `daily-update` fires from 08:30, with up to half an hour of
-jitter, and catches up after wake. `scripts/daily-update.sh` waits for network,
+On the laptop the user timer `daily-update` fires from 08:30, with up to half
+an hour of jitter, and catches up after wake. The homelab box has no home
+generation to keep moving, so it relies on `nix.gc` alone; the store optimiser
+and the marker-driven root collection are desktop policy. `scripts/daily-update.sh` waits for network,
 pulls `origin/main` with `git pull --rebase --autostash` (the timer's own T3
 Code commits are the only local work in the way), syncs the submodules, locks
 this checkout's ignored `flake.lock`, runs
@@ -201,7 +204,7 @@ skips the home switch too, because a home generation that calls into the system
 half is the half-applied state the order exists to avoid.
 
 The system half goes through `/usr/local/sbin/nixos-switch.sh`, a store-pinned
-script built in `base/system.nix` from the same command AGENTS.md documents by
+script built in `base/workstation.nix` from the same command AGENTS.md documents by
 hand, with the fixed live-tree override, `--cores 16`, and a pinned `PATH`. Its
 NOPASSWD rule names that path with an empty argument list, which is the sudoers
 way to allow the command only with no arguments, so the account cannot hand

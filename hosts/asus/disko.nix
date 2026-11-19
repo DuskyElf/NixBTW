@@ -1,5 +1,10 @@
 # Disk layout for the ZenBook Pro Duo UX581GV.
 #
+# Not wired into the running configuration: hosts/asus/default.nix has no
+# `disko` key, because this machine is already installed and nothing here should
+# ever format it. Both this file and mkHost's disko seam exist for a reinstall:
+# pass the key temporarily, install, then drop it again.
+#
 # The device and the filesystem labels come from hosts/asus/disk.nix, the same
 # file the NixOS fileSystems read, so a label cannot drift between them.
 #

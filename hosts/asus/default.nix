@@ -5,10 +5,41 @@
 # config.nix holds the values modules read (user, panels, battery); system.nix
 # holds the driver, kernel, and firmware work that only this machine needs.
 #
-# The home side needs nothing asus-specific yet. It is a key because mkHost
-# checks for it; a host that needs one adds it here.
+# This is the opt-in: this file lists the desktop base modules and the apps the
+# laptop runs. The app names are resolved against apps/default.nix.
 {
   config = [ ./config.nix ];
-  system = [ ./system.nix ];
-  home = [ ];
+  system = [
+    ../../base/workstation.nix
+    ./system.nix
+  ];
+  home = [ ../../base/home-workstation.nix ];
+
+  apps = {
+    system = [
+      "auto-cpufreq"
+      "niri"
+      "keyd"
+      "openssh"
+    ];
+    home = [
+      "sh"
+      "git"
+      "tmux"
+      "nvim"
+      "languages"
+      "local-llm"
+      "opencode"
+      "kitty"
+      "zen-browser"
+      "chromium"
+      "blender"
+      "gnucash"
+      "idle"
+      "niri"
+      "wallpaper"
+      "quickshell"
+      "gammarelay"
+    ];
+  };
 }

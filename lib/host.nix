@@ -53,6 +53,10 @@ let
           type = types.str;
           description = "The GECOS field that login managers and finger show.";
         };
+        shell = mkOption {
+          type = types.str;
+          description = "The login shell as a nixpkgs attribute name, zsh or bash. The shell's own config belongs to an app module.";
+        };
         git = {
           name = mkOption { type = types.str; };
           email = mkOption { type = types.str; };
@@ -62,6 +66,12 @@ let
             description = "SSH key git signs with. Null turns signing off.";
           };
         };
+      };
+
+      ssh.openLanPort = mkOption {
+        type = types.bool;
+        default = false;
+        description = "Open 22 on every interface. False keeps sshd on the tailscale interface only, which is the laptop's policy.";
       };
 
       dotsDir = mkOption {
@@ -179,8 +189,8 @@ in
     }
     // {
       # The daily update's last step, and the trigger the system path unit in
-      # base/system.nix watches. Derived here so the user unit that writes it
-      # and the system unit that watches it read one path.
+      # base/workstation.nix watches. Derived here so the user unit that writes
+      # it and the system unit that watches it read one path.
       gcRequest = "${config.user.home}/.local/state/daily-update/gc-request";
 
       # The daily update's system rebuild. It sits beside power.sh because both
