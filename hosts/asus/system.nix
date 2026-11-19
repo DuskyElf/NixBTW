@@ -122,6 +122,14 @@ in
     "d /mnt/agent-worktrees/caches 1777 root root -"
   ];
 
+  # base/core.nix keeps no bootloader: it is hardware. This laptop boots from
+  # systemd-boot on the ESP that hosts/asus/disko.nix creates, and the extra
+  # entries below are the BIOS unlock tools.
+  boot.loader = {
+    systemd-boot.enable = true;
+    efi.canTouchEfiVariables = true;
+  };
+
   # systemd-boot entries for unlocking undervolting (UX581GV BIOS v309).
   # The .efi is pinned above and installed to the ESP, no manual copy needed.
   boot.loader.systemd-boot.extraFiles."EFI/tools/setup_var.efi" = setupVarEfi;

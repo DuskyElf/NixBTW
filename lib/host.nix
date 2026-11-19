@@ -11,7 +11,7 @@
 let
   inherit (lib) mkOption types;
 
-  schema = {
+  schema = { config, ... }: {
     options = {
       hostName = mkOption {
         type = types.str;
@@ -78,6 +78,60 @@ let
         type = types.nullOr types.str;
         default = null;
         description = "This checkout. Null means <user.home>/dotfiles.";
+      };
+
+      cacheRoot = mkOption {
+        type = types.str;
+        default = "${config.user.home}/.cache/nix-caches";
+        description = "Where the language tool caches (sccache, npm, uv, go) live. A host with a fast scratch mount points it there; the default keeps them in the home directory.";
+      };
+
+      # What the daily update does on this machine. apps/daily-update/ turns each
+      # field into either a flag on the run or a unit, so the host only states
+      # which steps it has. A laptop pins the T3 Code stable release, keeps the
+      # listed devshells alive and optimises the store; a headless box updates
+      # nixpkgs alone and still collects.
+      dailyUpdate = {
+        t3 = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Move the T3 Code stable pin (pkgs/t3code/update.sh) before the switch.";
+        };
+        devshells = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Pin the project devshells in apps/daily-update/active-projects before the collection.";
+        };
+        collect = mkOption {
+          type = types.bool;
+          default = true;
+          description = "Run the user store collection and ask the system path unit for root's.";
+        };
+        optimise = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Enable nix.optimise on a monthly timer. The optimiser rewrites the whole store, so not every host wants it.";
+        };
+        graphicalSession = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Tie the user timer to graphical-session.target. False leaves it to the user manager, which needs linger to start without a login.";
+        };
+        linger = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Start the login user's systemd manager at boot, so the timer runs with nobody logged in.";
+        };
+        cores = mkOption {
+          type = types.int;
+          default = 2;
+          description = "The --cores count baked into nixos-switch.sh. Keep it low on a machine that stays in use.";
+        };
+        wrapperInputs = mkOption {
+          type = types.listOf types.str;
+          default = [ "nixpkgs" ];
+          description = "The deploy-system flake inputs `nix flake update` moves on every run. Only inputs that wrapper declares, or the update fails.";
+        };
       };
 
       waylandDisplay = mkOption {
@@ -189,13 +243,13 @@ in
     }
     // {
       # The daily update's last step, and the trigger the system path unit in
-      # base/workstation.nix watches. Derived here so the user unit that writes
-      # it and the system unit that watches it read one path.
+      # apps/daily-update/system.nix watches. Derived here so the user unit that
+      # writes it and the system unit that watches it read one path.
       gcRequest = "${config.user.home}/.local/state/daily-update/gc-request";
 
-      # The daily update's system rebuild. It sits beside power.sh because both
-      # are root helpers linked into /usr/local/sbin, and sudo matches that
-      # path; deriving it from powerScriptPath keeps one option, not two.
+      # The daily update's system rebuild. It shares power.sh's directory and
+      # the same sudo path shape; deriving its path from powerScriptPath keeps
+      # one option, not two, and the homelab has the helper without power.sh.
       systemSwitchPath = "${builtins.dirOf config.powerScriptPath}/nixos-switch.sh";
     };
 }

@@ -31,6 +31,26 @@
     };
   };
 
+  cacheRoot = "/mnt/agent-worktrees/caches";
+
+  # The laptop runs the whole daily update: the T3 Code pin, the devshell pin,
+  # the store collection and the monthly optimiser, tied to the desktop session.
+  # Its wrapper declares the inputs below, so the run moves all of them.
+  dailyUpdate = {
+    t3 = true;
+    devshells = true;
+    optimise = true;
+    graphicalSession = true;
+    cores = 16;
+    wrapperInputs = [
+      "nixpkgs"
+      "nixpkgs-unstable-small"
+      "zen-browser"
+      "neovimBTW"
+      "wallpaper-guardian"
+    ];
+  };
+
   # Panels: the OLED is 3840x2160 at 2.5, the screenpad sits below it. The y
   # offset is where the primary's scaled height ends (2160 / 2.5 = 864); moving
   # the scale without it leaves a gap. Coordinates are physical, so y=864 on the

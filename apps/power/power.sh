@@ -20,9 +20,9 @@ run_user_cmd() {
 
 if [ "$MODE" = "screenpad" ]; then
     STATE=${2:-}
-    # Baked into the root-only copy by base/workstation.nix from the host
-    # config, so no argument can point the NOPASSWD rule at another backlight.
-    # The writable ~/.config copy has no value here and always takes the error
+    # Baked into the root-only copy by apps/power.nix from the host config, so
+    # no argument can point the NOPASSWD rule at another backlight. The
+    # writable ~/.config copy has no value here and always takes the error
     # branch; run the root copy instead.
     DEVICE=${SCREENPAD_DEVICE:-}
     if [ -z "$DEVICE" ]; then

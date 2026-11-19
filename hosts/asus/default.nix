@@ -21,9 +21,15 @@
       "niri"
       "keyd"
       "openssh"
+      "power"
+      "daily-update"
     ];
     home = [
       "sh"
+      "zsh"
+      "bash"
+      "home-switch"
+      "daily-update"
       "git"
       "tmux"
       "nvim"

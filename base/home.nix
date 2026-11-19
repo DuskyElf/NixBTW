@@ -1,7 +1,7 @@
 # The home-manager module every machine gets: the account, the XDG directories,
 # and the state version. A machine with a desktop adds base/home-workstation.nix
-# on top, which is where stylix, the dark-mode portal key, and the daily update
-# timer live.
+# on top, which is where stylix, the dark-mode portal key, and the flake modules
+# only a desktop needs live.
 {
   hostConfig,
   ...

@@ -1,8 +1,9 @@
-# What this machine needs on top of base/core.nix: one static LAN address and
-# the server-side housekeeping. The fileSystems entries come from the disko
-# module in hosts/homelab/disko.nix, so the mount layout has one source. A
-# laptop's policy (compositor, radios, tailscale, root helpers) is
-# base/workstation.nix, which this host does not list.
+# What this machine needs on top of base/core.nix: one static LAN address, the
+# LTS kernel and bootloader, and the server-side housekeeping. The fileSystems
+# entries come from the disko module in hosts/homelab/disko.nix, so the mount
+# layout has one source. A laptop's policy (compositor, radios, tailscale) is
+# base/workstation.nix, which this host does not list; the root helper and the
+# store collection come from the daily-update app instead, which it does list.
 {
   pkgs,
   hostConfig,
@@ -15,6 +16,20 @@
   # the CPU microcode and the wired/wifi firmware are actually installed.
   hardware.enableRedistributableFirmware = true;
   hardware.cpu.amd.updateMicrocode = true;
+
+  # The longterm series from the stable pin: 6.18 is the LTS the 26.05 release
+  # ships as its default kernel. Named explicitly so a default bump does not
+  # quietly move this box onto a short-lived series; when 6.18 reaches EOL,
+  # point this at the next longterm. There is no custom build here: whatever
+  # stable ships is what this machine runs.
+  boot.kernelPackages = pkgs.linuxPackages_6_18;
+
+  # base/core.nix keeps no bootloader: each host states its own. This one boots
+  # from systemd-boot on the ESP that hosts/homelab/disko.nix creates.
+  boot.loader = {
+    systemd-boot.enable = true;
+    efi.canTouchEfiVariables = true;
+  };
 
   # The mountpoint is root-owned, and the data on it belongs to the login
   # account, so hand it over at boot rather than asking for sudo per file.
@@ -66,15 +81,11 @@
     memoryPercent = 50;
   };
 
-  # This machine runs no daily update timer, so the store is pruned on a clock
-  # instead. Two weeks of generations is a rollback window that does not depend
-  # on a user being logged in.
-  nix.gc = {
-    automatic = true;
-    dates = "weekly";
-    options = "--delete-older-than 14d";
-  };
-
+  # The daily update runs on this box too (apps/daily-update/), so the store is
+  # pruned right after the switch like the laptop's rather than on a second
+  # clock: the marker the user script writes wakes the system path unit, which
+  # keeps two days of generations. A weekly nix.gc on a longer window would only
+  # find what that collection already dropped.
   environment.systemPackages = with pkgs; [
     curl
     wget

@@ -12,6 +12,19 @@
   sh = {
     home = [ ./sh.nix ];
   };
+  zsh = {
+    home = [ ./zsh.nix ];
+  };
+  bash = {
+    home = [ ./bash.nix ];
+  };
+  home-switch = {
+    home = [ ./home-switch.nix ];
+  };
+  daily-update = {
+    home = [ ./daily-update/home.nix ];
+    system = [ ./daily-update/system.nix ];
+  };
   git = {
     home = [ ./git.nix ];
   };
@@ -71,7 +84,7 @@
   auto-cpufreq = {
     system = [ ./auto-cpufreq.nix ];
   };
-  bash = {
-    home = [ ./bash.nix ];
+  power = {
+    system = [ ./power.nix ];
   };
 }

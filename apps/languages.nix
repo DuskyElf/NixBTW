@@ -1,8 +1,12 @@
 {
   lib,
   pkgs,
+  hostConfig,
   ...
 }:
+let
+  cache = hostConfig.cacheRoot;
+in
 {
   home.packages = with pkgs; [
     rustc
@@ -13,13 +17,15 @@
     sccache
   ];
 
-  # Caches live on the agent tmpfs so parallel worktrees stop rebuilding the
-  # same dependencies and stop writing them to the SSD. The mount is volatile,
-  # so every cache here starts cold after a reboot.
+  # Caches live under hostConfig.cacheRoot so parallel worktrees stop rebuilding
+  # the same dependencies and stop writing them to the SSD. The laptop points
+  # that at the agent tmpfs, which is volatile, so every cache there starts cold
+  # after a reboot; the default is a directory in the home, so a host without
+  # such a mount keeps its caches across boots.
   home.sessionVariables = {
-    # sccache defaults to a 10G cap, which is most of the 24G mount.
+    # sccache defaults to a 10G cap, which is most of the laptop's 24G mount.
     SCCACHE_CACHE_SIZE = "4G";
-    SCCACHE_DIR = "/mnt/agent-worktrees/caches/sccache";
+    SCCACHE_DIR = "${cache}/sccache";
     # The store path, not the name: this variable is inherited into nix-shell and
     # project devShells where sccache is not on PATH, and a wrapper that cannot
     # be found fails every rustc call instead of falling back.
@@ -32,8 +38,8 @@
 
     # npm's cache, not pnpm's store: npm is what is installed, and it ignores
     # store-dir. Add the pnpm store dir here when pnpm lands.
-    NPM_CONFIG_CACHE = "/mnt/agent-worktrees/caches/npm";
-    UV_CACHE_DIR = "/mnt/agent-worktrees/caches/uv";
-    GOCACHE = "/mnt/agent-worktrees/caches/go-build";
+    NPM_CONFIG_CACHE = "${cache}/npm";
+    UV_CACHE_DIR = "${cache}/uv";
+    GOCACHE = "${cache}/go-build";
   };
 }

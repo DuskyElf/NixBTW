@@ -1,28 +1,41 @@
 #!/usr/bin/env bash
-# The one daily run: pull the merged work, lock the checkout, move the
-# floating wrapper inputs and the T3 Code stable pin, rebuild the system and
+# The one daily run: pull the merged work, lock the checkout, move the floating
+# wrapper inputs and the T3 Code stable pin, rebuild the system and
 # home-manager, commit the wrapper lock, pin the devshells the collection has to
 # keep, and collect the store.
 #
-#   daily-update.sh [marker] [system-switch]
+#   daily-update.sh [marker] [system-switch] [options]
 #                   the whole run; the `daily-update` user timer calls it
-#                   (base/home-workstation.nix) and a hand-run update is the
-#                   same thing.
+#                   (apps/daily-update/home.nix) and a hand run with no options
+#                   is the laptop's full run.
 #                   The unit passes hostConfig.gcRequest and
 #                   hostConfig.systemSwitchPath so both halves of each pair read
-#                   one value; the fallbacks only keep a hand run working. Pass
-#                   both or neither: a lone argument is read as the marker.
+#                   one value; the fallbacks only keep a hand run working.
+#
+#   --t3 / --no-t3                   move the T3 Code stable pin (default: on)
+#   --devshells / --no-devshells     pin the project devshells (default: on)
+#   --collect / --no-collect         collect this user's store and ask the system
+#                                    unit for root's (default: on)
+#   --home-switch <path>             home switch to run after the system one
+#                                    (default: <dots>/apps/home-switch/hm-switch.sh)
+#   --wrapper-inputs "<names>"       the deploy-system inputs `nix flake update`
+#                                    moves (default: the laptop's full list)
+#
+# The unit passes every option explicitly, so what it does not pass is not part
+# of this machine's run. The defaults above are the laptop's full run, which is
+# what a hand run meant before the flags existed; a headless host's hand run
+# should copy its unit's command line.
 #
 # The system is rebuilt before home-manager. Both configurations read this
 # tree, and a change that spans them (a power.sh argument and its niri caller)
 # needs the new store copy installed before the home activation calls it.
 #
 # The user half of the collection cannot prune generations under
-# /nix/var/nix/profiles or /root, so the script writes a marker when it is done
-# and a system path unit (base/workstation.nix) collects root's profiles. The
-# marker is written on exit, including an interrupted one: a system switch can
-# restart the display manager and take this unit's cgroup with it, and the
-# collection must not depend on the update finishing.
+# /nix/var/nix/profiles or /root, so the script writes a marker when it is
+# done and a system path unit (apps/daily-update/system.nix) collects root's
+# profiles. The marker is written on exit, including an interrupted one: a
+# system switch can restart the display manager and take this unit's cgroup with
+# it, and the collection must not depend on the update finishing.
 #
 # The collection runs even when the update did not: generations age whether or
 # not a lock moved, so the day's collection must not depend on the network or
@@ -34,20 +47,79 @@
 # inline unit this replaces relied on the same PATH for its bare nix and git.
 set -euo pipefail
 
+# The handover below re-runs this file, so the arguments have to survive the
+# parsing loop's shifts.
+orig_args=("$@")
+
 dots=$(cd -- "$(dirname -- "$(readlink -f -- "$0")")/../.." && pwd)
 deploy=$dots/deploy-system
-# The daily-update unit passes hostConfig.gcRequest, the same value the system
-# path unit in base/workstation.nix watches, so production has one source for
-# this path. The fallback only keeps a hand run working; changing it here alone
-# does not move the marker the system unit watches.
-marker=${1:-$HOME/.local/state/daily-update/gc-request}
-# base/workstation.nix links this store copy for the NOPASSWD rule, and
+
+t3=1
+devshells=1
+collect=1
+home_switch=
+# The laptop's list, which is what the old hardcoded call moved. The unit always
+# passes this host's list, so production never reads this default.
+wrapper_inputs="nixpkgs nixpkgs-unstable-small zen-browser neovimBTW wallpaper-guardian"
+marker=
+# apps/daily-update/system.nix links this store copy for the NOPASSWD rule, and
 # lib/host.nix derives its path from powerScriptPath; the fallback is that
 # derivation with its default, kept here only so a hand run works. The helper
 # takes no arguments and holds the flake, the override and the core count.
 # Passing the path in is what lets the test run a stub instead of the real
 # thing.
-system_switch=${2:-/usr/local/sbin/nixos-switch.sh}
+system_switch=/usr/local/sbin/nixos-switch.sh
+
+usage() {
+  if [ "$#" -gt 0 ]; then
+    echo "${0##*/}: $*" >&2
+  fi
+  echo "usage: ${0##*/} [marker] [system-switch] [--t3|--no-t3] [--devshells|--no-devshells] [--collect|--no-collect] [--home-switch PATH] [--wrapper-inputs NAMES]" >&2
+  exit 2
+}
+
+pos=0
+while [ "$#" -gt 0 ]; do
+  case $1 in
+    --t3) t3=1 ;;
+    --no-t3) t3=0 ;;
+    --devshells) devshells=1 ;;
+    --no-devshells) devshells=0 ;;
+    --collect) collect=1 ;;
+    --no-collect) collect=0 ;;
+    --home-switch)
+      [ "$#" -ge 2 ] || usage "--home-switch needs a path"
+      shift
+      home_switch=$1
+      ;;
+    --wrapper-inputs)
+      [ "$#" -ge 2 ] || usage "--wrapper-inputs needs a list of input names"
+      shift
+      wrapper_inputs=$1
+      ;;
+    --help | -h)
+      usage
+      ;;
+    --*) usage "unknown option $1" ;;
+    *)
+      pos=$((pos + 1))
+      case "$pos" in
+        1) marker=$1 ;;
+        2) system_switch=$1 ;;
+        *) usage "unexpected argument $1" ;;
+      esac
+      ;;
+  esac
+  shift
+done
+
+# An empty list must not reach `nix flake update` with no names: that updates
+# every input, which is not what a host with no inputs asked for.
+[ -n "$wrapper_inputs" ] || usage "--wrapper-inputs must name at least one input"
+read -r -a wrapper_names <<<"$wrapper_inputs"
+
+marker=${marker:-$HOME/.local/state/daily-update/gc-request}
+home_switch=${home_switch:-$dots/apps/home-switch/hm-switch.sh}
 
 log() { printf '%s %s\n' "$(date '+%F %T')" "$*"; }
 notify() { notify-send "$@" 2>/dev/null || true; }
@@ -130,17 +202,13 @@ commit_lock() {
   log "committed flake.lock"
 }
 
-[ -d "$deploy" ] || {
-  echo "${0##*/}: no deploy wrapper at $deploy" >&2
-  exit 1
-}
-cd -- "$deploy" || exit 1
-
 # The root collection is triggered by a file, not by a clean exit. Writing it
 # from the trap keeps that true when the run is killed mid-switch: the
 # collection is idempotent inside its two-day window, so an early marker costs
-# nothing and a lost one costs a day of generations.
+# nothing and a lost one costs a day of generations. A host that does not
+# collect has no root half to ask for.
 write_marker() {
+  [ "$collect" -eq 1 ] || return 0
   mkdir -p -- "$(dirname -- "$marker")" 2>/dev/null || true
   date -Is >"$marker" 2>/dev/null || true
   log "asked the system unit to collect root's profiles"
@@ -163,7 +231,22 @@ status=0
 # skipped whole, and the day still pins and collects.
 tree_ok=1
 
-if ! wait_for_network; then
+# A wrapper without a flake.nix is not a wrapper: there is nothing to lock,
+# nothing to update and no switch target, so the update half is skipped instead
+# of running nix in a directory that is not a flake. The pin and the collection
+# still run, since neither reads the wrapper.
+if [ ! -f "$deploy/flake.nix" ]; then
+  log "no deploy wrapper flake at $deploy/flake.nix"
+  notify -u critical "Update failed" "No deploy wrapper at $deploy"
+  status=1
+  tree_ok=0
+fi
+
+if [ "$tree_ok" -eq 0 ]; then
+  # Already logged and notified above: nothing in the update half can run to a
+  # working switch without a wrapper, so the run goes straight to the tail.
+  :
+elif ! wait_for_network; then
   notify -u critical "Update failed" "No network after 10 minutes"
   status=1
 else
@@ -181,7 +264,7 @@ else
           # its exit trap and asks for the collection. The child writes the
           # marker too, and the root unit is idempotent inside its window.
           log "the pull changed this script, handing over to the new copy"
-          DAILY_UPDATE_RERUN=1 "$self" "$@" || exit $?
+          DAILY_UPDATE_RERUN=1 "$self" "${orig_args[@]}" || exit $?
           exit 0
         fi
       fi
@@ -242,24 +325,29 @@ else
   fi
 
   if [ "$tree_ok" -eq 0 ]; then
-    log "checkout is not settled, skipping the flake update, the pin, and both switches"
-  elif ! nix flake update nixpkgs nixpkgs-unstable-small zen-browser neovimBTW wallpaper-guardian; then
+    log "checkout is not ready, skipping the flake update, the pin, and both switches"
+  elif ! (
+    cd -- "$deploy" && nix flake update "${wrapper_names[@]}"
+  ); then
     notify -u critical "Update failed" "Failed to update flakes"
     status=1
   else
     # A tag that does not build keeps the previous pin and never blocks the day.
-    log "moving the T3 Code stable pin"
-    DOTFILES=$dots DEPLOY=$deploy "$dots/pkgs/t3code/update.sh" ||
-      log "T3 Code pin update failed, keeping the previous pin"
+    if [ "$t3" -eq 1 ]; then
+      log "moving the T3 Code stable pin"
+      DOTFILES=$dots DEPLOY=$deploy "$dots/pkgs/t3code/update.sh" ||
+        log "T3 Code pin update failed, keeping the previous pin"
+    fi
 
     # The helper is the hand-run command with the password taken out: fixed
-    # flake, fixed live-tree override, --cores 16. A cache hit costs a minute,
-    # and a kernel that has to compile is the one case where the count matters.
+    # flake, fixed live-tree override, hostConfig.dailyUpdate.cores. A cache hit
+    # costs a minute, and a kernel that has to compile is the one case where the
+    # count matters.
     log "switching the system"
     if sudo -n "$system_switch"; then
       # cores = 2 keeps a post-lock-bump rebuild polite while the machine is in
       # use.
-      if NIX_CONFIG="cores = 2" "$dots/apps/home-switch/hm-switch.sh"; then
+      if NIX_CONFIG="cores = 2" "$home_switch"; then
         if commit_lock; then
           notify "Update successful" "Updated, system and home switched"
         else
@@ -282,13 +370,17 @@ fi
 
 # Pinning builds a devshell when its lock moved, so it runs before the
 # collection. A failed pin keeps the previous root.
-log "pinning project devshells"
-"$dots/apps/daily-update/projects.sh" pin || log "some devshells failed to pin, previous roots kept"
+if [ "$devshells" -eq 1 ]; then
+  log "pinning project devshells"
+  "$dots/apps/daily-update/projects.sh" pin || log "some devshells failed to pin, previous roots kept"
+fi
 
-log "collecting the user store"
-if ! nix-collect-garbage --delete-older-than 2d; then
-  notify -u critical "Store collection failed" "nix-collect-garbage exited nonzero"
-  status=1
+if [ "$collect" -eq 1 ]; then
+  log "collecting the user store"
+  if ! nix-collect-garbage --delete-older-than 2d; then
+    notify -u critical "Store collection failed" "nix-collect-garbage exited nonzero"
+    status=1
+  fi
 fi
 
 log "daily update finished with status $status"

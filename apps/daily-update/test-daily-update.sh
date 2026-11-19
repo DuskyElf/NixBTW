@@ -40,14 +40,22 @@
 #  18. commit fails    critical notify, collection still runs, exit 1
 #  19. arguments       the marker and helper paths the unit passes are the two
 #                      that get used
-#  20. no wrapper      exits before the network wait, nothing recorded
+#  20. no wrapper      no deploy-system/flake.nix: the update half is skipped,
+#                      the pin and the collection still run, exit 1
 #  21. earlier conflicts unmerged paths survive into a later run: the pre-pull
 #                      probe stops the update half, the collection still runs
 #  22. killed mid-run  SIGTERM during the pull: the exit trap asks for the root
 #                      collection anyway
-#  23. self update     the pull rewrites this script: the run hands over to the
+#  23. flags off       --no-t3/--no-devshells/--no-collect: the pin, the devshell
+#                      pin, the collection and the marker are all skipped
+#  24. full flags      the unit's whole command line, including a custom home
+#                      switch path and a shorter input list
+#  25. bad option      an unknown option exits 2 before touching anything
+#  26. empty inputs    --wrapper-inputs "" exits 2 instead of updating every
+#                      input
+#  27. self update     the pull rewrites this script: the run hands over to the
 #                      new copy as a child, whose new line runs, and finishes
-#                      there
+#                      there. Last, because it rewrites the copy under test.
 set -euo pipefail
 
 here=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
@@ -76,6 +84,9 @@ mkdir -p "$tree/apps/daily-update" "$tree/apps/home-switch" "$tree/pkgs/t3code" 
   "$tree/deploy-system" "$bin" "$home"
 cp -- "$script" "$tree/apps/daily-update/daily-update.sh"
 under_test=$tree/apps/daily-update/daily-update.sh
+# The wrapper has to look like a flake, or the script treats the update half as
+# unavailable; case 20 removes this file.
+: >"$tree/deploy-system/flake.nix"
 marker=$home/.local/state/daily-update/gc-request
 switch_helper=$work/nixos-switch.sh
 gitdir=$work/gitdir
@@ -111,7 +122,13 @@ case "$*" in
     printf 'nix flake lock\n' >> "$T_CALLS"
     exit "${T_LOCK:-0}"
     ;;
-  "flake update nixpkgs nixpkgs-unstable-small zen-browser neovimBTW wallpaper-guardian")
+  "flake update $T_FLAKE_INPUTS")
+    # The wrapper is a flake, so the update has to run inside it; running it
+    # from the checkout would lock the wrong file.
+    [ "$PWD" = "$T_DEPLOY" ] || {
+      echo "flake update ran in $PWD, wanted $T_DEPLOY" >&2
+      exit 4
+    }
     printf 'nix flake update\n' >> "$T_CALLS"
     exit "${T_FLAKE:-0}"
     ;;
@@ -321,6 +338,7 @@ export T_SCRIPT="$under_test" T_PULL_APPLIED="$work/pull-applied"
 export T_UNMERGED="$work/unmerged" T_GITDIR="$gitdir" T_HEAD=$'abc1234\n'
 export T_SWITCH_HELPER="$switch_helper" T_CALLS="$work/calls" T_NOTIFY="$work/notify"
 export T_CURL_COUNT="$work/curl-count"
+export T_FLAKE_INPUTS="nixpkgs nixpkgs-unstable-small zen-browser neovimBTW wallpaper-guardian"
 
 reset() {
   : >"$T_CALLS"
@@ -331,11 +349,18 @@ reset() {
   export T_FLAKE=0 T_T3CODE=0 T_SWITCH=0 T_SYSTEM_SWITCH=0 T_PIN=0 T_GC=0
   export T_COMMIT=0 T_FETCH=0 T_SUBMODULE=0 T_LOCK=0 T_PULL=1 T_SELF_UPDATE=0
   export T_CURL_FAILS=0 T_LOCK_CHANGED=1
+  export T_FLAKE_INPUTS="nixpkgs nixpkgs-unstable-small zen-browser neovimBTW wallpaper-guardian"
 }
 
 run() {
   rc=0
   "$under_test" "${1:-$marker}" "${2:-$switch_helper}" >"$work/out" 2>&1 || rc=$?
+}
+
+# The raw argument list, for the cases that exercise the script's own parsing.
+run_with() {
+  rc=0
+  "$under_test" "$@" >"$work/out" 2>&1 || rc=$?
 }
 
 calls() { cat -- "$T_CALLS" 2>/dev/null || true; }
@@ -643,15 +668,17 @@ expect_status 0
 [ ! -e "$marker" ] || fail "the fallback was used despite the argument"
 ok "honoured the marker and helper paths the unit passes"
 
-case="20 no deploy wrapper"
+case="20 no deploy wrapper flake"
 reset
-mv "$tree/deploy-system" "$work/deploy-system.gone"
+mv "$tree/deploy-system/flake.nix" "$work/flake.nix.gone"
 run
-mv "$work/deploy-system.gone" "$tree/deploy-system"
+mv "$work/flake.nix.gone" "$tree/deploy-system/flake.nix"
 expect_status 1
-expect_calls ""
-expect_no_marker
-ok "exited before touching the network, wrote no marker"
+expect_calls "$tail_calls"
+expect_notified "No deploy wrapper"
+expect_not_notified "Failed to update flakes"
+expect_marker
+ok "skipped the update half, still pinned and collected"
 
 case="21 earlier conflicts"
 reset
@@ -675,7 +702,69 @@ git pull"
 expect_marker
 ok "the exit trap asked for the root collection anyway"
 
-case="23 self update"
+case="23 flags off"
+reset
+run_with "$marker" "$switch_helper" --no-t3 --no-devshells --no-collect
+expect_status 0
+expect_calls "$settled
+nix flake update
+sudo switch
+$home_calls"
+expect_notified "Update successful"
+expect_no_marker
+ok "skipped the T3 pin, the devshell pin, the collection and the marker"
+
+case="24 full flags"
+reset
+other_switch=$work/other-switch.sh
+cat >"$other_switch" <<'STUB'
+#!/usr/bin/env bash
+[ "${NIX_CONFIG:-}" = "cores = 2" ] || { echo "bad NIX_CONFIG=${NIX_CONFIG:-}" >&2; exit 4; }
+printf 'other switch\n' >> "$T_CALLS"
+STUB
+chmod +x "$other_switch"
+export T_FLAKE_INPUTS="nixpkgs neovimBTW"
+run_with "$marker" "$switch_helper" \
+  --home-switch "$other_switch" \
+  --t3 --devshells --collect \
+  --wrapper-inputs "nixpkgs neovimBTW"
+export T_FLAKE_INPUTS="nixpkgs nixpkgs-unstable-small zen-browser neovimBTW wallpaper-guardian"
+expect_status 0
+expect_calls "$settled
+nix flake update
+t3code
+sudo switch
+other switch
+git add
+git diff
+git commit
+projects pin
+nix-collect-garbage"
+expect_notified "Update successful"
+expect_marker
+ok "ran the unit's whole command line, with its own switch and input list"
+
+case="25 bad option"
+reset
+run_with --bogus
+expect_status 2
+expect_calls ""
+expect_no_marker
+expect_output "unknown option"
+ok "refused the option before touching anything"
+
+case="26 empty inputs"
+reset
+run_with "$marker" "$switch_helper" --wrapper-inputs ""
+expect_status 2
+expect_calls ""
+expect_no_marker
+expect_output "at least one input"
+ok "refused an empty input list instead of updating every input"
+
+# Last on purpose: the pull rewrites the copy of the script under test, so every
+# case after this one would run the modified file.
+case="27 self update"
 reset
 export T_SELF_UPDATE=1
 run

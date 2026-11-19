@@ -35,4 +35,21 @@
   # No tailnet on this box, so sshd opens 22 on every interface instead of on
   # the tailscale one only.
   ssh.openLanPort = true;
+
+  # The box updates itself once a day like the laptop, but only the stable
+  # track: nixpkgs, and the two submodule inputs the wrapper pins. No T3 Code
+  # pin, no devshell pin, no store optimiser. It has no graphical session, so
+  # the timer needs linger to start at boot, and two cores keep a rebuild
+  # polite on the A10. The store caches stay in the home directory (the default
+  # cacheRoot): there is no scratch tmpfs here.
+  dailyUpdate = {
+    collect = true;
+    linger = true;
+    cores = 2;
+    wrapperInputs = [
+      "nixpkgs"
+      "neovimBTW"
+      "wallpaper-guardian"
+    ];
+  };
 }

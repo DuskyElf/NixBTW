@@ -76,21 +76,27 @@
   outputs =
     inputs:
     let
+      lib = inputs.nixpkgs.lib;
       dotfiles = import ./lib { inherit inputs; };
       apps = import ./apps;
 
-      # One binding per machine, all built the same way. A new host is a
-      # hosts/<name>/ directory plus a line here.
-      hosts = [
-        (dotfiles.mkHost {
-          host = import ./hosts/asus;
+      # Every directory under hosts/ is one machine, so a new host is a
+      # hosts/<name>/ directory and nothing else. readDir skips the files there
+      # (READMEs, patches) and attrNames sorts, so the output set is stable.
+      # `hosts/<name>/default.nix` is what mkHost imports.
+      hostNames = builtins.attrNames (
+        lib.filterAttrs (name: type: type == "directory" && !(lib.hasPrefix "." name)) (
+          builtins.readDir ./hosts
+        )
+      );
+
+      hosts = map (
+        name:
+        dotfiles.mkHost {
+          host = import (./hosts + "/${name}");
           inherit apps;
-        })
-        (dotfiles.mkHost {
-          host = import ./hosts/homelab;
-          inherit apps;
-        })
-      ];
+        }
+      ) hostNames;
     in
     {
       # The stable kernel series this machine tracks (see
