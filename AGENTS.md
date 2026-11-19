@@ -74,21 +74,32 @@ Install it from the laptop with the target booted from a live ISO:
       root@<live-iso-address>
 
 The path form reads the live tree, including the regenerated hardware file.
-Commit the regenerated `hardware.nix` afterwards. Redeploy with the wrapper, so
-the pinned inputs are the ones the install used:
+Commit the regenerated `hardware.nix` afterwards. This needs kexec on the live
+system. Alpine's ISO cannot do it: its kernel has no `kexec_file_load` and sets
+`kernel.kexec_load_disabled` one way, and it runs mdev, so
+`/dev/disk/by-partlabel` never appears for disko. On that ISO the install is the
+long way: `apk add nix bash util-linux`, generate the hardware file with
+`nixos-generate-config` from the tools closure, build the system on the laptop,
+`nix-store --import` it as root (the installed daemon rejects unsigned pushes
+from an untrusted user), format with disko's `formatScript` after `mdev -s` and
+manual partlabel links, mount with `mountScript`, then
+`nixos-install --root /mnt --system ... --no-root-passwd`. Redeploy with the
+wrapper, so the pinned inputs are the ones the install used:
 
     sudo nixos-rebuild switch --flake /home/duskyelf/dotfiles/deploy-system#homelab \
       --override-input my-dotfiles path:/home/duskyelf/dotfiles \
       --target-host duskyelf@192.168.1.200 --use-remote-sudo --cores 16
 
 The home generation is not part of `nixos-install` and this host has no daily
-timer to activate it, so copy and activate it once (the copy goes through the
-remote nix daemon, which is why it is `ssh-ng`):
+timer to activate it, so push it by hand when it changes. `nix copy` to the
+installed box fails: its daemon requires a signature for an untrusted push. The
+export below writes the store as root instead, and the one password prompt is
+the console password:
 
-    nix copy --to ssh-ng://duskyelf@192.168.1.200 \
-      path:/home/duskyelf/dotfiles#homeConfigurations."duskyelf@homelab".activationPackage
     gen=$(nix build --no-link --print-out-paths \
       path:/home/duskyelf/dotfiles#homeConfigurations."duskyelf@homelab".activationPackage)
+    nix-store --export $(nix-store -qR "$gen") > .tmp/home.nar
+    ssh duskyelf@192.168.1.200 'sudo nix-store --import' < .tmp/home.nar
     ssh duskyelf@192.168.1.200 "$gen/activate"
 
 Both root and `duskyelf` start with the password `nixos`; change both after the
