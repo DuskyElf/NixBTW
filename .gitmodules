@@ -1,9 +1,9 @@
 [submodule "neovimBTW"]
-	path = neovimBTW
+	path = apps/nvim/neovimBTW
 	url = https://github.com/DuskyElf/neovimBTW
 [submodule "opencodeBTW"]
-	path = opencodeBTW
+	path = apps/opencode/opencodeBTW
 	url = https://github.com/DuskyElf/opencodeBTW
 [submodule "wallpaper-guardian"]
-	path = wallpaper-guardian
+	path = apps/wallpaper/wallpaper-guardian
 	url = https://github.com/DuskyElf/wallpaper-guardian

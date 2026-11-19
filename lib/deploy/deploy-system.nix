@@ -1,4 +1,4 @@
-# Public recipe for the private deploy wrapper. scripts/bootstrap-deploy.sh
+# Public recipe for the private deploy wrapper. lib/deploy/bootstrap.sh
 # substitutes @ROOT@ with the checkout path and locks it; the generated
 # deploy-system/ stays gitignored, along with its lock.
 {
@@ -15,8 +15,8 @@
     home-manager.url = "github:nix-community/home-manager/release-26.05";
     stylix.url = "github:nix-community/stylix/release-26.05";
     niri.url = "github:sodiboo/niri-flake";
-    neovimBTW.url = "git+file://@ROOT@/neovimBTW";
-    wallpaper-guardian.url = "git+file://@ROOT@/wallpaper-guardian";
+    neovimBTW.url = "git+file://@ROOT@/apps/nvim/neovimBTW";
+    wallpaper-guardian.url = "git+file://@ROOT@/apps/wallpaper/wallpaper-guardian";
     zen-browser.url = "github:0xc000022070/zen-browser-flake/beta";
 
     # Do not follow-override nixpkgs-fast-release. The kernel cache is built

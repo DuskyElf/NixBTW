@@ -30,7 +30,7 @@
 # relying on the flake's fingerprint.
 set -euo pipefail
 
-dots=$(cd -- "$(dirname -- "$(readlink -f -- "$0")")/.." && pwd)
+dots=$(cd -- "$(dirname -- "$(readlink -f -- "$0")")/../.." && pwd)
 deploy=$dots/deploy-system
 state=${XDG_STATE_HOME:-$HOME/.local/state}
 cache_dir=$state/hm-switch

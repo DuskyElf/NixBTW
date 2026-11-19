@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Creates deploy-system/ for a public-only checkout and locks it to the current
-# channel tips. The real wrapper is private; scripts/deploy-system.nix is its
+# channel tips. The real wrapper is private; lib/deploy/deploy-system.nix is its
 # public recipe.
 #
-# Usage: scripts/bootstrap-deploy.sh
+# Usage: lib/deploy/bootstrap.sh
 set -euo pipefail
 
-root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
 deploy="$root/deploy-system"
 
 if [ -e "$deploy/flake.nix" ]; then
@@ -16,7 +16,7 @@ if [ -e "$deploy/flake.nix" ]; then
 fi
 
 mkdir -p "$deploy"
-sed "s|@ROOT@|$root|g" "$root/scripts/deploy-system.nix" > "$deploy/flake.nix"
+sed "s|@ROOT@|$root|g" "$root/lib/deploy/deploy-system.nix" > "$deploy/flake.nix"
 
 # Nix ignores a flake file inside a git repo unless it is tracked. A nested
 # repo, like the private wrapper, keeps deploy-system/ out of the parent index.
@@ -37,5 +37,5 @@ git -C "$deploy" -c user.name="deploy-bootstrap" -c user.email="deploy-bootstrap
 echo
 echo "deploy lock written to $deploy/flake.lock"
 echo "rebuild with:"
-echo "  $root/scripts/hm-switch.sh"
+echo "  $root/apps/home-switch/hm-switch.sh"
 echo "  sudo nixos-rebuild switch --flake $deploy --override-input my-dotfiles path:$root --cores 16"

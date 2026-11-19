@@ -3,7 +3,7 @@
 #
 # A plain `nix develop` leaves no gc root behind, so the next GC deletes the
 # devshell and every package it pulled in. This links each project listed in
-# hot-configs/active-projects to a gc root at
+# apps/daily-update/active-projects to a gc root at
 # ~/.local/state/nix/gcroots/projects/<name>, so its closure survives.
 #
 #   projects.sh find    every flake under ~/Projects, and whether it is listed
@@ -16,8 +16,9 @@
 # so a broken lock never leaves a project unprotected.
 set -uo pipefail
 
+here=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 projects_dir="$HOME/Projects"
-list_file="$HOME/dotfiles/hot-configs/active-projects"
+list_file="$here/active-projects"
 root="${XDG_STATE_HOME:-$HOME/.local/state}/nix/gcroots/projects"
 
 # Read once. A missing list is fatal before anything is touched: treating it

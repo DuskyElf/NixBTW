@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# test-update-t3code-stable: deterministic checks for scripts/update-t3code-stable.sh.
+# test-update-t3code-stable: deterministic checks for pkgs/t3code/update.sh.
 #
 # The script is driven against shims placed first in PATH: `curl` serves one
 # release-API answer, `git` serves the tag it is asked for, `nix` reports hash
@@ -25,7 +25,7 @@
 set -euo pipefail
 
 here=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-script=$here/update-t3code-stable.sh
+script=$here/update.sh
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 
@@ -183,7 +183,7 @@ hash() { printf 'sha256-%s=\n' "$1"; }
 lockfile() {
     cat <<EOF
 # Stable release tag of pingdotgg/t3code plus the fixed-output hashes for it.
-# Rewritten by scripts/update-t3code-stable.sh; there is no reason to edit by hand.
+# Rewritten by pkgs/t3code/update.sh; there is no reason to edit by hand.
 {
   tag = "$1";
   rev = "$2";

@@ -1,6 +1,11 @@
 # The wallpaper overlay: clock, photo caption, and a dim timer readout on empty
-# workspaces. Source lives in quickshell/, linked live by apps/sh.nix.
-{ hostConfig, pkgs, ... }:
+# workspaces. Source lives in apps/quickshell/, linked live by this module.
+{
+  config,
+  hostConfig,
+  pkgs,
+  ...
+}:
 {
   systemd.user.services.quickshell = {
     Unit = {
@@ -16,6 +21,13 @@
       RestartSec = "1s";
     };
     Install.WantedBy = [ "graphical-session.target" ];
+  };
+
+  # The shell, the status scripts it runs, and timers.mjs. Linked live so an
+  # edit reaches the running shell without a rebuild.
+  xdg.configFile."quickshell" = {
+    recursive = true;
+    source = config.lib.file.mkOutOfStoreSymlink "${hostConfig.dotsDir}/apps/quickshell";
   };
 
   home.packages = [ pkgs.quickshell ];

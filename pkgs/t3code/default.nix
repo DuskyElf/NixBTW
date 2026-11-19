@@ -18,13 +18,13 @@
 # The recipe rides the daily `nix flake update` of the unstable-small pin, while
 # the packages stay on stable. A recipe that grows an argument or a package
 # stable cannot supply breaks the home configuration's evaluation rather than
-# the tag's hashes, and scripts/update-t3code-stable.sh reports it as a build
+# the tag's hashes, and pkgs/t3code/update.sh reports it as a build
 # failure with the pin in place, not as a bad tag. Revert the pin or vendor the
 # recipe when that happens.
 #
 # The source is upstream's tag, so the three fixed-output hashes in ./lock.nix
 # (repo tarball, pnpm store, cargo vendor) still move with the tag, and
-# scripts/update-t3code-stable.sh rewrites them during the daily update.
+# pkgs/t3code/update.sh rewrites them during the daily update.
 {
   # The package set every dependency is taken from. Callers pass the stable
   # instance, the same one home-manager builds the app with.

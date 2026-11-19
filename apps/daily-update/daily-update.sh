@@ -34,7 +34,7 @@
 # inline unit this replaces relied on the same PATH for its bare nix and git.
 set -euo pipefail
 
-dots=$(cd -- "$(dirname -- "$(readlink -f -- "$0")")/.." && pwd)
+dots=$(cd -- "$(dirname -- "$(readlink -f -- "$0")")/../.." && pwd)
 deploy=$dots/deploy-system
 # The daily-update unit passes hostConfig.gcRequest, the same value the system
 # path unit in base/workstation.nix watches, so production has one source for
@@ -249,7 +249,7 @@ else
   else
     # A tag that does not build keeps the previous pin and never blocks the day.
     log "moving the T3 Code stable pin"
-    DOTFILES=$dots DEPLOY=$deploy "$dots/scripts/update-t3code-stable.sh" ||
+    DOTFILES=$dots DEPLOY=$deploy "$dots/pkgs/t3code/update.sh" ||
       log "T3 Code pin update failed, keeping the previous pin"
 
     # The helper is the hand-run command with the password taken out: fixed
@@ -259,7 +259,7 @@ else
     if sudo -n "$system_switch"; then
       # cores = 2 keeps a post-lock-bump rebuild polite while the machine is in
       # use.
-      if NIX_CONFIG="cores = 2" "$dots/scripts/hm-switch.sh"; then
+      if NIX_CONFIG="cores = 2" "$dots/apps/home-switch/hm-switch.sh"; then
         if commit_lock; then
           notify "Update successful" "Updated, system and home switched"
         else
@@ -283,7 +283,7 @@ fi
 # Pinning builds a devshell when its lock moved, so it runs before the
 # collection. A failed pin keeps the previous root.
 log "pinning project devshells"
-"$dots/scripts/projects.sh" pin || log "some devshells failed to pin, previous roots kept"
+"$dots/apps/daily-update/projects.sh" pin || log "some devshells failed to pin, previous roots kept"
 
 log "collecting the user store"
 if ! nix-collect-garbage --delete-older-than 2d; then

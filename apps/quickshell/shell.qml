@@ -227,7 +227,7 @@ Scope {
   // Hover only flips visibility, so it is deterministic (no command swap).
   Process {
     id: userProc
-    command: [ "sh", "-c", "~/.config/scripts/timers.mjs" ]
+    command: [ "sh", "-c", "~/.config/quickshell/timers.mjs" ]
     running: true
     stdout: StdioCollector {
       onStreamFinished: root.timersUserText = text
@@ -235,7 +235,7 @@ Scope {
   }
   Process {
     id: allProc
-    command: [ "sh", "-c", "~/.config/scripts/timers.mjs all" ]
+    command: [ "sh", "-c", "~/.config/quickshell/timers.mjs all" ]
     running: true
     stdout: StdioCollector {
       onStreamFinished: root.timersAllText = text

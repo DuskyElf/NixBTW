@@ -10,7 +10,7 @@ let
   # Built from upstream's latest stable release tag, not the older tagged
   # release in nixpkgs. The tag and the fixed-output hashes live in
   # pkgs/t3code/lock.nix and move with the daily update
-  # (scripts/update-t3code-stable.sh). Every dependency comes from the stable
+  # (pkgs/t3code/update.sh). Every dependency comes from the stable
   # set, whose cache carries electron. The recipe and codex come from
   # unstable-small: stable only has a 0.0.x recipe, and its codex 0.146 is
   # below the 0.149 that T3 0.1.10 marks broken.
@@ -105,5 +105,5 @@ in
   ] "run ${t3HeadlessChromeShim}";
 
   home.file.".config/opencode".source =
-    config.lib.file.mkOutOfStoreSymlink "${hostConfig.dotsDir}/opencodeBTW";
+    config.lib.file.mkOutOfStoreSymlink "${hostConfig.dotsDir}/apps/opencode/opencodeBTW";
 }

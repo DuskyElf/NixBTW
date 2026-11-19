@@ -17,8 +17,8 @@ let
   # this store copy into /usr/local/sbin, which is the only path sudo matches,
   # and runtimeInputs means sudo's inherited caller PATH cannot shadow a tool.
   # writeShellApplication emits a directory, so link its /bin/power.sh, not it.
-  # Edits to scripts/power.sh only reach root on the next nixos-rebuild, and
-  # the writable ~/.config/scripts copy never does, because sudo matches only
+  # Edits to apps/power/power.sh only reach root on the next nixos-rebuild; the
+  # file is store-pinned and not linked live anywhere, because sudo matches only
   # the /usr/local/sbin path.
   powerScript = pkgs.writeShellApplication {
     name = "power.sh";
@@ -50,24 +50,24 @@ let
         )
       }
     ''
-    + lib.removePrefix "#!/usr/bin/env bash\n" (builtins.readFile ../scripts/power.sh);
+    + lib.removePrefix "#!/usr/bin/env bash\n" (builtins.readFile ../apps/power/power.sh);
   };
 
-  # The system half of the daily update (scripts/daily-update.sh) runs through
-  # this store copy. The sudo rule below names this path, so the body has to be
-  # immutable and every argument fixed: the account can ask for this rebuild and
-  # cannot point nixos-rebuild at another flake, attribute, or bootloader
-  # operation. What the rule does not do is make the tree trustworthy, because
-  # nixos-rebuild evaluates the login user's checkout: whoever can write a
-  # module can install a system generation as root on the next run. That is the
-  # same power a hand rebuild has, only without the password, and the reason the
-  # rule lives in AGENTS.md as a documented exception.
+  # The system half of the daily update (apps/daily-update/daily-update.sh) runs
+  # through this store copy. The sudo rule below names this path, so the body
+  # has to be immutable and every argument fixed: the account can ask for this
+  # rebuild and cannot point nixos-rebuild at another flake, attribute, or
+  # bootloader operation. What the rule does not do is make the tree trustworthy,
+  # because nixos-rebuild evaluates the login user's checkout: whoever can write
+  # a module can install a system generation as root on the next run. That is
+  # the same power a hand rebuild has, only without the password, and the reason
+  # the rule lives in AGENTS.md as a documented exception.
   #
   # /run/current-system/sw/bin/nixos-rebuild is the copy PATH resolves for a
   # hand run, and the running generation's copy is the one that exists while the
   # next one is being built. --no-write-lock-file keeps root from writing a
-  # lock file it cannot own: scripts/daily-update.sh locks as the login user
-  # before this runs.
+  # lock file it cannot own: apps/daily-update/daily-update.sh locks as the
+  # login user before this runs.
   systemSwitch = pkgs.writeShellScript "nixos-switch.sh" ''
     set -euo pipefail
     # sudo keeps the caller's PATH on this system (no secure_path), and the
@@ -162,7 +162,7 @@ in
     };
 
     # Store hygiene runs at the tail of the daily user update, not on a clock.
-    # The user half (scripts/daily-update.sh) collects the store and
+    # The user half (apps/daily-update/daily-update.sh) collects the store and
     # home-manager's generations, which is everything the login account can
     # prune. Root's generations under /nix/var/nix/profiles are the part it
     # cannot reach, so when the script is done it touches
@@ -175,7 +175,7 @@ in
     # about 4 GiB of its own, so anything older than one spare rollback
     # generation is dead weight even though stable tags land infrequently. The
     # GC only drops paths no generation, profile, or gcroot references, so a
-    # devshell pinned by scripts/projects.sh survives no matter its age.
+    # devshell pinned by apps/daily-update/projects.sh survives no matter its age.
     systemd.services.nix-gc-root = {
       description = "Nix garbage collector for root's profiles";
       serviceConfig = {

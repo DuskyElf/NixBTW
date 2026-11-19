@@ -3,7 +3,8 @@
 The NixOS and home-manager config for my laptop (`asus`, a UX581GV) and the
 headless LAN box (`homelab`), plus the small tools around it: the status
 scripts, the T3 Code stable pin, and the kernel cache. The Guardian wallpaper
-pool lives in `wallpaper-guardian/`, a separate flake and submodule.
+pool lives in `apps/wallpaper/wallpaper-guardian/`, a separate flake and
+submodule.
 
 This repo is the source tree, not the deploy unit. `deploy-system/` is a
 gitignored wrapper flake that pins every input and holds `flake.lock`. It stays
@@ -17,13 +18,17 @@ closure comes from that wrapper.
 | Path | Holds |
 | --- | --- |
 | `flake.nix` | Inputs and outputs. Nothing computes here. |
-| `lib/` | nixpkgs instances, the jail wrapper, the kernel selection, `mkHost` |
+| `lib/` | nixpkgs instances, the jail wrapper, the kernel selection, `mkHost`, and `lib/deploy/` with the wrapper bootstrap |
 | `base/` | Machine-wide config, split by machine type: `base/core.nix` for every host, `base/workstation.nix` for a desktop, `base/home.nix` plus `base/home-workstation.nix` on the home side |
-| `apps/` | One app's config per file, with split apps in their own subdirectory. `apps/default.nix` is a registry of app names, each mapping to its home and system modules |
-| `pkgs/` | Packages this repo builds itself, such as the T3 Code stable pin |
+| `apps/` | One app's config per file, with split apps in their own subdirectory. `apps/default.nix` is a registry of app names, each mapping to its home and system modules; an app's own assets live beside it |
+| `pkgs/` | Packages this repo builds itself, such as the T3 Code stable pin and its update script |
 | `hosts/asus/` | This laptop: `config.nix` holds its identity and hardware values, `system.nix` the firmware, kernel, nvidia, and screenpad work |
 | `hosts/homelab/` | The headless LAN box: its own config, disk layout, and a placeholder `hardware.nix` the install replaces |
-| `scripts/`, `quickshell/`, `hot-configs/` | Linked live, no rebuild |
+| `apps/quickshell/`, `apps/daily-update/`, `apps/home-switch/` | Live-linked assets beside the module that owns them: the QML and status scripts, the daily run and its project pin, and `hm-switch.sh` |
+
+Nothing app-specific sits at the top level any more: a script or asset lives in
+the directory of the app whose `.nix` uses it, and `lib/deploy/` holds the
+wrapper bootstrap because it is plumbing rather than an app.
 
 A file in `apps/` sets config for one app, except `apps/default.nix` itself and
 the helpers a module imports, such as `apps/niri/notify.nix`. Machine policy
@@ -57,18 +62,19 @@ Clone [DuskyElf/NixBTW](https://github.com/DuskyElf/NixBTW) into `dotfiles`:
 git clone --recurse-submodules https://github.com/DuskyElf/NixBTW dotfiles
 ```
 
-An existing checkout needs `git submodule update --init wallpaper-guardian`
-after pulling, since the flake reads that path as an input.
+An existing checkout needs `git submodule sync --recursive` and then
+`git submodule update --init` after pulling, since the submodules moved under
+`apps/` and the flake reads two of those paths as inputs.
 
 The clone has no `deploy-system/` and no lock. On the laptop I restore the
 private wrapper. A public-only checkout can generate an equivalent one and lock
 it to the current channel tips:
 
 ```sh
-scripts/bootstrap-deploy.sh
+lib/deploy/bootstrap.sh
 ```
 
-The script writes `deploy-system/flake.nix` from `scripts/deploy-system.nix`,
+The script writes `deploy-system/flake.nix` from `lib/deploy/deploy-system.nix`,
 commits it into a nested repo (Nix ignores an untracked flake inside a git
 tree), runs `nix flake lock`, and prints the rebuild commands for the checkout's
 path. The generated directory stays gitignored. Run `nix flake update` inside
@@ -120,15 +126,16 @@ What needs which rebuild:
 | `base/core.nix`, `base/workstation.nix`, an app's system modules in `apps/default.nix`, `hosts/` | `nixos-rebuild switch` |
 | `apps/niri/system.nix` | `nixos-rebuild switch`; the rest of `apps/niri/` is a home module |
 | `flake.nix`, `lib/` | both, the wiring reaches both configurations |
-| `wallpaper-guardian/` | `hm-switch.sh`; a submodule bump also needs `nix flake update wallpaper-guardian` in `deploy-system/` |
-| `scripts/timers.mjs`, `hot-configs/`, `quickshell/` | nothing, they are linked live |
-| `scripts/power.sh` | `nixos-rebuild switch` (it lands in `/usr/local/sbin`) |
+| `apps/wallpaper/wallpaper-guardian/` | `hm-switch.sh`; a submodule bump also needs `nix flake update wallpaper-guardian` in `deploy-system/` |
+| `apps/quickshell/`, `apps/tmux/tmux.conf`, `apps/daily-update/active-projects` | nothing, they are linked live or read at run time |
+| `apps/power/power.sh` | `nixos-rebuild switch` (it lands in `/usr/local/sbin`) |
 
 A `neovimBTW` or `wallpaper-guardian` submodule bump also needs
 `nix flake update <name>` inside `deploy-system/`, then a switch; the daily run
 does that for both after its pull. The private wrapper must list
-`wallpaper-guardian` as an input first; `scripts/deploy-system.nix` shows the
-shape for a fresh bootstrap. `opencodeBTW` is symlinked, not a flake input.
+`wallpaper-guardian` as an input first; `lib/deploy/deploy-system.nix` shows the
+shape for a fresh bootstrap. `apps/opencode/opencodeBTW` is symlinked, not a
+flake input.
 
 A hand edit still needs the rebuild from the table, but the daily run applies
 whatever a pull brings to both configurations on its own. The system half goes
@@ -154,7 +161,7 @@ below.
 ## What runs
 
 Systemd units do the background work, not shell daemons. On the laptop one daily
-user timer does the morning's work: `scripts/daily-update.sh` pulls the merged changes,
+user timer does the morning's work: `apps/daily-update/daily-update.sh` pulls the merged changes,
 updates the floating inputs, moves the T3 Code pin, rebuilds the system through
 the `nixos-switch.sh` helper, switches home-manager, commits the wrapper lock,
 pins the listed devshells, and collects the user store. It then wakes a system
@@ -172,13 +179,13 @@ to `awww-daemon`. `quickshell`, `wl-gammarelay`, and `break-timer` are
 On the laptop the user timer `daily-update` fires from 08:30, with up to half
 an hour of jitter, and catches up after wake. The homelab box has no home
 generation to keep moving, so it relies on `nix.gc` alone; the store optimiser
-and the marker-driven root collection are desktop policy. `scripts/daily-update.sh` waits for network,
+and the marker-driven root collection are desktop policy. `apps/daily-update/daily-update.sh` waits for network,
 pulls `origin/main` with `git pull --rebase --autostash` (the timer's own T3
 Code commits are the only local work in the way), syncs the submodules, locks
 this checkout's ignored `flake.lock`, runs
 `nix flake update nixpkgs nixpkgs-unstable-small zen-browser neovimBTW
-wallpaper-guardian` and `scripts/update-t3code-stable.sh`, rebuilds the system,
-runs `scripts/hm-switch.sh`, commits the wrapper lock, pins the listed
+wallpaper-guardian` and `pkgs/t3code/update.sh`, rebuilds the system,
+runs `apps/home-switch/hm-switch.sh`, commits the wrapper lock, pins the listed
 devshells, and collects the user store with `--delete-older-than 2d`. The marker
 it writes starts `nix-gc-root.service`, which collects root's profiles with the
 same window; the marker is written from an exit trap, so a run killed with
@@ -249,9 +256,9 @@ Check the parts that have tests or a single answer:
 
 ```sh
 nix eval --raw --no-write-lock-file .#kernelVersion   # the series the selector picked
-scripts/test-update-t3code-stable.sh  # t3code stable pin, against fakes
-scripts/test-hm-switch.sh           # hm-switch cache, against a fake nix
-scripts/test-daily-update.sh        # the daily run, against fakes
+pkgs/t3code/test-update.sh        # t3code stable pin, against fakes
+apps/home-switch/test-hm-switch.sh # hm-switch cache, against a fake nix
+apps/daily-update/test-daily-update.sh # the daily run, against fakes
 nix fmt                          # nixfmt-tree over the repo
 ```
 

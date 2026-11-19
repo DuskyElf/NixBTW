@@ -46,7 +46,7 @@
   # warned. Pin the legacy value it asks for until stateVersion reaches 26.05.
   wayland.windowManager.hyprland.configType = "hyprlang";
 
-  # One daily run. scripts/daily-update.sh pulls merged work, locks the
+  # One daily run. apps/daily-update/daily-update.sh pulls merged work, locks the
   # checkout, moves the floating inputs and the T3 Code stable pin, rebuilds the
   # system and this configuration, commits the wrapper lock, pins the devshells
   # the collection has to keep, and collects the user store. The marker it
@@ -74,7 +74,7 @@
       # half and the root half cannot drift onto separate markers.
       # hostConfig.systemSwitchPath is the store-pinned helper the NOPASSWD rule
       # in base/workstation.nix names, so the script and the rule share one path.
-      ExecStart = "%h/.config/scripts/daily-update.sh ${hostConfig.gcRequest} ${hostConfig.systemSwitchPath}";
+      ExecStart = "${hostConfig.dotsDir}/apps/daily-update/daily-update.sh ${hostConfig.gcRequest} ${hostConfig.systemSwitchPath}";
       # Type=oneshot disables the manager's start timeout, so a wedged run
       # would sit in "activating" and the next elapse would find the unit
       # already started. Twelve hours is a bound, not an expectation: it covers

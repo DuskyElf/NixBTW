@@ -33,12 +33,12 @@
     };
 
     neovimBTW = {
-      url = ./neovimBTW;
+      url = ./apps/nvim/neovimBTW;
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     wallpaper-guardian = {
-      url = ./wallpaper-guardian;
+      url = ./apps/wallpaper/wallpaper-guardian;
       inputs.nixpkgs.follows = "nixpkgs";
     };
 

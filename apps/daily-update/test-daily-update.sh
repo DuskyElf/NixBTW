@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# test-daily-update: deterministic checks for scripts/daily-update.sh.
+# test-daily-update: deterministic checks for apps/daily-update/daily-update.sh.
 #
 # The script runs in a fake tree. Its three sibling scripts (T3 Code pin,
 # hm-switch, projects) are stubs that check the environment they are handed and
@@ -52,8 +52,9 @@ set -euo pipefail
 
 here=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 script=$here/daily-update.sh
-mkdir -p -- "$(dirname -- "$here")/.tmp"
-work=$(mktemp -d "$(dirname -- "$here")/.tmp/test-daily-update.XXXXXX")
+repo=$(cd -- "$here/../.." && pwd)
+mkdir -p -- "$repo/.tmp"
+work=$(mktemp -d "$repo/.tmp/test-daily-update.XXXXXX")
 trap 'rm -rf "$work"' EXIT
 
 case=setup
@@ -71,35 +72,36 @@ fi
 tree=$work/dotfiles
 bin=$work/bin
 home=$work/home
-mkdir -p "$tree/scripts" "$tree/deploy-system" "$bin" "$home"
-cp -- "$script" "$tree/scripts/daily-update.sh"
-under_test=$tree/scripts/daily-update.sh
+mkdir -p "$tree/apps/daily-update" "$tree/apps/home-switch" "$tree/pkgs/t3code" \
+  "$tree/deploy-system" "$bin" "$home"
+cp -- "$script" "$tree/apps/daily-update/daily-update.sh"
+under_test=$tree/apps/daily-update/daily-update.sh
 marker=$home/.local/state/daily-update/gc-request
 switch_helper=$work/nixos-switch.sh
 gitdir=$work/gitdir
 
 # Siblings the script drives. Each checks what the script passes it, records
 # the call, then obeys its switch.
-cat >"$tree/scripts/update-t3code-stable.sh" <<'STUB'
+cat >"$tree/pkgs/t3code/update.sh" <<'STUB'
 #!/usr/bin/env bash
 [ "${DOTFILES:-}" = "$T_TREE" ] || { echo "bad DOTFILES=${DOTFILES:-}" >&2; exit 4; }
 [ "${DEPLOY:-}" = "$T_TREE/deploy-system" ] || { echo "bad DEPLOY=${DEPLOY:-}" >&2; exit 4; }
 printf 't3code\n' >> "$T_CALLS"
 exit "${T_T3CODE:-0}"
 STUB
-cat >"$tree/scripts/hm-switch.sh" <<'STUB'
+cat >"$tree/apps/home-switch/hm-switch.sh" <<'STUB'
 #!/usr/bin/env bash
 [ "${NIX_CONFIG:-}" = "cores = 2" ] || { echo "bad NIX_CONFIG=${NIX_CONFIG:-}" >&2; exit 4; }
 printf 'switch\n' >> "$T_CALLS"
 exit "${T_SWITCH:-0}"
 STUB
-cat >"$tree/scripts/projects.sh" <<'STUB'
+cat >"$tree/apps/daily-update/projects.sh" <<'STUB'
 #!/usr/bin/env bash
 printf 'projects %s\n' "$*" >> "$T_CALLS"
 exit "${T_PIN:-0}"
 STUB
-chmod +x "$tree/scripts/update-t3code-stable.sh" "$tree/scripts/hm-switch.sh" \
-  "$tree/scripts/projects.sh"
+chmod +x "$tree/pkgs/t3code/update.sh" "$tree/apps/home-switch/hm-switch.sh" \
+  "$tree/apps/daily-update/projects.sh"
 
 cat >"$bin/nix" <<'SHIM'
 #!/usr/bin/env bash

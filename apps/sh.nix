@@ -18,14 +18,21 @@ in
     get-nob = "curl -o nob.h https://raw.githubusercontent.com/tsoding/nob.h/main/nob.h";
   };
 
-  xdg.configFile."scripts" = {
-    recursive = true;
-    source = config.lib.file.mkOutOfStoreSymlink "${hostConfig.dotsDir}/scripts";
-  };
-  xdg.configFile."quickshell" = {
-    recursive = true;
-    source = config.lib.file.mkOutOfStoreSymlink "${hostConfig.dotsDir}/quickshell";
-  };
+  xdg.configFile."scripts/hm-switch.sh".source =
+    config.lib.file.mkOutOfStoreSymlink "${hostConfig.dotsDir}/apps/home-switch/hm-switch.sh";
+
+  # The old generation linked ~/.config/scripts to a directory outside the new
+  # tree (a store copy or the live scripts/ dir). After the move that link
+  # dangles, cleanup can skip it, and linkGeneration's mkdir -p then fails on
+  # it. Drop any symlink at that path before linking; a real directory is left
+  # alone, and readlink is empty for anything but a symlink.
+  home.activation.dropStaleScriptsLink = config.lib.dag.entryBefore [ "linkGeneration" ] ''
+    stale=$(readlink "$HOME/.config/scripts" 2>/dev/null || true)
+    if [ -n "$stale" ]; then
+      run rm -f "$HOME/.config/scripts"
+    fi
+  '';
+
   home.packages = with pkgs; [
     lm_sensors
     gnugrep

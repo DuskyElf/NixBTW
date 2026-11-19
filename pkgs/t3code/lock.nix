@@ -1,5 +1,5 @@
 # Stable release tag of pingdotgg/t3code plus the fixed-output hashes for it.
-# Rewritten by scripts/update-t3code-stable.sh; there is no reason to edit by hand.
+# Rewritten by pkgs/t3code/update.sh; there is no reason to edit by hand.
 {
   tag = "v0.1.10";
   rev = "7d32075e3757ded707914e2450c3e392a9665765";

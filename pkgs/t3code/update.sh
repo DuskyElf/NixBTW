@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Moves pkgs/t3code/lock.nix to upstream's latest stable release tag.
 #
-# Runs from scripts/daily-update.sh, after `nix flake update` and before the
-# system and home switches:
+# Runs from apps/daily-update/daily-update.sh, after `nix flake update` and
+# before the system and home switches:
 #   1. resolve the stable tag through the GitHub releases API, then the tag to
 #      a commit
 #   2. rewrite the lock with the new tag and rev and a placeholder hash for
@@ -43,8 +43,8 @@
 # rest of the update still runs. Run it by hand to skip the wait for 08:30.
 set -euo pipefail
 
-DOTFILES=${DOTFILES:-/home/duskyelf/dotfiles}
-DEPLOY=${DEPLOY:-/home/duskyelf/dotfiles/deploy-system}
+DOTFILES=${DOTFILES:-$(cd -- "$(dirname -- "$(readlink -f -- "$0")")/../.." && pwd)}
+DEPLOY=${DEPLOY:-$DOTFILES/deploy-system}
 REMOTE=https://github.com/pingdotgg/t3code
 RELEASE_API=https://api.github.com/repos/pingdotgg/t3code/releases/latest
 LOCK=$DOTFILES/pkgs/t3code/lock.nix
@@ -210,7 +210,7 @@ trap 'exit 130' INT TERM
 if [ ! -s "$backup" ]; then
   write_lock <<EOF
 # Stable release tag of pingdotgg/t3code plus the fixed-output hashes for it.
-# Rewritten by scripts/update-t3code-stable.sh; there is no reason to edit by hand.
+# Rewritten by pkgs/t3code/update.sh; there is no reason to edit by hand.
 {
   tag = "$tag";
   rev = "$rev";
@@ -231,7 +231,7 @@ if [ -f "$LOCK" ] && ! grep -q '^  tag = ' "$LOCK"; then
   kept_cargo=$(lock_value cargoHash)
   write_lock <<EOF
 # Stable release tag of pingdotgg/t3code plus the fixed-output hashes for it.
-# Rewritten by scripts/update-t3code-stable.sh; there is no reason to edit by hand.
+# Rewritten by pkgs/t3code/update.sh; there is no reason to edit by hand.
 {
   tag = "";
   rev = "$kept_rev";

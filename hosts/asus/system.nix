@@ -177,7 +177,7 @@ in
       ];
     };
 
-    # The dGPU is optional. powersave modes in scripts/power.sh remove the PCI
+    # The dGPU is optional. powersave modes in apps/power/power.sh remove the PCI
     # device and unload the modules; performance re-scans the bus and reloads
     # them. A missing nvidia module is a power mode, not a broken config.
     nvidia = {

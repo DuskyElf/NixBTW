@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# test-hm-switch: deterministic checks for scripts/hm-switch.sh.
+# test-hm-switch: deterministic checks for apps/home-switch/hm-switch.sh.
 #
 # The script runs against shims placed first in PATH: `nix eval` reports a
 # derivation named after the tree's content, `nix build` materialises a fake
@@ -54,9 +54,9 @@ repo=$work/dotfiles
 store=$work/store
 state=$work/state
 bin=$work/bin
-mkdir -p "$repo/scripts" "$repo/deploy-system" "$store" "$state/nix/profiles" "$bin" "$work/home"
-cp -- "$script" "$repo/scripts/hm-switch.sh"
-under_test=$repo/scripts/hm-switch.sh
+mkdir -p "$repo/apps/home-switch" "$repo/deploy-system" "$store" "$state/nix/profiles" "$bin" "$work/home"
+cp -- "$script" "$repo/apps/home-switch/hm-switch.sh"
+under_test=$repo/apps/home-switch/hm-switch.sh
 # Dotted names sort before letters under C and after them under en_US.
 printf 'ignored\n' > "$repo/.gitignore"
 
