@@ -64,11 +64,12 @@ At boot, `screenpad-off` (hosts/asus/system.nix) blanks the screenpad, not niri.
 The second machine is `homelab`, a 2012 AMD A10 laptop (UEFI, 500 GB HDD) that
 lives on the LAN as a headless server. It has no desktop: it does not list
 `base/workstation.nix`, and its home configuration is `base/home.nix` plus the
-`sh`, `bash`, `home-switch`, `daily-update`, `nvim`, and `languages` modules and
-`hosts/homelab/home.nix` for the git identity. It has no tmux, no zsh, no
-opencode, no T3 Code, and no wallpaper: it takes the shared half of the tree and
-nothing else. Its system side is the stable channel plus `neovimBTW` (which
-follows stable), and a kernel it configures itself: `hosts/homelab/kernel.nix`
+`sh`, `bash`, `home-switch`, `daily-update`, `nvim`, `languages`, and `hermes`
+modules and `hosts/homelab/home.nix` for the git identity. It has no tmux, no
+zsh, no opencode, no T3 Code, and no wallpaper: it takes the shared half of the
+tree and nothing else. Its system side is the stable channel plus `neovimBTW`
+(which follows stable), and a kernel it configures itself:
+`hosts/homelab/kernel.nix`
 takes the 6.18 longterm series out of the rev-pinned `nixpkgs-fast-release`
 input and trims it for this exact hardware, which is the same input the laptop's
 kernel comes from, so CI can build both from one rev. Its address is
@@ -166,6 +167,24 @@ same `deploy-system/` on that machine, with the same pinned inputs, plus its own
 (`nixpkgs`, `neovimBTW`, `wallpaper-guardian`), takes two cores, and collects
 its store after the switch instead of on a clock. Its build caches stay in the
 home directory; `cacheRoot` defaults there and the laptop overrides it.
+
+The homelab runs Hermes Agent (`apps/hermes/home.nix`, Nous Research's agent) as
+a user service for `duskyelf`: the messaging gateway always on, the dashboard on
+`127.0.0.1:9119` (reach it with `ssh -L 9119:127.0.0.1:9119`), state in
+`~/.hermes`, shared with the `hermes` command an ssh shell gets. The input is
+rev-pinned in `flake.nix` like `nixpkgs-fast-release`, and the wrapper neither
+pins nor follows it, so that one rev is the pin on every machine and a bump is a
+single line here. It keeps its own nixpkgs out of necessity: its package builds
+patchelf 0.19.2 plus a fix patch, and every channel this repo pins defaults that
+package to 0.15.2, so a follows fails in patchPhase. No binary cache carries its
+closure, so the first switch builds its Python environment, TUI and webapp from
+source (about two thousand wheel unpacks) and later switches reuse the store.
+Keys go in `~/.config/hermes/env` (mode 0600, `mkdir -p` first, made on the box
+by hand, never in the tree): the activation merges that file into
+`~/.hermes/.env`, so a new key needs `hm-switch.sh --force` and a restart of
+`hermes-agent` and `hermes-backend`, and the activation only warns while the file
+is missing. The module is managed, so `hermes setup` and `hermes config set`
+refuse to run: a settings change is a home switch.
 
 The homelab runs from its own checkout, so before its first home switch put
 this tree at `/home/duskyelf/dotfiles` there (`git clone --recurse-submodules`,

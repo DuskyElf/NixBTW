@@ -69,6 +69,18 @@
       inputs.nixpkgs.follows = "nixpkgs-unstable";
       inputs.home-manager.follows = "home-manager";
     };
+
+    # The homelab's agent (apps/hermes). Pinned by rev like
+    # nixpkgs-fast-release, and for the same reason: CI resolves every root
+    # input, and a rev here is what every lock resolves to, so the wrapper
+    # neither pins nor follows it.
+    #
+    # It keeps its own nixpkgs, and must: its package builds patchelf 0.19.2
+    # plus a fix patch, and every channel this repo pins defaults that package
+    # to 0.15.2, so a follows fails in patchPhase.
+    hermes-agent = {
+      url = "github:NousResearch/hermes-agent/2de9f51b8008a7d49a49221c184f2f11cbfc4af1";
+    };
   };
 
   # Declarations and wiring. Everything that computes lives in lib/, the

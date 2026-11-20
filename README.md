@@ -171,6 +171,7 @@ it, and the timer calling that path itself.
 | T3 Code stable | `pkgs/t3code/lock.nix` | upstream stable tag plus the three vendor hashes, moved by the daily timer |
 | `setup_var.efi` | `hosts/asus/system.nix` | BIOS unlock entry, by version and hash |
 | NVIDIA driver | `hosts/asus/system.nix` | must match the custom kernel, and this closure is in no public cache |
+| Hermes Agent | `flake.nix` | its package patches patchelf 0.19.2, so it needs its own nixpkgs; no cache carries its closure |
 
 The other inputs float through the private lock, including system nixpkgs,
 unstable for niri, unstable-small for the agents, home-manager, stylix,
@@ -241,10 +242,11 @@ instances on purpose (unstable for niri and zen, unstable-small for the agents,
 fast-release for its tuned kernel). The homelab uses the stable channel and
 `neovimBTW`, and it configures its own kernel too: `hosts/homelab/kernel.nix`
 takes the 6.18 longterm series out of the same rev-pinned `nixpkgs-fast-release`
-input, so both kernels come from one pin and CI can build both from it. Nothing
-the homelab installs needs an unstable instance; its kernel is either in the
-signed cache or already in its store, and the daily run refuses to switch
-otherwise (`dailyUpdate.kernelCache`).
+input, so both kernels come from one pin and CI can build both from it. Only
+Hermes Agent builds against another nixpkgs: its lock pins the one its patchelf
+fix patch applies to, and nothing else on the box leaves stable. Its kernel is
+either in the signed cache or already in its store, and the daily run refuses to
+switch otherwise (`dailyUpdate.kernelCache`).
 
 A pull that conflicts aborts its own rebase and the run continues on the tree it
 already has, with a notification; a pull that rewrites `daily-update.sh` itself

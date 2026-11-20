@@ -28,6 +28,10 @@
     ../../apps/daily-update/home.nix
     ../../apps/nvim.nix
     ../../apps/languages.nix
+
+    # The always-on agent. Home half only: it runs as duskyelf through the
+    # linger this box already sets.
+    ../../apps/hermes/home.nix
   ];
 
   # Only the installer reads this; it is what nixos-anywhere formats with.
