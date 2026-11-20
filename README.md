@@ -114,11 +114,24 @@ home-manager switch \
 System changes:
 
 ```sh
+sudo /usr/local/sbin/nixos-switch.sh
+```
+
+The helper is the daily timer's own command: the wrapper, the live-tree
+override, the host's `--cores`, and `/run/nixos-switch.lock`, so a hand run and
+the timer's run queue instead of both reaching switch-to-configuration at once.
+Its expanded form, for a host that has no helper yet:
+
+```sh
 sudo nixos-rebuild switch \
   --flake /home/duskyelf/dotfiles/deploy-system \
   --override-input my-dotfiles path:/home/duskyelf/dotfiles \
   --cores 16
 ```
+
+A `--target-host` run reaches the target's switch-to-configuration directly and
+cannot take the target's lock, so it still collides with that host's own daily
+run: ssh in and run the helper there.
 
 The live-tree override is what applies uncommitted edits. Without it the
 wrapper evaluates its pinned `my-dotfiles` rev, which can be older than your
@@ -130,12 +143,12 @@ What needs which rebuild:
 | Changed | Apply with |
 | --- | --- |
 | `base/home.nix`, `base/home-workstation.nix`, an app's home modules in `apps/default.nix` | `hm-switch.sh` |
-| `base/core.nix`, `base/workstation.nix`, an app's system modules in `apps/default.nix`, `hosts/` | `nixos-rebuild switch` |
-| `apps/niri/system.nix` | `nixos-rebuild switch`; the rest of `apps/niri/` is a home module |
+| `base/core.nix`, `base/workstation.nix`, an app's system modules in `apps/default.nix`, `hosts/` | `sudo /usr/local/sbin/nixos-switch.sh` |
+| `apps/niri/system.nix` | `sudo /usr/local/sbin/nixos-switch.sh`; the rest of `apps/niri/` is a home module |
 | `flake.nix`, `lib/` | both, the wiring reaches both configurations |
 | `apps/wallpaper/wallpaper-guardian/` | `hm-switch.sh`; a submodule bump also needs `nix flake update wallpaper-guardian` in `deploy-system/` |
 | `apps/quickshell/`, `apps/tmux/tmux.conf`, `apps/daily-update/active-projects` | nothing, they are linked live or read at run time |
-| `apps/power/power.sh` | `nixos-rebuild switch` (it lands in `/usr/local/sbin`) |
+| `apps/power/power.sh` | `sudo /usr/local/sbin/nixos-switch.sh` (it lands in `/usr/local/sbin`) |
 
 A `neovimBTW` or `wallpaper-guardian` submodule bump also needs
 `nix flake update <name>` inside `deploy-system/`, then a switch; the daily run
@@ -145,9 +158,9 @@ shape for a fresh bootstrap. `apps/opencode/opencodeBTW` is symlinked, not a
 flake input.
 
 A hand edit still needs the rebuild from the table, but the daily run applies
-whatever a pull brings to both configurations on its own. The system half goes
-through `sudo nixos-rebuild switch` when you do it, and through
-`/usr/local/sbin/nixos-switch.sh` when the timer does.
+whatever a pull brings to both configurations on its own. The system half is
+the same helper either way: `sudo /usr/local/sbin/nixos-switch.sh` when you run
+it, and the timer calling that path itself.
 
 ## What is pinned
 
@@ -241,9 +254,11 @@ skips the home switch too, because a home generation that calls into the system
 half is the half-applied state the order exists to avoid.
 
 The system half goes through `/usr/local/sbin/nixos-switch.sh`, a store-pinned
-script built in `apps/daily-update/system.nix` from the same command AGENTS.md
-documents by hand, with the fixed live-tree override, the host's
-`dailyUpdate.cores` (16 on the laptop, 2 on the homelab), and a pinned `PATH`. Its NOPASSWD rule names that
+script built in `apps/daily-update/system.nix` that holds the whole command: the
+fixed flake and live-tree override, the host's `dailyUpdate.cores` (16 on the
+laptop, 2 on the homelab), a pinned `PATH`, and `/run/nixos-switch.lock`, so a
+hand run of that same path and the timer's run queue instead of both reaching
+switch-to-configuration at once. Its NOPASSWD rule names that
 path with an empty argument list, which is the sudoers way to allow the command
 only with no arguments, so the account cannot hand `nixos-rebuild` another
 flake, attribute, or bootloader operation. That does not make the checkout

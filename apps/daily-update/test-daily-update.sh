@@ -3,8 +3,8 @@
 #
 # The script runs in a fake tree. Its three sibling scripts (T3 Code pin,
 # hm-switch, projects) are stubs that check the environment they are handed and
-# record their call, and nix, nix-collect-garbage, git, sudo, curl, notify-send
-# and sleep are shims first in PATH. The sleep shim does nothing, so the 60-probe
+# record their call, and nix, nix-collect-garbage, git, sudo, curl, systemctl,
+# notify-send, sleep and readlink are shims first in PATH. The sleep shim does nothing, so the 60-probe
 # network loop is free, and the collection shim refuses to run once the marker
 # exists, which is what proves the collection comes first. The sudo shim checks
 # that only the helper path the unit passes is ever asked for, and never runs a
@@ -53,7 +53,11 @@
 #  25. bad option      an unknown option exits 2 before touching anything
 #  26. empty inputs    --wrapper-inputs "" exits 2 instead of updating every
 #                      input
-#  27. self update     the pull rewrites this script: the run hands over to the
+#  27. switch collides the system switch fails with the generation already
+#                      moved (a hand run won the race): the run switches again
+#                      and carries on to home instead of reporting a failure
+#  28. switch fails twice the retry runs and fails too: reported, home skipped
+#  29. self update     the pull rewrites this script: the run hands over to the
 #                      new copy as a child, whose new line runs, and finishes
 #                      there. Last, because it rewrites the copy under test.
 set -euo pipefail
@@ -164,7 +168,34 @@ set -euo pipefail
   exit 4
 }
 printf 'sudo switch\n' >> "$T_CALLS"
-exit "${T_SYSTEM_SWITCH:-0}"
+case "${T_SYSTEM_SWITCH:-0}" in
+  0) exit 0 ;;
+  1) exit 1 ;;
+  collide)
+    # The first attempt loses the race to switch-to-configuration's fixed
+    # transient unit name after the activation applied; the second one runs
+    # against the generation that is now current.
+    if [ -e "$T_CURRENT_SYSTEM.moved" ]; then
+      exit 0
+    fi
+    : >"$T_CURRENT_SYSTEM.moved"
+    cp -- "$T_CURRENT_SYSTEM.second" "$T_CURRENT_SYSTEM"
+    exit 1
+    ;;
+  collide-fail)
+    # Same collision, but the retry fails too: the run must report a failure.
+    if [ -e "$T_CURRENT_SYSTEM.moved" ]; then
+      exit 1
+    fi
+    : >"$T_CURRENT_SYSTEM.moved"
+    cp -- "$T_CURRENT_SYSTEM.second" "$T_CURRENT_SYSTEM"
+    exit 1
+    ;;
+  *)
+    echo "bad T_SYSTEM_SWITCH=${T_SYSTEM_SWITCH}" >&2
+    exit 4
+    ;;
+esac
 SHIM
 cat >"$bin/git" <<'SHIM'
 #!/usr/bin/env bash
@@ -323,9 +354,42 @@ cat >"$bin/sleep" <<'SHIM'
 #!/bin/sh
 exit 0
 SHIM
+cat >"$bin/systemctl" <<'SHIM'
+#!/usr/bin/env bash
+set -euo pipefail
+# The script waits for a foreign activation to leave before it compares
+# generations, and reads the state one call at a time from T_ACTIVE_STATES,
+# defaulting to inactive. Every call is recorded, so a case can prove the wait
+# was consulted.
+[ "$1" = "show" ] && [ "$2" = "-p" ] && [ "$3" = "ActiveState" ] && [ "$4" = "--value" ] ||
+  { echo "bad systemctl arguments: $*" >&2; exit 4; }
+if [ -s "$T_ACTIVE_STATES" ]; then
+  state=$(head -n1 "$T_ACTIVE_STATES")
+  sed -i 1d "$T_ACTIVE_STATES"
+else
+  state=inactive
+fi
+printf '%s\n' "$state"
+printf '%s\n' "$state" >> "$T_ACTIVE_CALLS"
+exit 0
+SHIM
 cat >"$bin/notify-send" <<'SHIM'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >> "$T_NOTIFY"
+SHIM
+# The switch cases fake the system generation the script compares across a
+# failed switch. The match is deliberately literal: any other call, including
+# the readlink that finds the script, goes to the real tool.
+T_REAL_READLINK=$(command -v readlink)
+export T_REAL_READLINK
+cat >"$bin/readlink" <<'SHIM'
+#!/usr/bin/env bash
+set -euo pipefail
+if [ -n "${T_CURRENT_SYSTEM:-}" ] && [ "$*" = "-f /run/current-system" ]; then
+  cat -- "$T_CURRENT_SYSTEM"
+  exit 0
+fi
+exec "$T_REAL_READLINK" "$@"
 SHIM
 chmod +x "$bin"/*
 
@@ -337,6 +401,7 @@ export T_TREE="$tree" T_DEPLOY="$tree/deploy-system" T_MARKER="$marker"
 export T_SCRIPT="$under_test" T_PULL_APPLIED="$work/pull-applied"
 export T_UNMERGED="$work/unmerged" T_GITDIR="$gitdir" T_HEAD=$'abc1234\n'
 export T_SWITCH_HELPER="$switch_helper" T_CALLS="$work/calls" T_NOTIFY="$work/notify"
+export T_ACTIVE_STATES="$work/active-states" T_ACTIVE_CALLS="$work/active-calls"
 export T_CURL_COUNT="$work/curl-count"
 export T_FLAKE_INPUTS="nixpkgs nixpkgs-unstable-small zen-browser neovimBTW wallpaper-guardian"
 
@@ -348,7 +413,13 @@ reset() {
   mkdir -p "$home" "$gitdir"
   export T_FLAKE=0 T_T3CODE=0 T_SWITCH=0 T_SYSTEM_SWITCH=0 T_PIN=0 T_GC=0
   export T_COMMIT=0 T_FETCH=0 T_SUBMODULE=0 T_LOCK=0 T_PULL=1 T_SELF_UPDATE=0
-  export T_CURL_FAILS=0 T_LOCK_CHANGED=1
+  export T_CURL_FAILS=0 T_LOCK_CHANGED=1 T_CURRENT_SYSTEM="$work/current-system"
+  # A fake generation, so a case never reads the real one and a real switch
+  # happening next to a test run cannot make a failure case take the retry.
+  printf 'gen-current\n' >"$T_CURRENT_SYSTEM"
+  rm -f "$T_CURRENT_SYSTEM.second" "$T_CURRENT_SYSTEM.moved"
+  : >"$T_ACTIVE_STATES"
+  : >"$T_ACTIVE_CALLS"
   export T_FLAKE_INPUTS="nixpkgs nixpkgs-unstable-small zen-browser neovimBTW wallpaper-guardian"
 }
 
@@ -764,7 +835,46 @@ ok "refused an empty input list instead of updating every input"
 
 # Last on purpose: the pull rewrites the copy of the script under test, so every
 # case after this one would run the modified file.
-case="27 self update"
+case="27 system switch collides"
+reset
+export T_SYSTEM_SWITCH=collide
+printf 'gen-before\n' >"$work/current-system"
+printf 'gen-after\n' >"$work/current-system.second"
+# A foreign activation that is still running: the wait has to sample it until it
+# leaves before the generation is read.
+printf 'activating\nactivating\n' >"$T_ACTIVE_STATES"
+run
+expect_status 0
+expect_calls "$up_to_system
+sudo switch
+$home_calls
+$tail_calls"
+expect_output "the system generation moved during a failed switch"
+expect_notified "Update successful"
+expect_not_notified "Failed to switch the system"
+expect_marker
+[ "$(wc -l <"$T_ACTIVE_CALLS")" -eq 3 ] || fail "waited on $(
+  wc -l <"$T_ACTIVE_CALLS"
+) unit states, wanted 3"
+ok "waited out the foreign activation, then switched again and switched home"
+
+case="28 system switch collides and fails again"
+reset
+export T_SYSTEM_SWITCH=collide-fail
+printf 'gen-before\n' >"$work/current-system"
+printf 'gen-after\n' >"$work/current-system.second"
+run
+expect_status 1
+expect_calls "$up_to_system
+sudo switch
+$tail_calls"
+expect_output "the system generation moved during a failed switch"
+expect_notified "Failed to switch the system"
+expect_not_notified "Update successful"
+expect_marker
+ok "reported the second failure and skipped home, still pinned and collected"
+
+case="29 self update"
 reset
 export T_SELF_UPDATE=1
 run

@@ -43,7 +43,7 @@
 # nonzero and notifies.
 #
 # Every tool comes from the login PATH the user manager hands a unit; nix,
-# nix-collect-garbage, git, sudo, curl and notify-send all live there. The
+# nix-collect-garbage, git, sudo, curl, systemctl and notify-send all live there. The
 # inline unit this replaces relied on the same PATH for its bare nix and git.
 set -euo pipefail
 
@@ -202,6 +202,42 @@ commit_lock() {
   log "committed flake.lock"
 }
 
+# The helper is the hand-run command with the password taken out: fixed flake,
+# fixed live-tree override, hostConfig.dailyUpdate.cores. A cache hit costs a
+# minute, and a kernel that has to compile is the one case where the count
+# matters.
+#
+# Two switches can overlap (the timer's and a hand run that does not take the
+# helper's lock), and both end at switch-to-configuration, which starts as one
+# fixed transient unit name. The loser exits nonzero after the other run's
+# activation applied, so a failed exit is not proof of a failed switch. The
+# generation is the proof, and the activation writes it, so wait for any
+# in-flight activation first. When the generation moved, run the helper again:
+# it waits on the lock and repeats a switch that changes nothing, which is
+# cheaper than reporting a switch that happened as failed and skipping the home
+# half. Only a second failure is a failure.
+switch_system() {
+  local before after waited=0 unit=nixos-rebuild-switch-to-configuration.service
+  before=$(readlink -f /run/current-system) || before=
+  if sudo -n "$system_switch"; then
+    return 0
+  fi
+  # A unit that exists but is not yet `active` still owns the colliding name,
+  # so every live state counts as in flight.
+  while [ "$waited" -lt 180 ]; do
+    case $(systemctl show -p ActiveState --value "$unit" 2>/dev/null) in
+      active | activating | reloading | deactivating | refreshing) ;;
+      *) break ;;
+    esac
+    sleep 5
+    waited=$((waited + 5))
+  done
+  after=$(readlink -f /run/current-system) || after=
+  [ "$after" != "$before" ] || return 1
+  log "the system generation moved during a failed switch, running it again"
+  sudo -n "$system_switch"
+}
+
 # The root collection is triggered by a file, not by a clean exit. Writing it
 # from the trap keeps that true when the run is killed mid-switch: the
 # collection is idempotent inside its two-day window, so an early marker costs
@@ -339,12 +375,8 @@ else
         log "T3 Code pin update failed, keeping the previous pin"
     fi
 
-    # The helper is the hand-run command with the password taken out: fixed
-    # flake, fixed live-tree override, hostConfig.dailyUpdate.cores. A cache hit
-    # costs a minute, and a kernel that has to compile is the one case where the
-    # count matters.
     log "switching the system"
-    if sudo -n "$system_switch"; then
+    if switch_system; then
       # cores = 2 keeps a post-lock-bump rebuild polite while the machine is in
       # use.
       if NIX_CONFIG="cores = 2" "$home_switch"; then

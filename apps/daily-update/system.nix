@@ -36,6 +36,30 @@ let
     export PATH=/run/current-system/sw/bin
     # Keep root's working directory out of the checkout being evaluated.
     cd /root
+    # A hand run and the timer's run can overlap, and both reach
+    # switch-to-configuration as the same transient unit,
+    # nixos-rebuild-switch-to-configuration. The loser aborts after the
+    # activation has already happened, so its caller reports a failure that
+    # did not occur. Serialise instead: the second run waits, then repeats a
+    # switch that changes nothing.
+    #
+    # `>>` and never a recreate: the lock lives on the inode, so a replaced or
+    # deleted file would hand the second run a lock of its own. The file is
+    # created once, 0600, because flock works on a read-only descriptor too and
+    # a world-readable lock lets another account hold it; the tmpfiles rule
+    # below re-asserts that mode at boot, since a switch does not re-run
+    # tmpfiles. Two runs racing on the first creation still land on one inode.
+    if [ ! -e /run/nixos-switch.lock ]; then
+      (umask 077; : >>/run/nixos-switch.lock)
+    fi
+    exec 9>>/run/nixos-switch.lock
+    if ! ${pkgs.util-linux}/bin/flock -n 9; then
+      echo "nixos-switch: another switch is running, waiting for it" >&2
+      ${pkgs.util-linux}/bin/flock -w 3600 9 || {
+        echo "nixos-switch: another switch has held the lock for an hour" >&2
+        exit 1
+      }
+    fi
     exec /run/current-system/sw/bin/nixos-rebuild switch \
       --no-write-lock-file \
       --flake ${hostConfig.dotsDir}/deploy-system \
@@ -83,6 +107,12 @@ in
     # generations the account cannot touch itself.
     pathConfig.PathChanged = hostConfig.gcRequest;
   };
+
+  # The helper's lock file. The helper creates it 0600 itself the first time it
+  # runs; this rule re-asserts the mode at boot, which is the only time tmpfiles
+  # runs. A world-readable lock would let another local account hold it and
+  # stall the daily switch, because flock(2) works on a read-only descriptor.
+  systemd.tmpfiles.rules = [ "f /run/nixos-switch.lock 0600 root root -" ];
 
   system.activationScripts.systemSwitchHelper = ''
     mkdir -p ${builtins.dirOf hostConfig.systemSwitchPath}
