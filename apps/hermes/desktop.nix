@@ -9,9 +9,14 @@
 # on the second declaration. This host runs neither service.
 #
 # Nix can only point the application at a local backend, so the homelab's is a
-# one-time connection in the app itself: its Settings, under Gateways, takes the
-# dashboard URL (AGENTS.md has the address), and its sign-in window reads the
-# provider list from there. The dashboard password comes from the box's
+# one-time connection in the app itself: its Settings, under Gateways, takes
+# https://homelab.tail5dc115.ts.net, which is the homelab's
+# hermes.dashboard.publicUrl. Replace any entry for the old LAN address with
+# it; a stale entry that still ranks first leaves the app pointed at an origin
+# that no longer answers, with the password cached for it. The sign-in window
+# reads the provider list from the URL. The connection is real TLS over the
+# tailnet, so the laptop has to be logged in to the same tailnet and a phone
+# needs the Tailscale app. The dashboard password comes from the box's
 # ~/.config/hermes/env; if the window does not take it, the box also publishes a
 # session token, which the same dialog accepts.
 { inputs, ... }:

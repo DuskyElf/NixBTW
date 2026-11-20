@@ -2,7 +2,7 @@
 # bootloader, the cache its kernel comes from, and the server-side housekeeping.
 # The kernel itself is hosts/homelab/kernel.nix. The fileSystems
 # entries come from the disko module in hosts/homelab/disko.nix, so the mount
-# layout has one source. A laptop's policy (compositor, radios, tailscale) is
+# layout has one source. A laptop's policy (compositor, radios, bluetooth) is
 # base/workstation.nix, which this host does not list; the root helper and the
 # store collection come from the daily-update app instead, which it does list.
 {

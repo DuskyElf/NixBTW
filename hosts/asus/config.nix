@@ -33,6 +33,10 @@
 
   cacheRoot = "/mnt/agent-worktrees/caches";
 
+  # The t3code app runs as this user and publishes its server on 3773 with
+  # `tailscale serve`, so this account operates tailscaled.
+  tailscale.operator = true;
+
   # The laptop runs the whole daily update: the T3 Code pin, the devshell pin
   # and the store collection, tied to the desktop session. Its wrapper declares
   # the inputs below, so the run moves all of them.

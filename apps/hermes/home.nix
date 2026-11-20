@@ -1,21 +1,22 @@
 # Hermes Agent: Nous Research's agent, run as a user service for the one
-# account on this box. The gateway is always on, the dashboard answers on
-# 127.0.0.1:9119 unless the host asks for a LAN bind, and the state in
-# ~/.hermes is the same one `hermes` uses over ssh, because
-# programs.hermes-agent exports HERMES_HOME.
+# account on this box. The gateway is always on, the dashboard answers on a
+# loopback port, and the state in ~/.hermes is the same one `hermes` uses over
+# ssh, because programs.hermes-agent exports HERMES_HOME.
 #
-# The dashboard is the one service in this tree a host may publish (see
-# hermes.dashboard in lib/host.nix). The homelab does, on its LAN address:
-# `backend.host` carries that literal address, and `settings.dashboard.public_url`
-# states the same origin so the app's Host check accepts it. Binding the
-# address rather than 0.0.0.0 matters: the wildcard also switches that check
-# off.
+# The dashboard never binds a LAN address. apps/hermes/system.nix publishes it
+# on the tailnet with `tailscale serve`, which proxies 443 to the loopback port,
+# and hermes.dashboard.publicUrl in lib/host.nix carries the origin clients use.
+# A value there changes nothing about the bind; the module default already
+# leaves it at loopback. It does two things at the app, because the host it
+# names is not loopback: it turns the password gate on, and it adds that host to
+# the Host check, so the proxy's Host header is accepted rather than answered
+# with a 400.
 #
-# A non-loopback bind turns on the app's auth gate, and a gated dashboard with
-# no provider registered exits at start, so the backend unit restarts for ever.
-# The values that satisfy the gate are in `~/.config/hermes/env`, which is the
-# environmentFiles entry below, and never in `settings`: settings are rendered
-# into config.yaml in the store, where every user on the box can read them.
+# A gated dashboard with no provider registered exits at start, so the backend
+# unit restarts for ever. The values that satisfy the gate are in
+# `~/.config/hermes/env`, which is the environmentFiles entry below, and never
+# in `settings`: settings are rendered into config.yaml in the store, where
+# every user on the box can read them.
 #
 #   HERMES_DASHBOARD_BASIC_AUTH_USERNAME=<name>
 #   HERMES_DASHBOARD_BASIC_AUTH_PASSWORD_HASH=scrypt$...   (or _PASSWORD, plaintext)
@@ -70,18 +71,13 @@ in
       mode = "dashboard";
       port = dashboard.port;
       sessionTokenFile = "${config.home.homeDirectory}/.config/hermes/session-token";
-    }
-    // lib.optionalAttrs (dashboard.host != null) {
-      # Only a host that states an address gets one: the module default is
-      # loopback, and a null here must leave it alone.
-      host = dashboard.host;
     };
 
-    # The origin clients use, which the app trusts for the Host check even
-    # when it differs from the bind address. Unset keeps the check on the
-    # bind address alone.
-    settings = lib.mkIf (dashboard.host != null) {
-      dashboard.public_url = "http://${dashboard.host}:${toString dashboard.port}";
+    # The origin the tailnet serves. The app reads it as the trust declaration
+    # for the proxy's Host and Origin headers, and as the reason to keep the
+    # gate on while the bind stays loopback.
+    settings = lib.mkIf (dashboard.publicUrl != null) {
+      dashboard.public_url = dashboard.publicUrl;
     };
 
     environmentFiles = [ "${config.home.homeDirectory}/.config/hermes/env" ];

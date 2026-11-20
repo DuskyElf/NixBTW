@@ -18,6 +18,7 @@
     ../../apps/niri/system.nix
     ../../apps/keyd.nix
     ../../apps/openssh.nix
+    ../../apps/tailscale.nix
     ../../apps/power.nix
     ../../apps/daily-update/system.nix
   ];
@@ -47,8 +48,8 @@
     ../../apps/gammarelay.nix
 
     # The desktop application only. Its services stay off: the backend it
-    # attaches to is the homelab's, over the LAN, and that connection is made
-    # once in the app rather than here.
+    # attaches to is the homelab's, over the tailnet, and that connection is
+    # made once in the app rather than here.
     ../../apps/hermes/desktop.nix
   ];
 }

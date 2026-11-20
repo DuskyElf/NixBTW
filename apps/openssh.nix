@@ -1,7 +1,8 @@
-# sshd. On the laptop the LAN stays closed (see base/core.nix), so port 22 is
-# allowed on the tailscale interface only; a host with no tailnet, like the
-# homelab box, sets hostConfig.ssh.openLanPort instead. Keys only, and root
-# stays out.
+# sshd. hostConfig.ssh.openLanPort = true keeps 22 on every interface, which is
+# the recovery path on a box whose tailnet is what broke; false keeps it on the
+# tailscale interface only, which is the laptop's policy. The rule for that
+# interface is added whenever tailscale is enabled. Keys only, and root stays
+# out.
 {
   config,
   hostConfig,

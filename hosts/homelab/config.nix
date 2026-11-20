@@ -2,7 +2,7 @@
 # apps/ read the result as `hostConfig`.
 #
 # It is a headless server on the LAN: bash instead of zsh, ssh open on the LAN
-# instead of the tailnet, and no niri outputs, backlight, screenpad, or battery.
+# as well as the tailnet, and no niri outputs, backlight, screenpad, or battery.
 {
   hostName = "homelab";
   timeZone = "Asia/Kolkata";
@@ -32,17 +32,20 @@
     };
   };
 
-  # No tailnet on this box, so sshd opens 22 on every interface instead of on
-  # the tailscale one only.
+  # The box has a tailnet now, and 22 stays open on the LAN as the recovery
+  # path: if tailscaled or the tailnet is what broke, ssh over the LAN is how to
+  # get in and fix it. apps/openssh.nix allows 22 on the tailscale interface
+  # either way.
   ssh.openLanPort = true;
 
-  # The one service on this box the home LAN may reach: the agent's dashboard,
-  # so a browser on the laptop or a phone can use it without an ssh tunnel. It
-  # is behind the app's own password gate (the credentials are in
-  # ~/.config/hermes/env), and the address is the static one below in
-  # system.nix, stated again because the app binds it and the firewall opens it.
-  # Leave it null on a host that has no reason to publish an agent.
-  hermes.dashboard.host = "192.168.1.200";
+  # The agent's dashboard is published on the tailnet, so a browser on the
+  # laptop or a phone reaches it without an ssh tunnel. The origin is stated
+  # once, here: it is the name this node has on the tailnet, and the app keeps
+  # its password gate on because that host is not loopback. The app itself
+  # binds loopback and the LAN has no port for it. The credentials stay in
+  # ~/.config/hermes/env. Leave the value null on a host that publishes
+  # nothing.
+  hermes.dashboard.publicUrl = "https://homelab.tail5dc115.ts.net";
 
   # The box updates itself once a day like the laptop, but only the stable
   # track: nixpkgs, and the two submodule inputs the wrapper pins. No T3 Code

@@ -74,32 +74,48 @@ let
         description = "Open 22 on every interface. False keeps sshd on the tailscale interface only, which is the laptop's policy.";
       };
 
-      # The agent's dashboard is the one service besides sshd that a host may
-      # publish to the LAN, and it runs as this user, over their files and keys.
-      # So it is data per host, and null unless a host means it.
-      hermes.dashboard = {
-        host = mkOption {
-          type = types.nullOr types.str;
-          default = null;
-          description = ''
-            Address the Hermes dashboard binds to. Null keeps the module's
-            loopback bind, which is what a host that only tunnels in wants. A
-            value here is a deliberate LAN exposure of an agent that runs as
-            this user: give the machine's own literal address, never 0.0.0.0,
-            because the wildcard also switches off the app's Host header check.
+      tailscale.operator = mkOption {
+        type = types.bool;
+        default = false;
+        description = ''
+          Let the login user operate tailscaled without sudo. The operator gets
+          the daemon's writable local API: up and down, preference changes such
+          as exit node and routes, and serve and funnel targets, which is enough
+          to publish any local port to the tailnet or the public internet. The
+          laptop needs it because the t3code app publishes its server with
+          `tailscale serve`; a host whose login user also runs the agent leaves
+          it off.
+        '';
+      };
 
-            Any non-loopback value turns on the app's password gate, and a
-            gated dashboard with no provider registered exits and leaves its
-            unit restarting. The host then needs
-            HERMES_DASHBOARD_BASIC_AUTH_USERNAME, _PASSWORD_HASH (or _PASSWORD)
-            and _SECRET in ~/.config/hermes/env; apps/hermes/home.nix says why
-            they live there and not in settings.
-          '';
-        };
+      # The agent's dashboard is published on the tailnet, never on the LAN:
+      # behind it sits an agent running as this user, over their files and keys,
+      # so the schema carries only the origin the app answers at, and the system
+      # half (apps/hermes/system.nix) serves 443 of that host from the loopback
+      # port.
+      hermes.dashboard = {
         port = mkOption {
           type = types.port;
           default = 9119;
-          description = "Port the dashboard binds, and the one apps/hermes/system.nix opens once host is set.";
+          description = "The loopback port the dashboard binds; apps/hermes/system.nix serves 443 of publicUrl's host from it.";
+        };
+        publicUrl = mkOption {
+          type = types.nullOr types.str;
+          default = null;
+          description = ''
+            The origin the dashboard is published at, such as
+            https://homelab.tail5dc115.ts.net, or null for a dashboard that
+            nothing publishes. A value keeps the loopback bind, turns the app's
+            password gate on because the host it names is not loopback, and is
+            the host the app accepts in its Host check, so the proxy's header
+            passes.
+
+            apps/hermes/system.nix then runs `tailscale serve` from 443 to this
+            port, so the host needs apps/tailscale.nix, and the tailnet needs
+            HTTPS certificates enabled in the admin console. The gate needs its
+            providers in ~/.config/hermes/env; apps/hermes/home.nix says why
+            they live there and not in settings.
+          '';
         };
       };
 

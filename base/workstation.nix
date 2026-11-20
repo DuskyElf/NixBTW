@@ -1,7 +1,7 @@
 # The desktop policy: everything here assumes a monitor, a keyboard, a battery,
 # and a person sitting in front of it. It is a module a host opts into, so a
-# headless box does not get NetworkManager, tailscale, bluetooth, or the desktop
-# packages. base/core.nix is the half every machine gets.
+# headless box does not get NetworkManager, bluetooth, or the desktop packages.
+# base/core.nix is the half every machine gets.
 #
 # The root helpers (power.sh and the daily update's nixos-switch.sh), the
 # NOPASSWD rules, and the store-collection units moved to apps/power.nix and
@@ -68,17 +68,6 @@
     fonts.packages = with pkgs; [
       nerd-fonts.jetbrains-mono
     ];
-
-    # Tailscale gives the phone a stable private route to the t3code
-    # server on 3773 from any network. MagicDNS name:
-    # <hostName>.<tailnet>.ts.net
-    # --operator lets the login user run `tailscale serve`, which the t3code
-    # desktop app calls to publish the backend over HTTPS on the tailnet.
-    services.tailscale = {
-      enable = true;
-      openFirewall = true;
-      extraSetFlags = [ "--operator=${hostConfig.user.name}" ];
-    };
 
     services.blueman.enable = true;
     hardware.bluetooth.enable = true;

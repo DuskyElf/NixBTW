@@ -38,13 +38,14 @@
 
   networking = {
     hostName = hostConfig.hostName;
-    # No LAN-facing services are declared here on purpose. t3code on 3773 is
-    # reached over tailscale serve, never over the local network, which IOT
-    # devices share. Keep the app's "Network access" toggle off so it binds
-    # loopback only. A host that needs a LAN service opens that one port where
-    # it declares the service: ssh.openLanPort in the host schema is one
-    # example, and apps/hermes/system.nix opens the homelab's dashboard port
-    # because hermes.dashboard.host names a LAN address.
+    # No LAN-facing services are declared here on purpose. t3code on 3773 and
+    # the homelab's dashboard are published over `tailscale serve`: 443 proxies
+    # to the dashboard's loopback 9119, and the dashboard binds loopback in
+    # apps/hermes/home.nix. t3code's "Network access" toggle stays off for the
+    # same reason. The local network, which IOT devices share, has no port for
+    # either. A host that needs a LAN service opens that one port where it
+    # declares the service: ssh.openLanPort in the host schema is that case for
+    # 22.
     firewall.enable = true;
   };
 

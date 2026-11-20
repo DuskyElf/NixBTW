@@ -146,11 +146,18 @@ What needs which rebuild:
 | `base/home.nix`, `base/home-workstation.nix`, the home imports in a host's `default.nix` | `hm-switch.sh` |
 | `base/core.nix`, `base/workstation.nix`, the system imports in a host's `default.nix`, `hosts/` | `sudo /usr/local/sbin/nixos-switch.sh` |
 | `apps/niri/system.nix` | `sudo /usr/local/sbin/nixos-switch.sh`; the rest of `apps/niri/` is a home module |
-| `apps/hermes/system.nix` | `sudo /usr/local/sbin/nixos-switch.sh`; the rest of `apps/hermes/` is a home module |
+| `apps/hermes/system.nix` | `sudo /usr/local/sbin/nixos-switch.sh`; it publishes the loopback dashboard on the tailnet, and the rest of `apps/hermes/` is a home module |
+| `apps/tailscale.nix` | `sudo /usr/local/sbin/nixos-switch.sh`; the tailnet service on both hosts |
 | `flake.nix`, `lib/` | both, the wiring reaches both configurations |
 | `apps/wallpaper/wallpaper-guardian/` | `hm-switch.sh`; a submodule bump also needs `nix flake update wallpaper-guardian` in `deploy-system/` |
 | `apps/quickshell/`, `apps/tmux/tmux.conf`, `apps/daily-update/active-projects` | nothing, they are linked live or read at run time |
 | `apps/power/power.sh` | `sudo /usr/local/sbin/nixos-switch.sh` (it lands in `/usr/local/sbin`) |
+
+Two values in `hosts/` need both switches. `hermes.dashboard.publicUrl` is read
+by the system unit that publishes it and by the home module that trusts the
+origin, so a system switch alone leaves the app answering 400 to every proxied
+request. `hermes.dashboard.port` is the bind in the home half and the proxy
+target in the system unit.
 
 A `neovimBTW` or `wallpaper-guardian` submodule bump also needs
 `nix flake update <name>` inside `deploy-system/`, then a switch; the daily run
@@ -198,9 +205,11 @@ next to `awww-daemon`. `quickshell`, `wl-gammarelay`, and `break-timer` are
 `battery-threshold-control` and `screenpad-off` are one-shot system services.
 `llm-lab` starts ollama and Open WebUI only when you ask. On the homelab
 `hermes-agent` and `hermes-backend` are user units, the second serving the agent
-dashboard on the LAN address behind the app's own password gate; the laptop
-installs only the desktop application (`apps/hermes/desktop.nix`), and its
-connection to that backend is made once in the app.
+dashboard on a loopback port behind the app's own password gate;
+`hermes-dashboard-serve` publishes that port on the tailnet with
+`tailscale serve`, at https://homelab.tail5dc115.ts.net. The laptop installs only
+the desktop application (`apps/hermes/desktop.nix`), and its connection to that
+backend is made once in the app, over the tailnet.
 
 Which of those steps a machine runs is host data, not a branch in the script:
 `lib/host.nix` `dailyUpdate` sets `t3`, `devshells`, `collect`,

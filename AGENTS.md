@@ -12,7 +12,7 @@ Top level owns the machine: `flake.nix`, `lib/`, `base/`, `apps/`, `pkgs/`, `hos
 The layout is the first thing to read:
 * `flake.nix` declares inputs and outputs, nothing else. The `disko` input is used only by a host that carries a `disko.nix`. The machine list is discovered: every directory under `hosts/` becomes a host, so a new machine is a directory, never a flake edit.
 * `lib/` is the plumbing: nixpkgs instances, the jail wrapper, the kernel call, `mkHost`, and `lib/deploy/` (the wrapper bootstrap script and the public recipe it renders).
-* `base/` is machine-wide config, split by machine type. `base/core.nix` is what every host gets: the account, hostname, firewall, time zone, locale, nix daemon settings, and the six core packages. `base/workstation.nix` is the desktop policy (NetworkManager, tailscale, bluetooth, battery) and a host opts into it by listing the file. On the home side `base/home.nix` is the minimum every host gets and `base/home-workstation.nix` adds stylix, the dark-mode portal key, and the flake modules only a desktop needs. The bootloader is not in `base/`: it is hardware, so each host's `system.nix` sets it.
+* `base/` is machine-wide config, split by machine type. `base/core.nix` is what every host gets: the account, hostname, firewall, time zone, locale, nix daemon settings, and the six core packages. `base/workstation.nix` is the desktop policy (NetworkManager, bluetooth, battery) and a host opts into it by listing the file; tailscale is `apps/tailscale.nix`, which both hosts import. On the home side `base/home.nix` is the minimum every host gets and `base/home-workstation.nix` adds stylix, the dark-mode portal key, and the flake modules only a desktop needs. The bootloader is not in `base/`: it is hardware, so each host's `system.nix` sets it.
 * `apps/` is one app's config per file, with split apps in their own subdirectory. An app's own files sit in that subdirectory beside its `.nix`: `apps/quickshell/` is the QML and the scripts it calls, `apps/nvim/neovimBTW/` and `apps/opencode/opencodeBTW/` are submodules, `apps/wallpaper/wallpaper-guardian/` is the Guardian submodule. There is no registry: a host imports the app module it wants, one import per half for a split app, and the list the import sits in decides which rebuild applies, so a split app's `home.nix` belongs in the home list and its `system.nix` in the system list. The shells are separate apps (`sh` for aliases and small tools, `zsh` and `bash` for one shell's own config), and so are the home-switch link (`home-switch`), the root power helper (`power`), and the daily update (`daily-update`, home and system halves).
 * `pkgs/` is packages this repo builds itself. `pkgs/t3code/` is the T3 Code stable pin, and `pkgs/t3code/update.sh` is the script the daily timer runs to move it.
 * Default apps are declared, never set at runtime. `base/home.nix` enables home-manager's `xdg.mimeApps`, so `~/.config/mimeapps.list` is a read-only store link that each switch rewrites: a program that calls `xdg-mime default` for its own scheme fails silently, so the association never applies. Declare the scheme in that app's module under `apps/` instead. Browser and file defaults are stated there too because `mimeinfo.cache` sorts `chromium-browser.desktop` before `zen-beta.desktop`, which would otherwise make chromium the browser.
@@ -36,7 +36,7 @@ All rebuilds go through the wrapper with the live-tree override so uncommitted e
 
 Everything on both machines is handled by systemd timers pretty much.
 
-A daily user timer (`daily-update`, fires from 08:30 with up to 30 minutes of jitter, see `apps/daily-update/home.nix`, so a host that imports that module has it) runs `apps/daily-update/daily-update.sh`: it pulls `origin/main` with `git pull --rebase --autostash`, syncs the submodules, locks this checkout's ignored `flake.lock`, runs `nix flake update` on the wrapper inputs that host lists, moves the T3 Code pin through `pkgs/t3code/update.sh`, rebuilds the system through `/usr/local/sbin/nixos-switch.sh`, runs `apps/home-switch/hm-switch.sh`, commits the wrapper lock, pins the devshells, and collects the user store. Which of those steps run is host data, not a branch in the script: `lib/host.nix` `dailyUpdate` sets `t3`, `devshells`, `collect`, `graphicalSession`, `linger`, `cores`, `wrapperInputs`, and `kernelCache`, and the home module passes each as a flag. The laptop takes all of them (three inputs float from the network; `neovimBTW` and `wallpaper-guardian` are re-locked from their checkouts, which is what carries a merged submodule bump into the switch); the homelab takes the collection only, updates `nixpkgs neovimBTW wallpaper-guardian`, and lingers so its timer runs without a login. The system switch comes first: a change that spans both halves needs the new store copy installed before home activation calls into it, and a failed system switch skips the home switch rather than leaving a half-applied pair.
+A daily user timer (`daily-update`, fires from 08:30 with up to 30 minutes of jitter, see `apps/daily-update/home.nix`, so a host that imports that module has it) runs `apps/daily-update/daily-update.sh`: it pulls `origin/main` with `git pull --rebase --autostash`, syncs the submodules, locks this checkout's ignored `flake.lock`, runs `nix flake update` on the wrapper inputs that host lists, moves the T3 Code pin through `pkgs/t3code/update.sh`, rebuilds the system through `/usr/local/sbin/nixos-switch.sh`, runs `apps/home-switch/hm-switch.sh`, commits the wrapper lock, pins the devshells, and collects the user store. Which of those steps run is host data, not a branch in the script: `lib/host.nix` `dailyUpdate` sets `t3`, `devshells`, `collect`, `graphicalSession`, `linger`, `cores`, `wrapperInputs`, and `kernelCache`, and the home module passes each as a flag. The laptop takes all of them (three inputs float from the network; `neovimBTW` and `wallpaper-guardian` are re-locked from their checkouts, which is what carries a merged submodule bump into the switch); the homelab takes the collection only, updates `nixpkgs neovimBTW wallpaper-guardian`, and lingers so its timer runs without a login. The system switch comes first: a change that spans both halves needs the new store copy installed before home activation calls into it, and a switch whose generation did not move skips the home switch rather than leaving a half-applied pair. A switch that did apply but returned exit 4, switch-to-configuration reporting failed units, still runs the home half; the failed units stay visible in `systemctl --failed`.
 
 The last step touches `~/.local/state/daily-update/gc-request`, and the system path unit `nix-gc-root` (apps/daily-update/system.nix) turns that into the root collection, so there is one collection round per day, after the switch, keeping two days of generations on both sides. The marker is written from an exit trap, so a run killed with SIGTERM (a system switch can restart the display manager and take the unit's cgroup) still asks for root's collection; only SIGKILL loses it, and the user half is skipped either way. The collection runs even when the update or the switch failed: a bad week must not keep a week of generations. On the laptop the unit is part of the graphical session, so a machine left at the greeter collects nothing until a login; the old GC timers ran without one, and collecting right after the switch is worth that. The homelab has no session to join, so `dailyUpdate.linger` starts its user manager at boot and the timer runs anyway. When the machine disagrees with this repo, suspect that drift first, not a local edit. Do not hand-edit pins the timer owns.
 
@@ -170,14 +170,30 @@ home directory; `cacheRoot` defaults there and the laptop overrides it.
 
 The homelab runs Hermes Agent (`apps/hermes/home.nix`, Nous Research's agent) as
 a user service for `duskyelf`: the messaging gateway always on, the dashboard on
-`192.168.1.200:9119` for the home LAN, state in `~/.hermes`, shared with the
-`hermes` command an ssh shell gets. That bind is the only LAN-facing service
-here besides sshd: `hermes.dashboard.host` in `lib/host.nix` carries the address,
-and a null there keeps the module's loopback bind, which is what every other host
-wants. `apps/hermes/system.nix` opens the port and asserts the address is one
-this machine configures, so a drift between `hosts/homelab/config.nix` and its
-`system.nix` fails eval, rather than opening a port for an address the app will
-not bind. The app's own password gate stands in front of the dashboard, so the
+a loopback port, state in `~/.hermes`, shared with the `hermes` command an ssh
+shell gets. The dashboard is published on the tailnet, never on the LAN: the
+system unit `hermes-dashboard-serve` (`apps/hermes/system.nix`) runs
+`tailscale serve --bg --https=443 http://127.0.0.1:9119`, so it answers at
+https://homelab.tail5dc115.ts.net. `hermes.dashboard.publicUrl` in `lib/host.nix`
+carries that origin; a non-loopback `public_url` turns the app's password gate
+on even though the bind is loopback, and it adds that host to the app's Host
+check, which is what lets the proxy's header through instead of a 400. The bind
+itself stays loopback, and the LAN has no 9119. Two tailnet settings are
+one-time and cannot be declared here: HTTPS certificates have to be enabled for
+the tailnet in the admin console, which is also what makes `tailscale serve
+--https=443` work, and the node has to be logged in once with `sudo tailscale
+up`; that login is state in `/var/lib/tailscale`, not in this repo. The unit
+reads one `tailscale status` document and fails with the setting to fix if the
+node is not Running or it has no HTTPS capability, then verifies the 443 mapping
+it wrote. `Restart=on-failure` retries every minute, so the one-time steps need
+no start by hand. Until both exist the unit is failed, which `systemctl
+--failed` shows; the switch still applies, because exit 4 from
+switch-to-configuration is failed units, not a failed switch, and the daily run
+still takes the home half. The homelab leaves `tailscale.operator` off, unlike
+the laptop: the account the agent runs as cannot publish serve or funnel
+targets, while root runs the serve unit.
+
+The app's own password gate stands in front of the dashboard, so the
 box needs `HERMES_DASHBOARD_BASIC_AUTH_USERNAME`, `_PASSWORD_HASH` (scrypt, or
 `_PASSWORD` plaintext) and `_SECRET` (a literal base64 key; a value that looks
 like a shell command is discarded) in `~/.config/hermes/env`, because with the
@@ -190,13 +206,12 @@ the password form.
 
 The laptop installs the desktop app (`apps/hermes/desktop.nix`) and runs no
 services. Nix can only point that app at a local backend, so the remote
-connection is made once in the app's Settings under Gateways, which reads the
-provider list from the URL. The gate is a password over plain HTTP, on the LAN
-`base/core.nix` calls shared with IOT devices, and behind it sits an agent
-running as this user over their files and keys: treat that password like the
-box's login and keep the port off the router. A tailnet bind with
-`tailscale serve` would drop the cleartext hop at the price of the LAN
-convenience. The input is rev-pinned in `flake.nix` like
+connection is made once in the app's Settings under Gateways, which takes
+https://homelab.tail5dc115.ts.net and reads the provider list from the URL. That
+is real TLS over the tailnet, so there is no cleartext hop and no LAN exposure;
+the phone needs the Tailscale app for the same connection. The gate behind it is
+a password in front of an agent running as this user over their files and keys:
+treat it like the box's login. The input is rev-pinned in `flake.nix` like
 `nixpkgs-fast-release`, and the wrapper neither pins nor follows it, so that one
 rev is the pin on every machine and a bump is a single line here. It keeps its
 own nixpkgs out of necessity: its package builds

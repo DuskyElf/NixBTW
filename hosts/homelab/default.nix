@@ -17,8 +17,9 @@
     ./idle.nix
 
     ../../apps/openssh.nix
+    ../../apps/tailscale.nix
     ../../apps/daily-update/system.nix
-    # The firewall side of the agent's dashboard bind in config.nix.
+    # The tailnet side of the agent's dashboard (config.nix states its origin).
     ../../apps/hermes/system.nix
   ];
   home = [
@@ -31,9 +32,9 @@
     ../../apps/nvim.nix
     ../../apps/languages.nix
 
-    # The always-on agent. Home half here; the system half above opens its
-    # dashboard port. It runs as duskyelf through the linger this box already
-    # sets.
+    # The always-on agent. Home half here; the system half above publishes its
+    # loopback dashboard on the tailnet. It runs as duskyelf through the linger
+    # this box already sets.
     ../../apps/hermes/home.nix
   ];
 

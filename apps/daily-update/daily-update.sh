@@ -232,9 +232,10 @@ commit_lock() {
 # cheaper than reporting a switch that happened as failed and skipping the home
 # half. Only a second failure is a failure.
 switch_system() {
-  local before after waited=0 unit=nixos-rebuild-switch-to-configuration.service
+  local before after waited=0 rc=0 unit=nixos-rebuild-switch-to-configuration.service
   before=$(readlink -f /run/current-system) || before=
-  if sudo -n "$system_switch"; then
+  sudo -n "$system_switch" || rc=$?
+  if [ "$rc" -eq 0 ]; then
     return 0
   fi
   # A unit that exists but is not yet `active` still owns the colliding name,
@@ -250,7 +251,20 @@ switch_system() {
   after=$(readlink -f /run/current-system) || after=
   [ "$after" != "$before" ] || return 1
   log "the system generation moved during a failed switch, running it again"
-  sudo -n "$system_switch"
+  rc=0
+  sudo -n "$system_switch" || rc=$?
+  if [ "$rc" -eq 0 ]; then
+    return 0
+  fi
+  # Exit 4 is switch-to-configuration saying the activation applied and some
+  # units failed. The generation above is the proof of the switch, and the home
+  # half has to run against the new system; the failed units stay visible in
+  # `systemctl --failed`. Any other code is a switch that did not apply.
+  if [ "$rc" -eq 4 ] && [ "$(readlink -f /run/current-system)" = "$after" ]; then
+    log "the system generation moved, and switch-to-configuration reported failed units"
+    return 0
+  fi
+  return "$rc"
 }
 
 # Would the switch have to *build* this host's kernel? A custom kernel is not on
