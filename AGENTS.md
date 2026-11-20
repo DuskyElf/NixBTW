@@ -176,10 +176,12 @@ rev-pinned in `flake.nix` like `nixpkgs-fast-release`, and the wrapper neither
 pins nor follows it, so that one rev is the pin on every machine and a bump is a
 single line here. It keeps its own nixpkgs out of necessity: its package builds
 patchelf 0.19.2 plus a fix patch, and every channel this repo pins defaults that
-package to 0.15.2, so a follows fails in patchPhase. No binary cache carries its
-closure, so the first switch builds its Python environment, TUI and webapp from
-source (about two thousand wheel unpacks) and later switches reuse the store.
-Keys go in `~/.config/hermes/env` (mode 0600, `mkdir -p` first, made on the box
+package to 0.15.2, so a follows fails in patchPhase. Nothing upstream carries its
+closure, so `.github/workflows/compile-hermes.yml` publishes the paths
+cache.nixos.org lacks (about 240 of 385) to the same signed site under
+`hermes-<store hash>`, and the box substitutes them. A release that is pruned or
+incomplete puts those paths back on its two cores. Keys go in
+`~/.config/hermes/env` (mode 0600, `mkdir -p` first, made on the box
 by hand, never in the tree): the activation merges that file into
 `~/.hermes/.env`, so a new key needs `hm-switch.sh --force` and a restart of
 `hermes-agent` and `hermes-backend`, and the activation only warns while the file

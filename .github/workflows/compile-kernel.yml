@@ -2,7 +2,10 @@ name: "Compile Optimized Kernel"
 
 # Builds the tuned kernels this repo ships on a standard runner and serves them
 # as one signed Nix binary cache, so nixos-rebuild substitutes instead of
-# compiling. Two hosts, one job each, one site:
+# compiling. Two hosts, one job each, one site. The site is not exclusively
+# the kernels': compile-hermes.yml publishes the Hermes agent's closure to the
+# same URL, which is why the deploy lives in publish-cache.yml and both
+# workflows hold the same deploy lock:
 #
 #   asus     the laptop's kernel (hosts/asus/system.nix), tagged kernel-<ver>
 #   homelab  the server's kernel (hosts/homelab/kernel.nix), tagged
@@ -106,6 +109,9 @@ on:
       - "base/workstation.nix"
       - ".github/kernel-asserts/**"
       - ".github/workflows/compile-kernel.yml"
+      # The deploy this pipeline calls. Editing it is a reason to rehearse the
+      # deploy against a real release, even when no kernel compiles.
+      - ".github/workflows/publish-cache.yml"
 
 permissions:
   contents: write
@@ -113,7 +119,9 @@ permissions:
 # Concurrency lives on the job, not the workflow: a group per host means two
 # quick commits only ever build the newer kernel of *that* host, and a homelab
 # push cannot cancel an asus build an hour in (a workflow-level group would).
-# The publish job gets its own group because there is one gh-pages branch.
+# The publish job gets its own group because there is one gh-pages branch, and
+# that group is `cache-publish`: compile-hermes.yml deploys the same branch and
+# waits on the same lock.
 
 jobs:
   build:
@@ -331,129 +339,25 @@ jobs:
   # One deploy, because gh-pages is one branch and keep_files: false replaces
   # the whole site. Runs even when a leg failed: a release that finished
   # uploading must still become servable, or that host's next switch compiles.
+  #
+  # The steps themselves live in publish-cache.yml, because compile-hermes.yml
+  # publishes the Hermes agent's closure to the same site and the site has to be
+  # written by one deploy at a time. The group below is that lock, and it is
+  # shared with that workflow rather than private to this one: two deploys
+  # racing would leave the site missing whichever narinfos lost. The prune stays
+  # in the build legs above, where the per-host budgets and the leg's own tag
+  # already live. That leaves one window a shared prune would not: a leg's prune
+  # can delete a release while the other workflow's deploy is reading it, which
+  # fails that deploy's verification. Moving the prune into the shared job would
+  # close it, at the price of reordering this pipeline, so it is not done here.
   publish:
     needs: build
+    # The called workflow cannot widen its token, so the write permission for
+    # the gh-pages push is declared here, on the calling job.
+    permissions:
+      contents: write
     if: ${{ !cancelled() }}
-    runs-on: ubuntu-latest
     concurrency:
-      group: compile-kernel-publish
+      group: cache-publish
       cancel-in-progress: false
-    steps:
-      # gh-pages is rebuilt from the surviving releases every run rather than
-      # appended to, so a narinfo can never outlive the nar it points at. Each
-      # release is read through its PACKAGED manifest rather than its asset
-      # list, so only the paths that release actually publishes are served, and
-      # the two prefixes share the site because both start with "kernel-".
-      - name: Gather Narinfos From Every Kernel Release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          mkdir -p ./narinfos
-          gh release list --repo "$RELEASE_REPO" --limit 100 --json tagName \
-            -q '.[] | select(.tagName | startswith("kernel-")) | .tagName' \
-            | sort -V > ./kept-releases
-          while read -r tag; do
-            [ -n "$tag" ] || continue
-            rm -rf ./staging && mkdir -p ./staging
-            # PACKAGED is uploaded last, so a release without it died
-            # mid-upload and publishes nothing: skip it and keep serving the
-            # other host instead of failing the whole deploy.
-            if ! gh release download "$tag" --repo "$RELEASE_REPO" \
-                 --pattern PACKAGED --pattern '*.narinfo' --dir ./staging --clobber \
-                 || [ ! -s ./staging/PACKAGED ]; then
-              echo "release $tag is incomplete (no PACKAGED), skipping" >&2
-              continue
-            fi
-            while read -r p; do
-              [ -n "$p" ] || continue
-              h=${p#/nix/store/}
-              h=${h%%-*}
-              cp "./staging/$h.narinfo" ./narinfos/
-            done < ./staging/PACKAGED
-          done < ./kept-releases
-          COUNT=$(find ./narinfos -name '*.narinfo' | wc -l)
-          [ "$COUNT" -gt 0 ] || { echo "no narinfos in any kernel release" >&2; exit 1; }
-          # Nix reads this before it reads a single narinfo. keep_files: false
-          # wipes it every deploy, so it is written here rather than uploaded
-          # once. Priority 50 sits below cache.nixos.org (40) on purpose: for
-          # any path an upstream cache also has, upstream wins, so only what
-          # nobody else serves (these kernels) comes from us.
-          printf 'StoreDir: /nix/store\nWantMassQuery: 1\nPriority: 50\n' > ./narinfos/nix-cache-info
-          echo "$COUNT narinfos from $(wc -l < ./kept-releases) release(s)"
-
-      - name: Deploy Narinfos To GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./narinfos
-          publish_branch: gh-pages
-          # Explicit, because replacing the whole site is the point: gh-pages
-          # must mirror the surviving releases exactly. Appending would let a
-          # narinfo outlive the nar it points at after a prune, and a narinfo
-          # whose nar is gone makes nix error instead of falling back.
-          keep_files: false
-
-      # Proves a host's substituter can actually use the cache: every narinfo
-      # the site serves describes a path, carries our signature, and points at a
-      # nar that is downloadable with the size the narinfo promises. The sizes
-      # are HEADs, so a 158 MB nar costs nothing to verify. The subject is the
-      # whole site, not this run's paths: no single build leg knows the union.
-      - name: Verify The Cache Serves Every Path
-        run: |
-          set -uo pipefail
-
-          # Prints the reason and returns non-zero when the path is not servable
-          # yet, prints nothing and returns zero when it is.
-          check_path() {
-            local p=$1 h=$2 served url size headers code actual
-            served=$(curl -fsS "$CACHE_URL/$h.narinfo" 2>/dev/null) \
-              || { echo "narinfo not served"; return 1; }
-            printf '%s\n' "$served" | grep -qx "StorePath: $p" \
-              || { echo "served narinfo does not describe $p"; return 1; }
-            printf '%s\n' "$served" | grep -q "^Sig: $CACHE_KEY_NAME:" \
-              || { echo "not signed by $CACHE_KEY_NAME"; return 1; }
-            url=$(printf '%s\n' "$served" | sed -n 's/^URL: //p')
-            size=$(printf '%s\n' "$served" | sed -n 's/^FileSize: //p')
-            [ -n "$url" ] && [ -n "$size" ] \
-              || { echo "narinfo has no URL or FileSize"; return 1; }
-            headers=$(curl -fsSIL "$url" 2>/dev/null | tr -d '\r') \
-              || { echo "nar not downloadable: $url"; return 1; }
-            code=$(printf '%s\n' "$headers" | awk '/^HTTP\//{c=$2} END{print c}')
-            actual=$(printf '%s\n' "$headers" | awk 'tolower($1)=="content-length:"{v=$2} END{print v}')
-            [ "$code" = "200" ] || { echo "nar returned $code"; return 1; }
-            [ "$actual" = "$size" ] \
-              || { echo "nar is $actual bytes, narinfo says $size"; return 1; }
-          }
-
-          # The substituter handshake, checked before any path because nix asks
-          # for it first. Content is static, so one success is enough; the
-          # retries exist only because a fresh deploy can lag behind the step.
-          for attempt in $(seq 1 20); do
-            if curl -fsS "$CACHE_URL/nix-cache-info" 2>/dev/null | grep -qx 'StoreDir: /nix/store'; then
-              echo "nix-cache-info served"
-              break
-            fi
-            [ "$attempt" = "20" ] && { echo "$CACHE_URL/nix-cache-info never served StoreDir: /nix/store" >&2; exit 1; }
-            sleep 10
-          done
-
-          mapfile -t PATHS < <(sed -n 's/^StorePath: //p' ./narinfos/*.narinfo | sort -u)
-          for p in "${PATHS[@]}"; do
-            h=${p#/nix/store/}
-            h=${h%%-*}
-            # Pages serves max-age=600 and switches over seconds after the
-            # deploy step reports success, so the narinfo can be present but
-            # still the previous copy. Retry until the content is right, not
-            # until it merely loads: a stale narinfo is the failure that made
-            # a smoke test look broken when the cache was already fine.
-            ok=false
-            for attempt in $(seq 1 60); do
-              if reason=$(check_path "$p" "$h"); then ok=true; break; fi
-              echo "attempt $attempt/60: $h ($reason), retrying in 10s" >&2
-              sleep 10
-            done
-            [ "$ok" = "true" ] || { echo "$p never became servable: $reason" >&2; exit 1; }
-            echo "$p served"
-          done
-          echo "all ${#PATHS[@]} paths are served, signed and downloadable"
+    uses: ./.github/workflows/publish-cache.yml

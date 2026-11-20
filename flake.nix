@@ -130,5 +130,11 @@
       );
 
       formatter.${dotfiles.pkgs.system} = dotfiles.pkgs.stable.nixfmt-tree;
+
+      # The one attribute the cache workflow builds
+      # (.github/workflows/compile-hermes.yml). The homelab's module installs
+      # this same derivation, so a run here makes that switch a download.
+      packages.${dotfiles.pkgs.system}.hermes-agent =
+        inputs.hermes-agent.packages.${dotfiles.pkgs.system}.default;
     };
 }

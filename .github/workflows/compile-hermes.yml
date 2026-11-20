@@ -1,0 +1,371 @@
+name: "Compile Hermes Agent Cache"
+
+# Publishes the Hermes Agent closure to the signed Nix binary cache the kernel
+# pipeline serves (compile-kernel.yml), because nothing else can: the package
+# comes from the hermes-agent flake input rather than nixpkgs, and upstream
+# publishes no binary cache, so the homelab compiles the roughly 240 paths of
+# its closure that cache.nixos.org does not have, on two cores, whenever the pin
+# moves.
+#
+# One job, one package. There is nothing to parallelise, and the deploy is not
+# here: gh-pages holds the kernels' narinfos too, so the deploy and the
+# verification are one shared workflow (publish-cache.yml) and one shared
+# concurrency group, or two publishers would overwrite each other's site.
+#
+# The release tag is hermes-<store hash>, never hermes-<version>: the package
+# says 0.0.0, so a version tag would name every build the same thing. A store
+# path hash hashes everything that goes into the output, so the tag names the
+# exact closure, and "does this tag exist" is most of the no-op test. The
+# runner produces the same paths the machines install because the input is
+# pinned by rev in flake.nix and the hermes flake pins its own nixpkgs, so the
+# store paths do not depend on this repo's channels at all.
+#
+# A cache is not partial: what a machine needs is the whole runtime closure of
+# the installed package. Only the part upstream does not have is published
+# here, because republishing a path cache.nixos.org already serves would double
+# the download and put a narinfo for a path we did not build into a cache these
+# hosts trust. The split is cache.nixos.org's answer per path, and it is
+# rechecked on every build.
+#
+# The path split is the one thing this pipeline cannot compute before it builds:
+# the runner starts with an empty store, so `nix-store -q --requisites` has
+# nothing to walk. That is why a release also carries CLOSURE, the requisite
+# set it was built from. A re-run reads it back, asks cache.nixos.org about the
+# members that release relied on upstream, and skips the build when they are
+# all still there. That is also the check that catches upstream dropping a path
+# the closure needs, which would otherwise be a silent compile on the homelab.
+#
+# Retention keeps the newest two hermes releases: a store path this run stops
+# serving turns the matching rollback into a local build. The prune lives in the
+# shared publish job and runs before the gather there, so the deploy writes a
+# site built only from the releases that survived it.
+#
+# What ends up in that store path is fixed by two things and nothing else: the
+# rev flake.nix pins the input to, and the lock inside the hermes flake, which
+# pins the nixpkgs its packages are built against. Changing either is what this
+# workflow exists to follow, so flake.nix is a trigger below.
+
+env:
+  CACHE_URL: https://duskyelf.github.io/NixBTW
+  RELEASE_REPO: DuskyElf/NixBTW
+  # The signer name. The hosts hold the public half they trust; the name there
+  # and here must be identical. The agent and the kernels share one key on
+  # purpose: nix matches the name and verifies the key bytes, so a second name
+  # would mean a second entry on every machine for no benefit.
+  CACHE_KEY_NAME: i9-kernel-cache
+  # The attribute flake.nix exposes for exactly this job. Spelled with the
+  # system because the cache is for these x86_64 machines: a runner on another
+  # platform would publish paths nothing here can use.
+  PKG_EXPR: .#packages.x86_64-linux.hermes-agent
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      # The pinned hermes-agent rev and everything else about the input graph.
+      - "flake.nix"
+      - "apps/hermes/**"
+      # The host that installs it: its module list is what makes the closure
+      # part of a machine at all.
+      - "hosts/homelab/**"
+      # This pipeline and the deploy it calls. Editing either is a reason to
+      # plan, deploy and verify against a real release, even when nothing
+      # compiles.
+      - ".github/workflows/compile-hermes.yml"
+      - ".github/workflows/publish-cache.yml"
+
+permissions:
+  contents: write
+
+# Concurrency lives on the job: one group for this closure, so a newer push
+# cancels a build of a closure it supersedes. A deploy is the one thing that
+# must not be cancelled midway, so it declares its own group below and never
+# sets cancel-in-progress.
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: compile-hermes
+      cancel-in-progress: true
+    outputs:
+      tag: ${{ steps.plan.outputs.tag }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          # The flake's path inputs are submodules; nix resolves every input
+          # before it evaluates the attribute, whether this job builds it or
+          # not.
+          submodules: recursive
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      # Seconds of evaluation decide whether to spend an hour building. The tag
+      # is content addressed, so an existing release for this tag was built
+      # from this exact closure, and its PACKAGED manifest (uploaded last, so
+      # its presence means nothing was half written) is the record of what that
+      # closure needed.
+      - name: Plan
+        id: plan
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          PKG=$(nix eval --raw "$PKG_EXPR")
+          HASH=${PKG#/nix/store/}
+          HASH=${HASH%%-*}
+          [ "${#HASH}" = 32 ] \
+            || { echo "$PKG does not start with a 32 character store hash" >&2; exit 1; }
+          TAG="hermes-$HASH"
+
+          # A tag of ours must never read as a kernel release: the publish
+          # workflow gathers every kernel- release and serves it as a kernel.
+          # The prefixes cannot collide while this holds, and a misnamed tag
+          # fails the run here instead of confusing the kernels' deploy.
+          case "$TAG" in
+            kernel-*) echo "refusing $TAG: it reads as a kernel release" >&2; exit 1 ;;
+          esac
+
+          # Read from flake.nix rather than resolved through the flake: the
+          # input graph costs a network round trip per input, and the pin is a
+          # single line in a known shape. It is a note, never an input to a
+          # decision, so a failure to read it is not fatal.
+          REV=$(grep -oP 'github:NousResearch/hermes-agent/\K[0-9a-f]{40}' flake.nix || true)
+          [ -n "$REV" ] || REV=unknown
+
+          need_build=true
+          reason="no complete release for this closure yet"
+          mkdir -p ./published
+          # PACKAGED lists the paths the release serves; the package path has
+          # to be one of them, because a cache that does not carry what it was
+          # built for is not a cache of anything.
+          if gh release download "$TAG" --repo "$RELEASE_REPO" \
+               --pattern PACKAGED --output ./published/PACKAGED --clobber 2>/dev/null; then
+            if ! grep -qxF "$PKG" ./published/PACKAGED; then
+              reason="the published manifest does not list $PKG"
+            elif ! assets=$(gh release view "$TAG" --repo "$RELEASE_REPO" \
+                              --json assets -q '.assets[].name'); then
+              # A broken API call is not evidence that the release is whole.
+              reason="could not list the assets of $TAG"
+            elif [ "$(printf '%s\n' "$assets" | grep -c '\.narinfo$')" \
+                   -ne "$(grep -c . ./published/PACKAGED)" ] \
+                 || ! printf '%s\n' "$assets" | grep -qx CLOSURE; then
+              # A complete release carries one narinfo per path plus CLOSURE.
+              # Anything less was lost after the upload, and publishing it again
+              # is the only self-heal: the gather would either half-serve the
+              # release or fail on the missing file every run after this one.
+              reason="release $TAG is missing assets its manifest needs"
+            else
+              need_build=false
+              reason="release $TAG already provides this closure"
+              # The release also records the whole requisite set it was built
+              # from, which is how the upstream half of the split gets checked
+              # without a store to walk. A path the closure needs and upstream
+              # no longer has is a reason to build again and publish it here.
+              # Any other answer than "upstream has it" also rebuilds: a build
+              # is the safe side of a broken query.
+              if gh release download "$TAG" --repo "$RELEASE_REPO" \
+                   --pattern CLOSURE --output ./published/CLOSURE --clobber 2>/dev/null; then
+                comm -23 <(sort ./published/CLOSURE) <(sort ./published/PACKAGED) \
+                  > ./published/upstream
+                while read -r p; do
+                  [ -n "$p" ] || continue
+                  h=${p#/nix/store/}
+                  h=${h%%-*}
+                  code=$(curl -s -o /dev/null -w '%{http_code}' \
+                    --retry 3 --retry-delay 2 --max-time 20 \
+                    "https://cache.nixos.org/$h.narinfo")
+                  if [ "$code" != "200" ]; then
+                    need_build=true
+                    reason="cache.nixos.org answered $code for $p, which $TAG did not publish"
+                    break
+                  fi
+                done < ./published/upstream
+              else
+                need_build=true
+                reason="release $TAG has no CLOSURE, so its upstream half is unchecked"
+              fi
+            fi
+          fi
+
+          echo "$reason"
+          echo "package $PKG, release $TAG, hermes-agent $REV, need_build=$need_build"
+          {
+            echo "pkg=$PKG"
+            echo "tag=$TAG"
+            echo "rev=$REV"
+            echo "need_build=$need_build"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build And Upload Nars
+        if: steps.plan.outputs.need_build == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NIX_SECRET_KEY: ${{ secrets.NIX_SECRET_KEY }}
+          PKG: ${{ steps.plan.outputs.pkg }}
+          TAG: ${{ steps.plan.outputs.tag }}
+          REV: ${{ steps.plan.outputs.rev }}
+        run: |
+          set -euo pipefail
+
+          # Store path hash alone: /nix/store/<hash>-<name> gives <hash>.
+          hash_of() { local h=${1#/nix/store/}; printf '%s' "${h%%-*}"; }
+
+          # The only step that pays for the closure. Everything below walks
+          # store paths, and a cold runner has none of them.
+          OUT=$(nix build --no-link --print-out-paths "$PKG_EXPR")
+          [ "$OUT" = "$PKG" ] \
+            || { echo "the plan asked for $PKG and the build produced $OUT" >&2; exit 1; }
+          nix-store -q --requisites "$PKG" | sort -u > ./closure
+
+          # One HEAD per path against upstream. cache.nixos.org answers 404 for
+          # a path it does not have, and that is the only "upstream lacks it"
+          # this code accepts: a 5xx, a timeout or a rate limit is a broken
+          # query, and reading it as "missing" republishes paths nobody needs
+          # while reading it as "present" leaves a path with no source at all.
+          # Eight at a time because the closure is a few hundred paths and each
+          # answer is one small request.
+          classify() {
+            local p=$1 h=${1#/nix/store/}
+            h=${h%%-*}
+            printf '%s %s\n' \
+              "$(curl -s -o /dev/null -w '%{http_code}' --retry 3 --retry-delay 2 \
+                 --max-time 20 "https://cache.nixos.org/$h.narinfo")" \
+              "$p"
+          }
+          export -f classify
+          xargs -P8 -n1 bash -c 'classify "$1"' _ < ./closure > ./classified
+
+          bad=$(awk '$1 != 200 && $1 != 404' ./classified)
+          if [ -n "$bad" ]; then
+            echo "cache.nixos.org did not answer 200 or 404 for:" >&2
+            printf '  %s\n' "$bad" >&2
+            exit 1
+          fi
+
+          awk '$1 == 404 {print $2}' ./classified | sort > ./publish-paths
+          awk '$1 == 200 {print $2}' ./classified | sort > ./upstream-paths
+
+          # Every path in the closure has to be in exactly one of the two
+          # files. A path in neither is a path a machine has no source for, and
+          # nothing later in this run would notice it.
+          sort -u ./publish-paths ./upstream-paths > ./partitioned
+          [ "$(wc -l < ./partitioned)" = "$(wc -l < ./closure)" ] || {
+            echo "the split does not cover the closure" >&2
+            comm -3 <(sort -u ./closure) ./partitioned >&2
+            exit 1
+          }
+          echo "$(wc -l < ./publish-paths) paths to publish here, $(wc -l < ./upstream-paths) from cache.nixos.org"
+
+          # Only reachable if upstream gained the package itself, which would
+          # mean this pipeline has nothing to do. Say so and leave the site and
+          # the release alone rather than publishing an empty release.
+          if [ ! -s ./publish-paths ]; then
+            echo "the whole closure is on cache.nixos.org, nothing to publish"
+            exit 0
+          fi
+          grep -qxF "$PKG" ./publish-paths \
+            || { echo "$PKG is not in its own publish set" >&2; exit 1; }
+
+          mapfile -t PATHS < ./publish-paths
+
+          # Sign before copying: a file cache only exports signatures already
+          # recorded on the path, and `nix copy` has no --secret-key-files flag.
+          printf '%s' "$NIX_SECRET_KEY" > ./nix-secret-key
+          chmod 600 ./nix-secret-key
+          mkdir -p ./public-cache
+          nix store sign --key-file ./nix-secret-key "${PATHS[@]}"
+          rm -f ./nix-secret-key
+          nix copy --to "file://$PWD/public-cache" "${PATHS[@]}"
+
+          # Fail loudly if a path is not signed by our own key: that is exactly
+          # the "cache never hits" failure mode, and it is cheap to see here.
+          for p in "${PATHS[@]}"; do
+            if ! grep -q "^Sig: $CACHE_KEY_NAME:" "./public-cache/$(hash_of "$p").narinfo"; then
+              echo "narinfo for $p is not signed by $CACHE_KEY_NAME" >&2
+              exit 1
+            fi
+          done
+
+          # Point every published narinfo at its release asset. gh-pages holds
+          # the narinfos, the nars live in the release, and this URL is the
+          # bridge. The file store names a nar after the hash of the compressed
+          # file, not the store hash, so the narinfo's URL line is the only
+          # reliable source for the file name: guessing <storehash>.nar.xz
+          # uploads nothing, because gh expands its own globs and dies on a name
+          # that is absent.
+          ASSET_BASE="https://github.com/$RELEASE_REPO/releases/download/$TAG"
+          mkdir -p ./narinfos
+          nars=()
+          for p in "${PATHS[@]}"; do
+            h=$(hash_of "$p")
+            nar=$(sed -n 's|^URL: nar/||p' "./public-cache/$h.narinfo")
+            [ -f "./public-cache/nar/$nar" ] \
+              || { echo "narinfo $h points at nar/$nar, which the copy did not write" >&2; exit 1; }
+            nars+=("./public-cache/nar/$nar")
+            sed "s|^URL: nar/|URL: $ASSET_BASE/|" "./public-cache/$h.narinfo" > "./narinfos/$h.narinfo"
+            grep -q "^URL: $ASSET_BASE/$nar\$" "./narinfos/$h.narinfo" \
+              || { echo "narinfo $h still points at a relative URL" >&2; exit 1; }
+          done
+
+          # The notes are written once, when the release is created; a
+          # republish under the same tag keeps them. PACKAGED, not this text, is
+          # what the pipeline reads, and that stays true if the two disagree.
+          cat > ./notes.md <<NOTES
+          Nar assets for the signed cache at $CACHE_URL, mirrored as narinfos on
+          gh-pages. Read by .github/workflows/compile-hermes.yml, deployed by
+          .github/workflows/publish-cache.yml.
+
+          The runtime closure of $PKG, from hermes-agent $REV: the
+          $(wc -l < ./publish-paths) paths in that closure cache.nixos.org does
+          not have. The remaining $(wc -l < ./upstream-paths) come from upstream,
+          which is why the site's nix-cache-info sits below it in priority.
+
+          Deleting this release stops that generation being substitutable, and
+          its rollback or next switch compiles those paths on two cores instead.
+          PACKAGED lists the paths this release serves; CLOSURE lists the whole
+          requisite set it was split from.
+          NOTES
+
+          # Upload before anything else can fail, and upload PACKAGED last so a
+          # half-finished upload never looks complete to the next run.
+          gh release view "$TAG" --repo "$RELEASE_REPO" >/dev/null 2>&1 \
+            || gh release create "$TAG" --repo "$RELEASE_REPO" \
+                 --title "Hermes Agent ${REV:0:12} nar cache" \
+                 --notes-file ./notes.md
+          gh release upload "$TAG" "${nars[@]}" --repo "$RELEASE_REPO" --clobber
+          cp ./closure ./CLOSURE
+          gh release upload "$TAG" ./CLOSURE ./narinfos/*.narinfo --repo "$RELEASE_REPO" --clobber
+          printf '%s\n' "${PATHS[@]}" > ./PACKAGED
+          gh release upload "$TAG" ./PACKAGED --repo "$RELEASE_REPO" --clobber
+          echo "uploaded ${#nars[@]} nars to $TAG, $(wc -l < ./upstream-paths) paths left to upstream"
+
+  # Deploy, prune and verify are one shared job: gh-pages is one branch with
+  # keep_files: false, so the kernels' narinfos and the agent's have to be
+  # written by the same deploy, and the group below is what keeps two of them
+  # from racing. The prune travels with it so it runs before the gather, which
+  # is what stops a pruned release's narinfo from being served after its nar is
+  # gone.
+  publish:
+    needs: build
+    # The called workflow cannot widen its token, so the write permission for
+    # the gh-pages push is declared here, on the calling job.
+    permissions:
+      contents: write
+    # Runs when the build failed too: the site has to be rebuilt from whatever
+    # releases survive, and this run may have pruned one.
+    if: ${{ !cancelled() }}
+    concurrency:
+      group: cache-publish
+      cancel-in-progress: false
+    uses: ./.github/workflows/publish-cache.yml
+    with:
+      prune_prefix: hermes-
+      prune_keep: 2
+      protect_tag: ${{ needs.build.outputs.tag }}

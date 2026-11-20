@@ -1,0 +1,281 @@
+name: "Publish The Signed Cache"
+
+# The deploy half of the substituter at CACHE_URL. Called by
+# compile-kernel.yml and compile-hermes.yml, which publish to the same site
+# from the same gh-pages branch.
+#
+# It is one reusable workflow rather than a copy in each caller because
+# gh-pages is one branch and the deploy uses keep_files: false: two jobs
+# deploying at once would race, and the loser's site would be missing the
+# winner's narinfos until something else deployed. Callers therefore share one
+# concurrency group, and each one declares it on the calling job, not here:
+# declaring the same group inside the called workflow as well would make this
+# job queue behind the caller that is waiting for it, which is a deadlock that
+# ends in a timeout rather than an error.
+#
+# A deploy that gets replaced in the queue while pending costs a red job, not
+# the site: every deploy writes the union of every release, so whichever one
+# finally runs serves both pipelines' work. That is the reason the gather below
+# filters on both tag prefixes instead of on its caller's.
+#
+# A reusable workflow does not inherit the caller's env, and `env` is not a
+# context a caller may pass in `with:`, so the three constants below are copies
+# of the env blocks in the callers. Keep them identical: a mismatch would
+# deploy narinfos signed under one name while the verify step looks for
+# another.
+#
+# Callers must grant `contents: write`, which both do for their own release
+# uploads. A called workflow cannot widen its token's permissions, and a calling
+# job that declares none hands this one the repository default, which is
+# read-only: the deploy below then pushes gh-pages with a token that cannot
+# write and the site stops moving. Every step here uses `github.token` rather
+# than `secrets.GITHUB_TOKEN` because a called workflow is granted that token
+# automatically, so the deploy does not depend on which workflow called it or on
+# a `secrets: inherit` doing what it says.
+
+env:
+  CACHE_URL: https://duskyelf.github.io/NixBTW
+  RELEASE_REPO: DuskyElf/NixBTW
+  # The signer name. The hosts trust i9-kernel-cache:<pubkey>, so the kernels
+  # and the agent are signed by one key: nix matches the name and verifies the
+  # key bytes, and a second name would need a second entry on every machine.
+  CACHE_KEY_NAME: i9-kernel-cache
+
+on:
+  workflow_call:
+    inputs:
+      # The tag prefix this caller's own releases carry. Empty means the caller
+      # prunes its own releases, as the kernel pipeline does per host, and no
+      # pruning happens here.
+      prune_prefix:
+        description: "Tag prefix to keep bounded, e.g. hermes-"
+        type: string
+        default: ""
+      prune_keep:
+        description: "How many releases carrying prune_prefix to keep"
+        type: number
+        default: 0
+      protect_tag:
+        description: "Release this run published, never pruned"
+        type: string
+        default: ""
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      # Bounded storage, and before the gather on purpose: a narinfo served for
+      # a path whose nar was pruned makes nix error instead of falling back to
+      # a local build, so the deploy that follows reads only the releases that
+      # survived it. The kernel pipeline prunes inside its own build legs (per
+      # host, protecting the leg's own tag); this step is for callers whose
+      # retention is not per host, and does nothing when no prefix is passed.
+      #
+      # It also does nothing when the caller named no release to protect. A
+      # build that failed leaves protect_tag empty, and a republish under an
+      # existing tag keeps that tag's old creation time, so pruning then could
+      # delete the release the run is in the middle of rewriting. Storage grows
+      # by one release in that case, which the next successful run collects.
+      - name: Prune Old Releases
+        if: ${{ inputs.prune_prefix != '' && inputs.prune_keep > 0 && inputs.protect_tag != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # Newest by creation time, because a tag can be a store hash, and
+          # version order says nothing at all about the age of a hash.
+          gh release list --repo "$RELEASE_REPO" --limit 100 --json tagName,createdAt \
+            | jq -r --arg prefix "${{ inputs.prune_prefix }}" \
+                '.[] | select(.tagName | startswith($prefix)) | "\(.createdAt) \(.tagName)"' \
+            | sort -r | awk '{print $2}' | tail -n "+$(( ${{ inputs.prune_keep }} + 1 ))" \
+            > ./prune-list
+          while read -r old; do
+            [ -n "$old" ] || continue
+            # Never prune what this run just published, even when a republish
+            # leaves it older than the releases the budget would keep.
+            [ "$old" = "${{ inputs.protect_tag }}" ] && continue
+            echo "pruning $old"
+            gh release delete "$old" --repo "$RELEASE_REPO" --yes --cleanup-tag
+          done < ./prune-list
+          # gh's own -q takes no jq arguments, so the prefix travels through a
+          # pipe instead.
+          echo "kept: $(gh release list --repo "$RELEASE_REPO" --limit 100 --json tagName \
+            | jq -r --arg prefix "${{ inputs.prune_prefix }}" \
+                '[.[] | select(.tagName | startswith($prefix)) | .tagName] | join(" ")')"
+
+      # gh-pages is rebuilt from the surviving releases every run rather than
+      # appended to, so on a successful deploy the site mirrors exactly what
+      # survives. A narinfo can still be served for a pruned nar between this
+      # prune and that deploy, and a deploy that fails prolongs that window; the
+      # next successful deploy is what closes it, which is why the verify below
+      # is strict and why a skipped release is reported as a failure.
+      #
+      # Each release is read through its PACKAGED manifest rather than its asset
+      # list, so only the paths that release actually publishes are served. Both
+      # publishers land here: the kernels use kernel- and kernel-homelab-, the
+      # agent uses hermes-, and this is the one place that knows the site is the
+      # union of them.
+      - name: Gather Narinfos From Every Cache Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p ./narinfos
+          : > ./skipped-releases
+          contributed=0
+          gh release list --repo "$RELEASE_REPO" --limit 100 --json tagName \
+            -q '.[] | select(.tagName | test("^(kernel|hermes)-")) | .tagName' \
+            | sort -V > ./kept-releases
+          while read -r tag; do
+            [ -n "$tag" ] || continue
+            rm -rf ./staging && mkdir -p ./staging
+            # The asset list is one call that either answers or errors, so a
+            # download failure below is a real failure and not read as "this
+            # release is incomplete": the deploy replaces the whole site, and
+            # leaving a release out un-publishes a kernel machines substitute.
+            if ! assets=$(gh release view "$tag" --repo "$RELEASE_REPO" \
+                            --json assets -q '.assets[].name'); then
+              echo "could not list the assets of $tag" >&2
+              exit 1
+            fi
+            # PACKAGED is uploaded last, so a release without it died
+            # mid-upload and publishes nothing. Skip it, keep serving everything
+            # else, and fail the job below so the skip is not silent.
+            if ! printf '%s\n' "$assets" | grep -qx PACKAGED; then
+              echo "release $tag is incomplete (no PACKAGED), skipping" >&2
+              echo "$tag" >> ./skipped-releases
+              continue
+            fi
+            gh release download "$tag" --repo "$RELEASE_REPO" \
+              --pattern PACKAGED --pattern '*.narinfo' --dir ./staging --clobber
+            # A complete release carries one narinfo per path in PACKAGED. A
+            # short count means an asset was lost after the upload, and serving
+            # the rest of that release leaves a machine asking for a path nobody
+            # serves. Skip the release rather than half of it.
+            want=$(grep -c . ./staging/PACKAGED)
+            got=$(find ./staging -maxdepth 1 -name '*.narinfo' | wc -l)
+            if [ "$got" -ne "$want" ]; then
+              echo "release $tag carries $got narinfos for $want paths, skipping" >&2
+              echo "$tag" >> ./skipped-releases
+              continue
+            fi
+            contributed=$((contributed + 1))
+            while read -r p; do
+              [ -n "$p" ] || continue
+              h=${p#/nix/store/}
+              h=${h%%-*}
+              cp "./staging/$h.narinfo" ./narinfos/
+            done < ./staging/PACKAGED
+          done < ./kept-releases
+          COUNT=$(find ./narinfos -name '*.narinfo' | wc -l)
+          [ "$COUNT" -gt 0 ] || { echo "no narinfos in any cache release" >&2; exit 1; }
+          # Nix reads this before it reads a single narinfo. keep_files: false
+          # wipes it every deploy, so it is written here rather than uploaded
+          # once. Priority 50 sits below cache.nixos.org (40) on purpose: for
+          # any path an upstream cache also has, upstream wins, so only what
+          # nobody else serves (these kernels, this agent) comes from us.
+          printf 'StoreDir: /nix/store\nWantMassQuery: 1\nPriority: 50\n' > ./narinfos/nix-cache-info
+          echo "$COUNT narinfos from $contributed release(s), $(wc -l < ./skipped-releases) skipped"
+
+      - name: Deploy Narinfos To GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ github.token }}
+          publish_dir: ./narinfos
+          publish_branch: gh-pages
+          # Explicit, because replacing the whole site is the point: gh-pages
+          # must mirror the surviving releases exactly. Appending would let a
+          # narinfo outlive the nar it points at after a prune, and a narinfo
+          # whose nar is gone makes nix error instead of falling back.
+          keep_files: false
+
+      # Proves a host's substituter can actually use the cache: every narinfo
+      # the site serves describes a path, carries our signature, and points at a
+      # nar that is downloadable with the size the narinfo promises. The sizes
+      # are HEADs, so a 158 MB nar costs nothing to verify. The subject is the
+      # whole site, not this run's paths: no single build leg knows the union.
+      - name: Verify The Cache Serves Every Path
+        run: |
+          set -uo pipefail
+
+          # Prints the reason and returns non-zero when the path is not servable
+          # yet, prints nothing and returns zero when it is.
+          check_path() {
+            local p=$1 h=$2 served url size headers code actual
+            served=$(curl -fsS "$CACHE_URL/$h.narinfo" 2>/dev/null) \
+              || { echo "narinfo not served"; return 1; }
+            printf '%s\n' "$served" | grep -qx "StorePath: $p" \
+              || { echo "served narinfo does not describe $p"; return 1; }
+            printf '%s\n' "$served" | grep -q "^Sig: $CACHE_KEY_NAME:" \
+              || { echo "not signed by $CACHE_KEY_NAME"; return 1; }
+            url=$(printf '%s\n' "$served" | sed -n 's/^URL: //p')
+            size=$(printf '%s\n' "$served" | sed -n 's/^FileSize: //p')
+            [ -n "$url" ] && [ -n "$size" ] \
+              || { echo "narinfo has no URL or FileSize"; return 1; }
+            headers=$(curl -fsSIL "$url" 2>/dev/null | tr -d '\r') \
+              || { echo "nar not downloadable: $url"; return 1; }
+            code=$(printf '%s\n' "$headers" | awk '/^HTTP\//{c=$2} END{print c}')
+            actual=$(printf '%s\n' "$headers" | awk 'tolower($1)=="content-length:"{v=$2} END{print v}')
+            [ "$code" = "200" ] || { echo "nar returned $code"; return 1; }
+            [ "$actual" = "$size" ] \
+              || { echo "nar is $actual bytes, narinfo says $size"; return 1; }
+          }
+
+          # The substituter handshake, checked before any path because nix asks
+          # for it first. Content is static, so one success is enough; the
+          # retries exist only because a fresh deploy can lag behind the step.
+          for attempt in $(seq 1 20); do
+            if curl -fsS "$CACHE_URL/nix-cache-info" 2>/dev/null | grep -qx 'StoreDir: /nix/store'; then
+              echo "nix-cache-info served"
+              break
+            fi
+            [ "$attempt" = "20" ] && { echo "$CACHE_URL/nix-cache-info never served StoreDir: /nix/store" >&2; exit 1; }
+            sleep 10
+          done
+
+          # The agent's closure is a few hundred paths, so a site that is
+          # broken for all of them must fail here in minutes, not grind through
+          # ten minutes of retries per path until the job times out. Three
+          # paths that never became servable is a broken deploy or a broken
+          # site, not a file that lagged behind Pages.
+          misses=0
+
+          mapfile -t PATHS < <(sed -n 's/^StorePath: //p' ./narinfos/*.narinfo | sort -u)
+          for p in "${PATHS[@]}"; do
+            h=${p#/nix/store/}
+            h=${h%%-*}
+            # Pages serves max-age=600 and switches over seconds after the
+            # deploy step reports success, so the narinfo can be present but
+            # still the previous copy. Retry until the content is right, not
+            # until it merely loads: a stale narinfo is the failure that made
+            # a smoke test look broken when the cache was already fine.
+            ok=false
+            for attempt in $(seq 1 60); do
+              if reason=$(check_path "$p" "$h"); then ok=true; break; fi
+              echo "attempt $attempt/60: $h ($reason), retrying in 10s" >&2
+              sleep 10
+            done
+            if [ "$ok" != "true" ]; then
+              echo "$p never became servable: $reason" >&2
+              misses=$((misses + 1))
+              [ "$misses" -ge 3 ] \
+                && { echo "3 paths never became servable: the site is broken, not one file" >&2; exit 1; }
+              continue
+            fi
+            echo "$p served"
+          done
+          [ "$misses" -eq 0 ] || { echo "$misses path(s) never became servable" >&2; exit 1; }
+          echo "all ${#PATHS[@]} paths are served, signed and downloadable"
+
+      # A release left out of the site is a machine that has to build what it
+      # used to substitute, and the deploy above cannot report it: it succeeds
+      # with whatever it could gather. This runs after a failed verify too,
+      # because both outcomes need a human to look.
+      - name: Report Skipped Releases
+        if: ${{ always() }}
+        run: |
+          [ -s ./skipped-releases ] || exit 0
+          while read -r tag; do
+            echo "::error::release $tag is incomplete and was left out of the site"
+          done < ./skipped-releases
+          exit 1

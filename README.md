@@ -284,6 +284,14 @@ substitutes the cached kernel. Merging the PR is the only manual step left; the
 new kernel is the boot default after that switch and runs from the next reboot,
 because nothing here reboots the machine.
 
+That site serves one more thing: `compile-hermes.yml` builds the homelab's agent
+from its rev pin and publishes the paths cache.nixos.org lacks under
+`hermes-<store hash>`, so a home switch downloads them instead of compiling them
+on two cores. Both pipelines deploy the site through
+`.github/workflows/publish-cache.yml`, one deploy at a time, because gh-pages is
+a single branch that each deploy replaces whole. A release whose assets are
+incomplete is left out of the site and reported as a failure, never half-served.
+
 The first switch on a host whose kernel CI has not published yet cannot use that
 cache, because the generation that would trust it is the one being installed. On
 the laptop that costs two hours of compile; on the homelab the daily run notices
