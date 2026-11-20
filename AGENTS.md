@@ -36,13 +36,15 @@ All rebuilds go through the wrapper with the live-tree override so uncommitted e
 
 Everything on both machines is handled by systemd timers pretty much.
 
-A daily user timer (`daily-update`, fires from 08:30 with up to 30 minutes of jitter, see `apps/daily-update/home.nix`, so a host that imports that module has it) runs `apps/daily-update/daily-update.sh`: it pulls `origin/main` with `git pull --rebase --autostash`, syncs the submodules, locks this checkout's ignored `flake.lock`, runs `nix flake update` on the wrapper inputs that host lists, moves the T3 Code pin through `pkgs/t3code/update.sh`, rebuilds the system through `/usr/local/sbin/nixos-switch.sh`, runs `apps/home-switch/hm-switch.sh`, commits the wrapper lock, pins the devshells, and collects the user store. Which of those steps run is host data, not a branch in the script: `lib/host.nix` `dailyUpdate` sets `t3`, `devshells`, `collect`, `graphicalSession`, `linger`, `cores`, and `wrapperInputs`, and the home module passes each as a flag. The laptop takes all of them (three inputs float from the network; `neovimBTW` and `wallpaper-guardian` are re-locked from their checkouts, which is what carries a merged submodule bump into the switch); the homelab takes the collection only, updates `nixpkgs neovimBTW wallpaper-guardian`, and lingers so its timer runs without a login. The system switch comes first: a change that spans both halves needs the new store copy installed before home activation calls into it, and a failed system switch skips the home switch rather than leaving a half-applied pair.
+A daily user timer (`daily-update`, fires from 08:30 with up to 30 minutes of jitter, see `apps/daily-update/home.nix`, so a host that imports that module has it) runs `apps/daily-update/daily-update.sh`: it pulls `origin/main` with `git pull --rebase --autostash`, syncs the submodules, locks this checkout's ignored `flake.lock`, runs `nix flake update` on the wrapper inputs that host lists, moves the T3 Code pin through `pkgs/t3code/update.sh`, rebuilds the system through `/usr/local/sbin/nixos-switch.sh`, runs `apps/home-switch/hm-switch.sh`, commits the wrapper lock, pins the devshells, and collects the user store. Which of those steps run is host data, not a branch in the script: `lib/host.nix` `dailyUpdate` sets `t3`, `devshells`, `collect`, `graphicalSession`, `linger`, `cores`, `wrapperInputs`, and `kernelCache`, and the home module passes each as a flag. The laptop takes all of them (three inputs float from the network; `neovimBTW` and `wallpaper-guardian` are re-locked from their checkouts, which is what carries a merged submodule bump into the switch); the homelab takes the collection only, updates `nixpkgs neovimBTW wallpaper-guardian`, and lingers so its timer runs without a login. The system switch comes first: a change that spans both halves needs the new store copy installed before home activation calls into it, and a failed system switch skips the home switch rather than leaving a half-applied pair.
 
 The last step touches `~/.local/state/daily-update/gc-request`, and the system path unit `nix-gc-root` (apps/daily-update/system.nix) turns that into the root collection, so there is one collection round per day, after the switch, keeping two days of generations on both sides. The marker is written from an exit trap, so a run killed with SIGTERM (a system switch can restart the display manager and take the unit's cgroup) still asks for root's collection; only SIGKILL loses it, and the user half is skipped either way. The collection runs even when the update or the switch failed: a bad week must not keep a week of generations. On the laptop the unit is part of the graphical session, so a machine left at the greeter collects nothing until a login; the old GC timers ran without one, and collecting right after the switch is worth that. The homelab has no session to join, so `dailyUpdate.linger` starts its user manager at boot and the timer runs anyway. When the machine disagrees with this repo, suspect that drift first, not a local edit. Do not hand-edit pins the timer owns.
 
-There is no store optimiser on either host, and it should not be added back without a measurement: the last audit found zero files in the store with a second hard link and the GC reports hard linking saving nothing, while each run's `.tmp-link-*` entries under `/nix/store` drive the two config watchers that watch that directory (auto-cpufreq's, kitty's `__watch_conf__`) to about a core between them.
+There is no store optimiser on either host, and it should not be added back without a measurement: the last audit found zero files in the store with a second hard link and the GC reports hard linking saving nothing, while each run's `.tmp-link-*` entries under `/nix/store` drive the two config watchers that watch that directory on the laptop (auto-cpufreq's, kitty's `__watch_conf__`) to about a core between them. Neither exists on the homelab.
 
-The pull is how merged work lands: the kernel PR is the one manual gate, and the daily run takes the merge, rebuilds, and substitutes the published kernel. A conflicted pull aborts its own rebase, notifies, and the run continues on the tree it already has. Five states stop the update half: a rebase, merge, or cherry-pick already in progress in the checkout, which a timer must not abort or rebuild over; an autostash conflict after a successful rebase, where git exits 0 with unmerged paths and the stash still holds the edits; unmerged paths an earlier run left behind (the pull would otherwise short-circuit on "already contained"); a failed submodule sync or tree lock; and a missing `deploy-system/flake.nix`, which leaves nothing to lock, update or switch. The tail still runs in all of them (the devshell pin and the collection, where the host takes them). If the pull changes `daily-update.sh` itself, the run hands over to the new copy as a child before doing anything else, because a shell reads its script as it goes.
+The pull is how merged work lands: the kernel PR is the one manual gate, and the daily run takes the merge, rebuilds, and substitutes the published kernel (a host whose kernel CI has not published yet skips the system and home switches rather than compile one; see `kernelCache` below). A conflicted pull aborts its own rebase, notifies, and the run continues on the tree it already has. Five states stop the update half: a rebase, merge, or cherry-pick already in progress in the checkout, which a timer must not abort or rebuild over; an autostash conflict after a successful rebase, where git exits 0 with unmerged paths and the stash still holds the edits; unmerged paths an earlier run left behind (the pull would otherwise short-circuit on "already contained"); a failed submodule sync or tree lock; and a missing `deploy-system/flake.nix`, which leaves nothing to lock, update or switch. The tail still runs in all of them (the devshell pin and the collection, where the host takes them). If the pull changes `daily-update.sh` itself, the run hands over to the new copy as a child before doing anything else, because a shell reads its script as it goes.
+
+A host whose kernel CI builds carries one more gate: `dailyUpdate.kernelCache` names the substituter that must already hold this boot's kernel, and the run checks it with `nix eval` plus `nix path-info` before the switch. A kernel that is not published yet (a failed CI run, a merge after the timer started) skips the system and home switches for that day instead of compiling for hours on two cores; the pull, the pins and the collection still run. The laptop leaves it null and is unaffected.
 
 The system half runs as root through `/usr/local/sbin/nixos-switch.sh`: store-pinned in `apps/daily-update/system.nix`, the fixed flake and live-tree override, the host's `--cores` (`dailyUpdate.cores`: 16 on the laptop, 2 on the homelab), a pinned PATH, `/run/nixos-switch.lock` so two switches queue instead of racing into switch-to-configuration's fixed transient unit name, and `--no-write-lock-file` so root never writes the checkout's lock. The user half does not trust the helper's exit code alone: `apps/daily-update/daily-update.sh` `switch_system` waits for a foreign activation to leave, compares `/run/current-system`, and runs the helper once more when the generation moved, because losing that transient-unit race fails the command after the switch has applied. That is the second NOPASSWD path after `power.sh` (which is `apps/power.nix` and only a desktop host installs), and it is the one place this repo widens the trust boundary. The rule carries an empty argument list, which is how sudoers says "no arguments at all", and the helper ignores argv anyway, so the command line is fixed; but nixos-rebuild evaluates the login user's writable checkout, so anything written into the tree is installed as root on the next run. That is the same power a hand rebuild has, minus the password. Do not add a third NOPASSWD path without saying why here.
 
@@ -65,9 +67,11 @@ lives on the LAN as a headless server. It has no desktop: it does not list
 `sh`, `bash`, `home-switch`, `daily-update`, `nvim`, and `languages` modules and
 `hosts/homelab/home.nix` for the git identity. It has no tmux, no zsh, no
 opencode, no T3 Code, and no wallpaper: it takes the shared half of the tree and
-nothing else. Its system side is stable nixpkgs only, plus `neovimBTW` (which
-follows stable), and the 6.18 longterm kernel, so it never evaluates an unstable
-instance and never builds a kernel. Its address is
+nothing else. Its system side is the stable channel plus `neovimBTW` (which
+follows stable), and a kernel it configures itself: `hosts/homelab/kernel.nix`
+takes the 6.18 longterm series out of the rev-pinned `nixpkgs-fast-release`
+input and trims it for this exact hardware, which is the same input the laptop's
+kernel comes from, so CI can build both from one rev. Its address is
 `192.168.1.200/24`, configured statically in `hosts/homelab/system.nix` and
 matched by MAC rather than by interface name, with a MAC-independent DHCP
 fallback so a wrong address cannot lose the box; `/mnt/personal-storage` is the
@@ -121,6 +125,36 @@ which the paragraph below sets up. The system half goes first either way: it
 installs linger, the sudo rule and the helper, and without them that host's
 daily run cannot switch it at all. Do not add a `--target-host` form back; the
 rebuild commands above say why.
+
+The homelab is tuned for what it is: a box that idles 20 hours a day and
+compiles for the rest. `apps/auto-cpufreq.nix` is the laptop's module and the
+homelab does not import it, because on the charger it pinned this APU to
+1.4 GHz under every load: one fixed ALU loop takes 7.6 s there and 5.1 s at
+2.3 GHz, and a build gets the same ratio. With it gone
+the kernel's own default (schedutil) idles at 1.4 GHz and requests 2.3 GHz when
+there is work. Turbo is not available on this board: the HP firmware leaves the
+APM boost engine off (`D18F4x15C[ApmMasterEn]=0`), and setting those bits on and
+measuring made the part *slower* under load (2.08 vs 2.3 GHz all-core, 12 °C
+cooler), because that engine is what enforces the 35 W limit; do not "fix" it
+again without a benchmark. The voltage offset in `hosts/homelab/cpu.nix` is a
+`wrmsr` on the P-state table with a boot guard: it writes `pending` before the
+write and only records the boot as good three minutes later, so a boot that
+hangs comes back at stock voltage and stays there until somebody clears
+`/var/lib/homelab-undervolt/state`. -50 mV ships; -100 mV survived a 12-round
+digest soak and -150 mV hung the box, so a change there is an experiment whose
+way out is the power button. The internal panel is off by kernel cmdline plus a
+udev `bl_power` rule (an external screen on HDMI still works for recovery), and
+`hosts/homelab/idle.nix` has the rest: audio codec power-down, fstrim off on a
+rotational disk, batched writeback, and no NixOS HTML manual.
+
+One ordering rule comes out of that: the trust for the kernel cache lives in
+`hosts/homelab/system.nix`, and the generation that would use it is the one being
+installed. So the first switch onto a CI-built kernel is done by hand with the
+kernel already local (import its closure, then `sudo /usr/local/sbin/nixos-switch.sh`),
+or by passing `--option substituters https://duskyelf.github.io/NixBTW --option
+trusted-public-keys i9-kernel-cache:...` to that first rebuild. From the second
+switch on, `/etc/nix/nix.conf` carries it. The same is true of any host added
+later.
 
 Both machines have a daily timer now, so the homelab runs its own wrapper: the
 same `deploy-system/` on that machine, with the same pinned inputs, plus its own

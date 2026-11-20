@@ -20,6 +20,14 @@
 #                                    (default: <dots>/apps/home-switch/hm-switch.sh)
 #   --wrapper-inputs "<names>"       the deploy-system inputs `nix flake update`
 #                                    moves (default: the laptop's full list)
+#   --kernel-cache <url> / --no-kernel-cache
+#                                    substituter that must already serve this
+#                                    host's kernel (or a store that already has
+#                                    it), else the system *and home* switches
+#                                    are skipped: a host whose kernel CI builds
+#                                    passes it so a cache miss costs a day
+#                                    instead of a night of compiling
+#                                    (default: off)
 #
 # The unit passes every option explicitly, so what it does not pass is not part
 # of this machine's run. The defaults above are the laptop's full run, which is
@@ -62,6 +70,7 @@ home_switch=
 # passes this host's list, so production never reads this default.
 wrapper_inputs="nixpkgs nixpkgs-unstable-small zen-browser neovimBTW wallpaper-guardian"
 marker=
+kernel_cache=
 # apps/daily-update/system.nix links this store copy for the NOPASSWD rule, and
 # lib/host.nix derives its path from powerScriptPath; the fallback is that
 # derivation with its default, kept here only so a hand run works. The helper
@@ -74,7 +83,7 @@ usage() {
   if [ "$#" -gt 0 ]; then
     echo "${0##*/}: $*" >&2
   fi
-  echo "usage: ${0##*/} [marker] [system-switch] [--t3|--no-t3] [--devshells|--no-devshells] [--collect|--no-collect] [--home-switch PATH] [--wrapper-inputs NAMES]" >&2
+  echo "usage: ${0##*/} [marker] [system-switch] [--t3|--no-t3] [--devshells|--no-devshells] [--collect|--no-collect] [--home-switch PATH] [--wrapper-inputs NAMES] [--kernel-cache URL|--no-kernel-cache]" >&2
   exit 2
 }
 
@@ -97,6 +106,12 @@ while [ "$#" -gt 0 ]; do
       shift
       wrapper_inputs=$1
       ;;
+    --kernel-cache)
+      [ "$#" -ge 2 ] || usage "--kernel-cache needs a url"
+      shift
+      kernel_cache=$1
+      ;;
+    --no-kernel-cache) kernel_cache= ;;
     --help | -h)
       usage
       ;;
@@ -238,6 +253,22 @@ switch_system() {
   sudo -n "$system_switch"
 }
 
+# Would the switch have to *build* this host's kernel? A custom kernel is not on
+# cache.nixos.org, so a host that builds one waits for the run that publishes it;
+# compiling it here would take hours of two cores and nothing else in the day
+# would happen. Either source satisfies it: the substituter, or this machine's
+# own store (a kernel built here by hand, or one a previous switch installed).
+# Exit 2 means the kernel could not even be evaluated, exit 1 that it is
+# nowhere; the caller treats both as "do not switch".
+kernel_substitutable() {
+  local out
+  out=$(nix eval --raw \
+    "$deploy#nixosConfigurations.$(hostname -s).config.boot.kernelPackages.kernel.outPath" \
+    --override-input my-dotfiles "path:$dots" 2>/dev/null) || return 2
+  nix path-info "$out" >/dev/null 2>&1 ||
+    nix path-info --store "$kernel_cache" "$out" >/dev/null 2>&1
+}
+
 # The root collection is triggered by a file, not by a clean exit. Writing it
 # from the trap keeps that true when the run is killed mid-switch: the
 # collection is idempotent inside its two-day window, so an early marker costs
@@ -266,6 +297,9 @@ status=0
 # unfinished operation, or a lock that would not settle. The update half is then
 # skipped whole, and the day still pins and collects.
 tree_ok=1
+# Set when this host's own kernel is not in its substituter yet: the switch is
+# skipped, home-manager with it, and the day still pins and collects.
+skip_switch=0
 
 # A wrapper without a flake.nix is not a wrapper: there is nothing to lock,
 # nothing to update and no switch target, so the update half is skipped instead
@@ -375,8 +409,33 @@ else
         log "T3 Code pin update failed, keeping the previous pin"
     fi
 
-    log "switching the system"
-    if switch_system; then
+    if [ -n "$kernel_cache" ]; then
+      log "checking $kernel_cache for this host's kernel"
+      if kernel_substitutable; then
+        log "kernel is substitutable"
+      else
+        rc=$?
+        if [ "$rc" -eq 2 ]; then
+          why="could not evaluate this host's kernel"
+        else
+          why="this host's kernel is not in $kernel_cache yet"
+        fi
+        log "$why, skipping the system and home switches"
+        notify -u normal "Update skipped" "$why; system and home switches skipped"
+        # Status stays nonzero so `systemctl --failed` still shows the day: a
+        # kernel CI never publishes is something to look at, even though a late
+        # one is not. The tail below still runs.
+        status=1
+        skip_switch=1
+      fi
+    fi
+
+    if [ "$skip_switch" -eq 1 ]; then
+      # The kernel check above already said why, and the wrapper lock stays
+      # uncommitted exactly as a failed switch leaves it: the next run's
+      # `nix flake update` rewrites it. The tail below still runs.
+      :
+    elif log "switching the system" && switch_system; then
       # cores = 2 keeps a post-lock-bump rebuild polite while the machine is in
       # use.
       if NIX_CONFIG="cores = 2" "$home_switch"; then

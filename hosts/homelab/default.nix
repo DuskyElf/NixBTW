@@ -9,8 +9,14 @@
     ./system.nix
     ./hardware.nix
 
+    # The three files this machine needs because of what it is: its own trimmed
+    # kernel, its CPU policy, and the idle work for this panel, codec and
+    # rotational disk.
+    ./kernel.nix
+    ./cpu.nix
+    ./idle.nix
+
     ../../apps/openssh.nix
-    ../../apps/auto-cpufreq.nix
     ../../apps/daily-update/system.nix
   ];
   home = [

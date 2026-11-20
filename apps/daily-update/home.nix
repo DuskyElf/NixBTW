@@ -33,7 +33,19 @@ let
     (flag daily.collect "collect")
     "--wrapper-inputs"
     (lib.concatStringsSep " " daily.wrapperInputs)
-  ];
+  ]
+  # A host whose kernel comes from its own CI names the substituter that has to
+  # hold it before the switch; the alternative is compiling a kernel on the
+  # machine overnight. Null is the flag that turns the check off.
+  ++ (
+    if daily.kernelCache == null then
+      [ "--no-kernel-cache" ]
+    else
+      [
+        "--kernel-cache"
+        daily.kernelCache
+      ]
+  );
 in
 {
   # One daily run. apps/daily-update/daily-update.sh pulls merged work, locks the

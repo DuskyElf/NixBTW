@@ -1,14 +1,21 @@
 # What this machine needs on top of base/core.nix: one static LAN address, the
-# LTS kernel and bootloader, and the server-side housekeeping. The fileSystems
+# bootloader, the cache its kernel comes from, and the server-side housekeeping.
+# The kernel itself is hosts/homelab/kernel.nix. The fileSystems
 # entries come from the disko module in hosts/homelab/disko.nix, so the mount
 # layout has one source. A laptop's policy (compositor, radios, tailscale) is
 # base/workstation.nix, which this host does not list; the root helper and the
 # store collection come from the daily-update app instead, which it does list.
 {
+  lib,
   pkgs,
   hostConfig,
   ...
 }:
+let
+  # The wired adapter's address. It is the key both network files below match
+  # on, so a renamed interface cannot move the configuration to another link.
+  lanMac = "08:2e:5f:7c:97:ba";
+in
 {
   # The install overwrites hosts/homelab/hardware.nix with nixos-generate-config
   # output, and that output does not set this option; it only defaults the AMD
@@ -17,12 +24,15 @@
   hardware.enableRedistributableFirmware = true;
   hardware.cpu.amd.updateMicrocode = true;
 
-  # The longterm series from the stable pin: 6.18 is the LTS the 26.05 release
-  # ships as its default kernel. Named explicitly so a default bump does not
-  # quietly move this box onto a short-lived series; when 6.18 reaches EOL,
-  # point this at the next longterm. There is no custom build here: whatever
-  # stable ships is what this machine runs.
-  boot.kernelPackages = pkgs.linuxPackages_6_18;
+  # This box builds its own kernel (hosts/homelab/kernel.nix) from the same
+  # rev-pinned nixpkgs input the laptop's comes from, and CI publishes it to
+  # the same signed cache. The key name is the signer's, not a claim about the
+  # hardware: nix matches the name and verifies the key bytes. Other hosts do
+  # not trust this cache, which is why it is appended here and not in base/.
+  nix.settings.substituters = lib.mkAfter [ "https://duskyelf.github.io/NixBTW" ];
+  nix.settings.trusted-public-keys = lib.mkAfter [
+    "i9-kernel-cache:4R0pqOZkrRj4utTbF4zP05Y58QSgShLqQ77KUPzFjwk="
+  ];
 
   # base/core.nix keeps no bootloader: each host states its own. This one boots
   # from systemd-boot on the ESP that hosts/homelab/disko.nix creates.
@@ -44,7 +54,7 @@
   networking.useDHCP = false;
   networking.useNetworkd = true;
   systemd.network.networks."20-lan" = {
-    matchConfig.MACAddress = "08:2e:5f:7c:97:ba";
+    matchConfig.MACAddress = lanMac;
     address = [ "192.168.1.200/24" ];
     routes = [ { Gateway = "192.168.1.1"; } ];
     dns = [
@@ -52,6 +62,14 @@
       "9.9.9.9"
     ];
     networkConfig.DHCP = "yes";
+  };
+
+  # Wake-on-LAN off: nothing on the LAN is allowed to wake this box, it is
+  # either reachable or it is being worked on, and the magic-packet filter is
+  # power the NIC does not have to spend.
+  systemd.network.links."10-lan" = {
+    matchConfig.MACAddress = lanMac;
+    linkConfig.WakeOnLan = "off";
   };
 
   # A second network file for the wired NIC that does not depend on the MAC, so

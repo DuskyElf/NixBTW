@@ -127,6 +127,11 @@ let
           default = [ "nixpkgs" ];
           description = "The deploy-system flake inputs `nix flake update` moves on every run. Only inputs that wrapper declares, or the update fails.";
         };
+        kernelCache = mkOption {
+          type = types.nullOr types.str;
+          default = null;
+          description = "Substituter that must already serve this host's kernel before the system switch runs. Null skips the check, which is right for a host that runs a kernel from cache.nixos.org.";
+        };
       };
 
       waylandDisplay = mkOption {

@@ -167,7 +167,7 @@ it, and the timer calling that path itself.
 
 | Thing | Where | Why |
 | --- | --- | --- |
-| kernel nixpkgs | `flake.nix` | CI builds the same kernel derivation as the laptop, so the signed cache hits |
+| kernel nixpkgs | `flake.nix` | CI builds the same kernel derivations as both machines, so the signed cache hits |
 | T3 Code stable | `pkgs/t3code/lock.nix` | upstream stable tag plus the three vendor hashes, moved by the daily timer |
 | `setup_var.efi` | `hosts/asus/system.nix` | BIOS unlock entry, by version and hash |
 | NVIDIA driver | `hosts/asus/system.nix` | must match the custom kernel, and this closure is in no public cache |
@@ -238,9 +238,13 @@ reach the switch.
 
 The two machines share the tree but not the tracks. The laptop mixes nixpkgs
 instances on purpose (unstable for niri and zen, unstable-small for the agents,
-fast-release for its tuned kernel). The homelab uses the stable nixpkgs and
-`neovimBTW` only, and the 6.18 longterm kernel, so nothing it installs needs an
-unstable instance or a locally built kernel.
+fast-release for its tuned kernel). The homelab uses the stable channel and
+`neovimBTW`, and it configures its own kernel too: `hosts/homelab/kernel.nix`
+takes the 6.18 longterm series out of the same rev-pinned `nixpkgs-fast-release`
+input, so both kernels come from one pin and CI can build both from it. Nothing
+the homelab installs needs an unstable instance; its kernel is either in the
+signed cache or already in its store, and the daily run refuses to switch
+otherwise (`dailyUpdate.kernelCache`).
 
 A pull that conflicts aborts its own rebase and the run continues on the tree it
 already has, with a notification; a pull that rewrites `daily-update.sh` itself
@@ -268,14 +272,22 @@ module can install a system generation as root on the next run, which is what a
 hand rebuild already allows minus the password. `--no-write-lock-file` keeps
 root from writing a lock file the account then cannot.
 
-The kernel moves on a different track. `.github/workflows/check-kernel-update.yml`
+The kernels move on a different track. `.github/workflows/check-kernel-update.yml`
 compares the pinned `nixpkgs-fast-release` rev with `release-26.05` and opens a
 PR when the stable kernel changes. Merging it triggers `compile-kernel.yml`,
-which publishes the kernel to the signed cache at `duskyelf.github.io/NixBTW`.
-The next daily run pulls the merge, and its system rebuild substitutes the
-cached kernel instead of compiling for two hours. Merging the PR is the only
-manual step left; the new kernel is the boot default after that switch and runs
-from the next reboot, because nothing here reboots the machine.
+which builds both machines' kernels in parallel and publishes them to one signed
+cache at `duskyelf.github.io/NixBTW`, under `kernel-<version>` for the laptop and
+`kernel-homelab-<version>` for the server. The next daily run pulls the merge and
+substitutes the cached kernel. Merging the PR is the only manual step left; the
+new kernel is the boot default after that switch and runs from the next reboot,
+because nothing here reboots the machine.
+
+The first switch on a host whose kernel CI has not published yet cannot use that
+cache, because the generation that would trust it is the one being installed. On
+the laptop that costs two hours of compile; on the homelab the daily run notices
+the kernel is neither in the cache nor in its store and skips the switch instead
+of starting a night of compiling on two cores, leaving the pull, the pins and
+the collection done.
 
 ## Checks
 

@@ -1,39 +1,58 @@
 name: "Compile Optimized Kernel"
 
-# Builds this laptop's kernel on a standard runner and serves it as a signed
-# Nix binary cache, so nixos-rebuild substitutes instead of compiling.
+# Builds the tuned kernels this repo ships on a standard runner and serves them
+# as one signed Nix binary cache, so nixos-rebuild substitutes instead of
+# compiling. Two hosts, one job each, one site:
 #
-# Two hosts, because the pieces have different size limits. A substituter must
-# serve <cache>/<storehash>.narinfo from a fixed path prefix, which only a
+#   asus     the laptop's kernel (hosts/asus/system.nix), tagged kernel-<ver>
+#   homelab  the server's kernel (hosts/homelab/kernel.nix), tagged
+#            kernel-homelab-<ver>
+#
+# The tag prefixes are asymmetric on purpose. The laptop's releases are already
+# published as kernel-<ver> with absolute asset URLs on gh-pages, and renaming
+# them would make the plan step rebuild a kernel nobody changed. A new host
+# takes a prefixed tag instead, and every tag filter below is host-scoped:
+# `^kernel-[0-9]` cannot match `kernel-homelab-6.18.64` because a version starts
+# with a digit.
+#
+# Two jobs, not one: the builds are independent (a matrix leg), but there is one
+# gh-pages branch, and two legs deploying it with keep_files: false would race
+# and the loser's site would drop the winner's narinfos. So the legs upload
+# release assets and the publish job rebuilds the whole site from every release
+# that survives. The price is that a newly built kernel only becomes
+# substitutable when both legs finish; for a daily timer that is a delay, not a
+# problem.
+#
+# Two storages, because the pieces have different size limits. A substituter
+# must serve <cache>/<storehash>.narinfo from a fixed path prefix, which only a
 # static site can do, but no git branch accepts a file over 100 MB and the nars
 # run from 64 KB to 150 MB:
 #
 #   gh-pages holds the narinfos, a few KB each. Every URL line is rewritten to
 #   an absolute release URL.
 #
-#   GitHub releases hold the nars, as assets under the tag kernel-<version>.
-#   Assets allow 2 GB per file and are free on public repos. Nix follows the
-#   redirect to the storage backend.
+#   GitHub releases hold the nars, as assets under the tag. Assets allow 2 GB
+#   per file and are free on public repos. Nix follows the redirect to the
+#   storage backend.
 #
-# The kernel's four outputs are published, out, modules, dev and configfile,
-# about 305 MB, plus the nvidia module built against that kernel. The rest of
-# the closure is the compiler toolchain that kernel-dev points at, and
+# A kernel's four outputs are published, out, modules, dev and configfile, plus
+# the laptop's nvidia module built against that kernel. The rest of the closure
+# is the compiler toolchain the kernel's dev output points at, and
 # cache.nixos.org already has all of it, so publishing it again would double the
-# download and leave unsigned narinfos in a cache this laptop trusts. The build
+# download and leave unsigned narinfos in a cache these hosts trust. The build
 # checks every reference against upstream instead, so a rev that ships one
-# upstream lacks fails here, not on the laptop.
+# upstream lacks fails here, not on a machine.
 #
 # The driver module is published because nothing upstream can ever hold it: it
 # compiles against this kernel's dev output, which exists only after this run
 # builds it, and the laptop pins a driver release newer than nixpkgs knows.
-# Leaving it out made it the one thing a kernel bump still compiled here, during
-# the switch, and the only compile that could fail after the merge. Built here,
-# a driver that no longer knows the kernel is a red run at merge time instead of
-# a failed switch. The userspace half of the driver does not move with the
-# kernel, so it stays a one-time local build.
+# Leaving it out made it the one thing a kernel bump still compiled on the
+# laptop, during the switch, and the only compile that could fail after the
+# merge. Built here, a driver that no longer knows the kernel is a red run at
+# merge time instead of a failed switch.
 #
 # A kernel is built at most once. The release carries a PACKAGED manifest,
-# uploaded last, and the plan step compares it against every path this run would
+# uploaded last, and the plan step compares it against every path this leg would
 # publish before spending two hours. So dispatching this against a published
 # kernel is a two minute no-op, which is also how to rehearse a change to this
 # file: plan, gather, deploy and verify run, nothing compiles. Adding a path to
@@ -41,36 +60,35 @@ name: "Compile Optimized Kernel"
 # the release with it, which costs a full kernel build again: the runner starts
 # with an empty store and substitutes nothing, not even from this cache.
 #
-# Retention keeps the newest KEEP_KERNELS releases. Deleting a release whose
-# kernel a generation still runs turns that rollback into a local build, so the
-# default leaves one spare; set it to 1 if you never roll back. Pruning never
-# touches the release this run published.
+# Retention keeps the newest KEEP_KERNELS releases *per host*. Deleting a
+# release whose kernel a generation still runs turns that rollback into a local
+# build, so the default leaves one spare; set it to 1 if you never roll back.
+# Pruning never touches the release the run published, and a leg only ever
+# prunes its own prefix.
 #
-# Which kernel gets built is never named here: hosts/asus/stable-kernel.nix
-# picks the newest series with a stable patch release.
+# Which kernel a host gets is decided in its own file, never named here:
+# hosts/asus/stable-kernel.nix picks the newest series with a stable patch
+# release out of the pinned toolchain, and hosts/homelab/kernel.nix names the
+# LTS series it wants.
 #
-# Two things make the artifacts identical on the runner and on this laptop, so
-# the store paths match and the cache hits: fixed -march=skylake from
-# skylake-march.patch (never X86_NATIVE_CPU, which sniffs the build host), and
-# nixpkgs-fast-release pinned by rev in flake.nix. The driver module inherits
-# both: it is a fixed-output fetch of an upstream tag compiled by the kernel's
-# own build system, and its output references nothing but itself.
+# Two things make the artifacts identical on the runner and on the machine, so
+# the store paths match and the cache hits: a fixed -march in a patch (never
+# X86_NATIVE_CPU, which sniffs the build host) and nixpkgs-fast-release pinned by
+# rev in flake.nix. The driver module inherits both: it is a fixed-output fetch
+# of an upstream tag compiled by the kernel's own build system, and its output
+# references nothing but itself.
 
 env:
   CACHE_URL: https://duskyelf.github.io/NixBTW
   RELEASE_REPO: DuskyElf/NixBTW
-  # The signer name. hosts/asus/system.nix holds the public half the laptop trusts; the
-  # name there and here must be identical, so keep them in one place each.
+  # The signer name. The hosts hold the public half they trust; the name there
+  # and here must be identical, so keep it in one place each. It says "i9"
+  # because the laptop came first: nix matches the name and verifies the key
+  # bytes, so an A10 trusting this key is not a mismatch.
   CACHE_KEY_NAME: i9-kernel-cache
-  # Kernel releases to keep. Each one is ~305 MB of kernel assets plus the
-  # driver module.
+  # Kernel releases to keep, per host. Each one is ~305 MB of kernel assets
+  # plus, on the laptop, the driver module.
   KEEP_KERNELS: 2
-  # Long enough that repeating it by hand invites a typo in one of the outputs.
-  KERNEL: .#nixosConfigurations.asus.config.boot.kernelPackages.kernel
-  # The out-of-tree driver module for that same kernel, open flavour because
-  # hosts/asus/system.nix sets hardware.nvidia.open. It has to be built after
-  # the kernel, and no upstream cache can hold it.
-  NVIDIA: .#nixosConfigurations.asus.config.hardware.nvidia.package.open
 
 on:
   workflow_dispatch:
@@ -78,26 +96,58 @@ on:
     branches: [main]
     paths:
       - "flake.nix"
-      # The selector: editing it changes which kernel is built, so it has to
-      # trigger a rebuild or the laptop compiles the new one locally.
+      # The selectors: editing either host's kernel changes what is built, so
+      # it has to trigger a rebuild or that machine compiles the new one
+      # locally.
       - "hosts/asus/**"
+      - "hosts/homelab/**"
       - "lib/**"
       - "base/core.nix"
       - "base/workstation.nix"
+      - ".github/kernel-asserts/**"
       - ".github/workflows/compile-kernel.yml"
 
 permissions:
   contents: write
 
-# One kernel at a time: a newer run cancels a superseded one, so two quick
-# commits only ever build the newer kernel.
-concurrency:
-  group: compile-kernel
-  cancel-in-progress: true
+# Concurrency lives on the job, not the workflow: a group per host means two
+# quick commits only ever build the newer kernel of *that* host, and a homelab
+# push cannot cancel an asus build an hour in (a workflow-level group would).
+# The publish job gets its own group because there is one gh-pages branch.
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    concurrency:
+      group: compile-kernel-${{ matrix.host }}
+      cancel-in-progress: true
+    strategy:
+      # One host's kernel failing to build must not cancel the other's.
+      fail-fast: false
+      matrix:
+        include:
+          - host: asus
+            # The flake output stays the laptop's selector; nothing else reads
+            # it.
+            version: .#kernelVersion
+            tag_prefix: kernel-
+            tag_re: ^kernel-[0-9]
+            nvidia: .#nixosConfigurations.asus.config.hardware.nvidia.package.open
+            asserts: .github/kernel-asserts/asus.txt
+          - host: homelab
+            # No selector output: the LTS series is named in the host file, so
+            # the version is asked of the kernel the flake evaluates.
+            version: .#nixosConfigurations.homelab.config.boot.kernelPackages.kernel.version
+            tag_prefix: kernel-homelab-
+            tag_re: ^kernel-homelab-
+            nvidia: ""
+            asserts: .github/kernel-asserts/homelab.txt
+    env:
+      KERNEL: .#nixosConfigurations.${{ matrix.host }}.config.boot.kernelPackages.kernel
+      NVIDIA: ${{ matrix.nvidia }}
+      TAG_PREFIX: ${{ matrix.tag_prefix }}
+      TAG_RE: ${{ matrix.tag_re }}
+      VERSION_EXPR: ${{ matrix.version }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -116,17 +166,18 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          VER=$(nix eval --raw .#kernelVersion)
-          TAG="kernel-$VER"
+          VER=$(nix eval --raw "$VERSION_EXPR")
+          TAG="$TAG_PREFIX$VER"
 
           # Paths come from the derivation, which costs seconds. Building them
-          # costs hours. These are the only paths this workflow must publish;
-          # the rest of the closure comes along because a cache cannot be
-          # partial, but nothing else ever asks the laptop to trust it.
-          {
-            nix eval --json --apply 'k: [ k.out k.modules k.dev k.configfile ]' "$KERNEL"
-            nix eval --json --apply 'n: [ n ]' "$NVIDIA"
-          } | jq -r '.[]' > ./published-paths
+          # costs hours. These are the only paths this leg must publish; the
+          # rest of the closure comes along because a cache cannot be partial,
+          # but nothing else ever asks a machine to trust it.
+          nix eval --json --apply 'k: [ k.out k.modules k.dev k.configfile ]' "$KERNEL" \
+            | jq -r '.[]' > ./published-paths
+          if [ -n "$NVIDIA" ]; then
+            nix eval --json --apply 'n: [ n ]' "$NVIDIA" | jq -r '.[]' >> ./published-paths
+          fi
 
           # PACKAGED is uploaded last, so its presence means every nar and
           # narinfo in the release made it, and its content is the path list it
@@ -147,13 +198,25 @@ jobs:
             fi
           fi
 
-          echo "kernel $VER, release $TAG, need_build=$need_build"
+          echo "kernel $VER, host ${{ matrix.host }}, release $TAG, need_build=$need_build"
           cat ./published-paths
           {
             echo "version=$VER"
             echo "tag=$TAG"
             echo "need_build=$need_build"
           } >> "$GITHUB_OUTPUT"
+
+      # Runs whether or not anything needs building: a symbol renamed upstream
+      # is exactly what this catches, and it must not wait for the next bump. A
+      # published kernel makes this a cached, seconds-long step.
+      - name: Check The Kernel Config
+        run: |
+          set -euo pipefail
+          # The generator, the NATIVE_CPU guard and the per-host assertion list
+          # live in .github/check-kernel-config.sh so the daily pin check can
+          # run the same thing before it opens a PR.
+          nix build "$KERNEL.configfile" --out-link ./result-config
+          ./.github/check-kernel-config.sh ./result-config "${{ matrix.asserts }}"
 
       - name: Build And Upload Nars
         if: steps.plan.outputs.need_build == 'true'
@@ -168,43 +231,11 @@ jobs:
           # Store path hash alone: /nix/store/<hash>-<name> gives <hash>.
           hash_of() { local h=${1#/nix/store/}; printf '%s' "${h%%-*}"; }
 
-          # Fail fast: keep NATIVE_CPU out of .config before spending ~2h. The
-          # skylake tuning itself lives in skylake-march.patch, so a bad patch
-          # fails the build in seconds.
-          nix build "$KERNEL.configfile" --out-link ./result-config
-          if grep -q '^CONFIG_X86_NATIVE_CPU=y' ./result-config; then
-            echo "X86_NATIVE_CPU leaked into kernel .config" >&2
-            exit 1
+          targets=("$KERNEL^out" "$KERNEL^modules" "$KERNEL^dev")
+          if [ -n "$NVIDIA" ]; then
+            targets+=("$NVIDIA^out")
           fi
-
-          # ignoreConfigErrors = true silences both of generate-config.pl's
-          # failure channels: a symbol that no longer exists (renamed or
-          # dropped upstream) and one whose value was rewritten by a `select` or
-          # an unmet dependency. Neither prints anything. So the tuned settings
-          # are asserted against the generated .config here, before the build,
-          # and a bump that quietly reverts one fails in seconds instead of
-          # two hours. Each line is the literal text the file must contain.
-          while IFS= read -r expected; do
-            [ -n "$expected" ] || continue
-            if ! grep -qxF "$expected" ./result-config; then
-              echo "kernel .config lost a tuned setting: $expected" >&2
-              exit 1
-            fi
-          done <<'EOF'
-          CONFIG_NR_CPUS=32
-          CONFIG_NET_SCH_FQ=y
-          CONFIG_DEFAULT_BBR=y
-          # CONFIG_CPU_IDLE_GOV_MENU is not set
-          # CONFIG_SND_SOC is not set
-          # CONFIG_MEMORY_HOTPLUG is not set
-          # CONFIG_DRM_AMDGPU is not set
-          CONFIG_MEDIA_SUPPORT=m
-          CONFIG_USB_VIDEO_CLASS=m
-          CONFIG_DRM_I915=m
-          CONFIG_ASUS_NB_WMI=m
-          EOF
-          nix build --no-link --print-out-paths \
-            "$KERNEL^out" "$KERNEL^modules" "$KERNEL^dev" "$NVIDIA^out" > /dev/null
+          nix build --no-link --print-out-paths "${targets[@]}" > /dev/null
           for p in "${PATHS[@]}"; do
             [ -e "$p" ] || { echo "planned path $p is missing after the build" >&2; exit 1; }
           done
@@ -221,7 +252,7 @@ jobs:
           # Everything these outputs need but this run does not publish has to
           # come from somewhere else. cache.nixos.org has the whole toolchain
           # today; check the full closure here so a rev that changes that breaks
-          # the build instead of leaving the laptop unable to substitute.
+          # the build instead of leaving a machine unable to substitute.
           { for p in "${PATHS[@]}"; do nix-store -q --requisites "$p"; done; } \
             | sort -u | grep -vxF -f ./published-paths > ./upstream-refs || true
           while read -r ref; do
@@ -275,7 +306,8 @@ jobs:
 
       # Keeps the release storage bounded. Anything this deletes stops being
       # substitutable, so a generation still on that kernel falls back to
-      # building it locally.
+      # building it locally. TAG_RE is what keeps this leg from counting the
+      # other host's releases against its own budget and deleting one.
       - name: Prune Old Kernel Releases
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -283,7 +315,7 @@ jobs:
         run: |
           set -euo pipefail
           gh release list --repo "$RELEASE_REPO" --limit 100 --json tagName \
-            -q '.[] | select(.tagName | startswith("kernel-")) | .tagName' \
+            -q '.[] | select(.tagName | test(env.TAG_RE)) | .tagName' \
             | sort -Vr | tail -n "+$((KEEP_KERNELS + 1))" > ./prune-list
           while read -r old; do
             [ -n "$old" ] || continue
@@ -294,18 +326,29 @@ jobs:
             gh release delete "$old" --repo "$RELEASE_REPO" --yes --cleanup-tag
           done < ./prune-list
           echo "kept: $(gh release list --repo "$RELEASE_REPO" --limit 100 --json tagName \
-            -q '[.[] | select(.tagName | startswith("kernel-")) | .tagName] | join(" ")')"
+            -q '[.[] | select(.tagName | test(env.TAG_RE)) | .tagName] | join(" ")')"
 
+  # One deploy, because gh-pages is one branch and keep_files: false replaces
+  # the whole site. Runs even when a leg failed: a release that finished
+  # uploading must still become servable, or that host's next switch compiles.
+  publish:
+    needs: build
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    concurrency:
+      group: compile-kernel-publish
+      cancel-in-progress: false
+    steps:
       # gh-pages is rebuilt from the surviving releases every run rather than
       # appended to, so a narinfo can never outlive the nar it points at. Each
       # release is read through its PACKAGED manifest rather than its asset
-      # list, so only the paths that release actually publishes are served.
+      # list, so only the paths that release actually publishes are served, and
+      # the two prefixes share the site because both start with "kernel-".
       - name: Gather Narinfos From Every Kernel Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          rm -rf ./narinfos ./staging
           mkdir -p ./narinfos
           gh release list --repo "$RELEASE_REPO" --limit 100 --json tagName \
             -q '.[] | select(.tagName | startswith("kernel-")) | .tagName' \
@@ -313,10 +356,15 @@ jobs:
           while read -r tag; do
             [ -n "$tag" ] || continue
             rm -rf ./staging && mkdir -p ./staging
-            gh release download "$tag" --repo "$RELEASE_REPO" \
-              --pattern PACKAGED --pattern '*.narinfo' --dir ./staging --clobber
-            [ -s ./staging/PACKAGED ] \
-              || { echo "release $tag has no PACKAGED manifest" >&2; exit 1; }
+            # PACKAGED is uploaded last, so a release without it died
+            # mid-upload and publishes nothing: skip it and keep serving the
+            # other host instead of failing the whole deploy.
+            if ! gh release download "$tag" --repo "$RELEASE_REPO" \
+                 --pattern PACKAGED --pattern '*.narinfo' --dir ./staging --clobber \
+                 || [ ! -s ./staging/PACKAGED ]; then
+              echo "release $tag is incomplete (no PACKAGED), skipping" >&2
+              continue
+            fi
             while read -r p; do
               [ -n "$p" ] || continue
               h=${p#/nix/store/}
@@ -330,7 +378,7 @@ jobs:
           # wipes it every deploy, so it is written here rather than uploaded
           # once. Priority 50 sits below cache.nixos.org (40) on purpose: for
           # any path an upstream cache also has, upstream wins, so only what
-          # nobody else serves (our kernel) comes from us.
+          # nobody else serves (these kernels) comes from us.
           printf 'StoreDir: /nix/store\nWantMassQuery: 1\nPriority: 50\n' > ./narinfos/nix-cache-info
           echo "$COUNT narinfos from $(wc -l < ./kept-releases) release(s)"
 
@@ -346,10 +394,11 @@ jobs:
           # whose nar is gone makes nix error instead of falling back.
           keep_files: false
 
-      # Proves the laptop's substituter can actually use the cache: the narinfo
-      # is served, describes the path we published, carries our signature, and
-      # the nar it points at is downloadable with the size the narinfo promises.
-      # The size check is a HEAD, so a 158 MB nar costs nothing to verify.
+      # Proves a host's substituter can actually use the cache: every narinfo
+      # the site serves describes a path, carries our signature, and points at a
+      # nar that is downloadable with the size the narinfo promises. The sizes
+      # are HEADs, so a 158 MB nar costs nothing to verify. The subject is the
+      # whole site, not this run's paths: no single build leg knows the union.
       - name: Verify The Cache Serves Every Path
         run: |
           set -uo pipefail
@@ -389,7 +438,7 @@ jobs:
             sleep 10
           done
 
-          mapfile -t PATHS < ./published-paths
+          mapfile -t PATHS < <(sed -n 's/^StorePath: //p' ./narinfos/*.narinfo | sort -u)
           for p in "${PATHS[@]}"; do
             h=${p#/nix/store/}
             h=${h%%-*}

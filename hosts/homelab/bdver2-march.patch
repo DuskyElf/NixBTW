@@ -1,0 +1,16 @@
+--- a/arch/x86/Makefile
++++ b/arch/x86/Makefile
+@@ -175,7 +175,12 @@
+         # generate_rust_target.rs handles Rust APX gating.
+         KBUILD_RUSTFLAGS += -Ctarget-cpu=native
+ else
+-        KBUILD_CFLAGS += -march=x86-64 -mtune=generic
++        # Tuned for the A10-4600M this kernel runs on (Trinity == bdver2):
++        # the integer BMI instructions and the scheduling model that goes
++        # with them. A fixed -march is deterministic on any build host,
++        # unlike CONFIG_X86_NATIVE_CPU which sniffs the builder's CPU and
++        # would poison the CI-built store path. Do not re-enable NATIVE_CPU.
++        KBUILD_CFLAGS += -march=bdver2 -mtune=bdver2
+         KBUILD_RUSTFLAGS += -Ctarget-cpu=x86-64 -Ztune-cpu=generic
+ endif
+ 

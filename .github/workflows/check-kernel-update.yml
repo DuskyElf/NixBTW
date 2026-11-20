@@ -91,6 +91,22 @@ jobs:
             echo "old_version=$PINNED_VER"
           } >> "$GITHUB_OUTPUT"
 
+      # The PR is the manual gate, so the gate should arrive green: a rev that
+      # renames a symbol a host's trim sets must fail here, not on main after
+      # the merge with the homelab sitting on its old generation.
+      - name: Check Both Kernels Against The Candidate
+        if: steps.check.outputs.new_version != ''
+        env:
+          NEW_REV: ${{ steps.check.outputs.new_rev }}
+        run: |
+          set -euo pipefail
+          for host in asus homelab; do
+            nix build --out-link "./result-$host" \
+              ".#nixosConfigurations.$host.config.boot.kernelPackages.kernel.configfile" \
+              --override-input nixpkgs-fast-release "github:NixOS/nixpkgs/$NEW_REV"
+            ./.github/check-kernel-config.sh "./result-$host" ".github/kernel-asserts/$host.txt"
+          done
+
       - name: Stage Toolchain Bump PR
         if: steps.check.outputs.new_version != ''
         env:
@@ -119,10 +135,12 @@ jobs:
           TITLE="chore(kernel): build linux ${NEW_VER}"
           BODY="${CHANNEL} moved the stable kernel ${OLD_VER} -> ${NEW_VER}.
 
-          Merging this PR triggers the compile-kernel build; once CI deploys
-          the binary to gh-pages, the next daily run's system switch picks it
-          up (cache hit, no 2h compile). Nothing reboots, so boot it when you
-          next reboot."
+          Merging this PR triggers the compile-kernel build for both machines;
+          once CI deploys the binaries to gh-pages, the next daily run's system
+          switch substitutes them (cache hit, no 2h compile). A host whose
+          kernel is not published yet skips its switch instead of building, so
+          a failed run costs a day, not a night. Nothing reboots, so boot it
+          when you next reboot."
           # Only an OPEN PR may be edited. gh resolves a head branch whatever its
           # state, so the merged PR from an earlier bump still answers to
           # kernel-bump; editing it renames a dead PR and leaves this bump with

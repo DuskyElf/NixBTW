@@ -51,5 +51,10 @@
       "neovimBTW"
       "wallpaper-guardian"
     ];
+    # This box runs a kernel CI builds (hosts/homelab/kernel.nix), and a
+    # kernel that has not been published yet is hours of compile on two
+    # cores. The daily run checks this cache first and skips the switch
+    # instead, so a failed or late CI run costs a day, not a night.
+    kernelCache = "https://duskyelf.github.io/NixBTW";
   };
 }
