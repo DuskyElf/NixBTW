@@ -78,7 +78,6 @@
     let
       lib = inputs.nixpkgs.lib;
       dotfiles = import ./lib { inherit inputs; };
-      apps = import ./apps;
 
       # Every directory under hosts/ is one machine, so a new host is a
       # hosts/<name>/ directory and nothing else. readDir skips the files there
@@ -94,7 +93,6 @@
         name:
         dotfiles.mkHost {
           host = import (./hosts + "/${name}");
-          inherit apps;
         }
       ) hostNames;
     in

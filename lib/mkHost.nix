@@ -1,5 +1,5 @@
 # Builds one machine: the common base, that host's own modules, and the app
-# modules the host names. This is the only place that knows how a NixOS
+# modules the host imports. This is the only place that knows how a NixOS
 # configuration and its home-manager counterpart are assembled, so flake.nix
 # only declares outputs.
 #
@@ -7,9 +7,12 @@
 # hosts/<name>/config.nix (schema in lib/host.nix). The identity is evaluated
 # once here and reaches every module, base/ and apps/ alike, as `hostConfig`.
 #
-# Apps are names into the registry in apps/default.nix, not module paths, so a
-# host says what it wants and this file decides which configuration each part
-# belongs to.
+# A host imports each app module into the half it rebuilds. The list an import
+# sits in is what puts it in the system configuration or the home one, and a
+# split app names its halves `home.nix` and `system.nix`, so the import has to
+# sit in the matching list. checkHalf fails eval on the one mistake that would
+# otherwise apply quietly: an import that works in either configuration, like
+# the daily update's timer, landing in the wrong one.
 {
   inputs,
   pkgs,
@@ -18,7 +21,6 @@
 }:
 {
   host,
-  apps,
   ...
 }:
 assert host ? config && host ? system && host ? home;
@@ -30,21 +32,47 @@ let
     backlight = hostConfig.hardware.backlight;
   };
 
-  # Names a host lists are checked against the registry. A typo, or a name
-  # listed on the side the app does not fill, is a mistake in the host file;
-  # failing eval names the host and the app instead of quietly dropping it.
-  # `host.apps` may be absent entirely, which is a host with no apps.
-  select =
-    kind: names:
-    builtins.concatMap (
-      name:
+  # The half an app import declares, from its own name: `apps/x/home.nix` is a
+  # home module and `apps/x/system.nix` is a system one. Anything else, an app
+  # with a single file or a file outside apps/, declares nothing and passes.
+  appsDir = "${toString ../apps}/";
+  repoDir = "${toString ../.}/";
+
+  halfOf =
+    module:
+    let
+      path = if builtins.isPath module then toString module else "";
+    in
+    if lib.hasPrefix appsDir path then
+      if lib.hasSuffix "/home.nix" path then
+        "home"
+      else if lib.hasSuffix "/system.nix" path then
+        "system"
+      else
+        null
+    else
+      null;
+
+  checkHalf =
+    kind: modules:
+    builtins.map (
+      module:
       let
-        app =
-          apps.${name}
-            or (throw "${hostConfig.hostName}: unknown app \"${name}\"; add it to apps/default.nix");
+        half = halfOf module;
       in
-      app.${kind} or (throw "${hostConfig.hostName}: app \"${name}\" has no ${kind} modules")
-    ) names;
+      if half == null || half == kind then
+        module
+      else
+        throw "${hostConfig.hostName}: ${lib.removePrefix repoDir (toString module)} is a ${half} module, imported into the ${kind} list"
+    ) modules;
+
+  # Nothing reads `host.apps` any more, so a host file still carrying the old
+  # block would evaluate clean and install nothing. Say so instead.
+  host' =
+    if host ? apps then
+      throw "${hostConfig.hostName}: host.apps is gone; import each app module into the system or home list"
+    else
+      host;
 in
 {
   # flake.nix names its outputs from these.
@@ -69,8 +97,7 @@ in
       { nixpkgs.hostPlatform = pkgs.system; }
       ../base/core.nix
     ]
-    ++ host.system
-    ++ select "system" (host.apps.system or [ ])
+    ++ checkHalf "system" host'.system
     # The installer layout lives in the host file because only an install reads
     # it; a host without one is already installed and must not carry a module
     # that would want to format something.
@@ -85,8 +112,7 @@ in
     modules = [
       ../base/home.nix
     ]
-    ++ host.home
-    ++ select "home" (host.apps.home or [ ]);
+    ++ checkHalf "home" host'.home;
     extraSpecialArgs = {
       inherit
         inputs

@@ -8,24 +8,21 @@
   system = [
     ./system.nix
     ./hardware.nix
-  ];
-  home = [ ./home.nix ];
 
-  apps = {
-    system = [
-      "openssh"
-      "auto-cpufreq"
-      "daily-update"
-    ];
-    home = [
-      "sh"
-      "bash"
-      "home-switch"
-      "daily-update"
-      "nvim"
-      "languages"
-    ];
-  };
+    ../../apps/openssh.nix
+    ../../apps/auto-cpufreq.nix
+    ../../apps/daily-update/system.nix
+  ];
+  home = [
+    ./home.nix
+
+    ../../apps/sh.nix
+    ../../apps/bash.nix
+    ../../apps/home-switch.nix
+    ../../apps/daily-update/home.nix
+    ../../apps/nvim.nix
+    ../../apps/languages.nix
+  ];
 
   # Only the installer reads this; it is what nixos-anywhere formats with.
   disko = ./disko.nix;

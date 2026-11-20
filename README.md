@@ -20,7 +20,7 @@ closure comes from that wrapper.
 | `flake.nix` | Inputs and outputs. Nothing computes here; the machine list comes from `hosts/`. |
 | `lib/` | nixpkgs instances, the jail wrapper, the kernel selection, `mkHost`, and `lib/deploy/` with the wrapper bootstrap |
 | `base/` | Machine-wide config, split by machine type: `base/core.nix` for every host, `base/workstation.nix` for a desktop, `base/home.nix` plus `base/home-workstation.nix` on the home side. The bootloader is per host. |
-| `apps/` | One app's config per file, with split apps in their own subdirectory. `apps/default.nix` is a registry of app names, each mapping to its home and system modules; an app's own assets live beside it. The shells (`sh`, `zsh`, `bash`), the home switch, the power helper, and the daily update are apps, so a host opts into each. |
+| `apps/` | One app's config per file, with split apps in their own subdirectory. There is no registry: a host imports the app module it wants, and a split app gets one import per half. An app's own assets live beside it. The shells (`sh`, `zsh`, `bash`), the home switch, the power helper, and the daily update are apps, so a host opts into each. |
 | `pkgs/` | Packages this repo builds itself, such as the T3 Code stable pin and its update script |
 | `hosts/asus/` | This laptop: `config.nix` holds its identity and hardware values, `system.nix` the firmware, kernel, nvidia, and screenpad work |
 | `hosts/homelab/` | The headless LAN box: its own config, disk layout, and the `hardware.nix` generated on the box |
@@ -30,15 +30,16 @@ Nothing app-specific sits at the top level any more: a script or asset lives in
 the directory of the app whose `.nix` uses it, and `lib/deploy/` holds the
 wrapper bootstrap because it is plumbing rather than an app.
 
-A file in `apps/` sets config for one app, except `apps/default.nix` itself and
-the helpers a module imports, such as `apps/niri/notify.nix`. Machine policy
+A file in `apps/` is a module that sets config for one app, apart from the
+helpers a module imports, such as `apps/niri/notify.nix`. Machine policy
 (network, radios, the console keymap) and a bare `programs.<app>.enable` stay in
 `base/core.nix` and `base/workstation.nix`; the root helpers and their sudo
 rules moved out with the apps that need them (`apps/power.nix` and
 `apps/daily-update/system.nix`), and `programs.niri.enable` stays in
 `apps/niri/system.nix` because the compositor's config lives beside it. The list
-a host puts an app name in decides which rebuild applies, so the filename does
-not have to say it.
+a host imports an app module into decides which rebuild applies; a split app
+names its halves `home.nix` and `system.nix`, and the import must sit in the
+matching list.
 
 ### Host identity
 
@@ -142,8 +143,8 @@ What needs which rebuild:
 
 | Changed | Apply with |
 | --- | --- |
-| `base/home.nix`, `base/home-workstation.nix`, an app's home modules in `apps/default.nix` | `hm-switch.sh` |
-| `base/core.nix`, `base/workstation.nix`, an app's system modules in `apps/default.nix`, `hosts/` | `sudo /usr/local/sbin/nixos-switch.sh` |
+| `base/home.nix`, `base/home-workstation.nix`, the home imports in a host's `default.nix` | `hm-switch.sh` |
+| `base/core.nix`, `base/workstation.nix`, the system imports in a host's `default.nix`, `hosts/` | `sudo /usr/local/sbin/nixos-switch.sh` |
 | `apps/niri/system.nix` | `sudo /usr/local/sbin/nixos-switch.sh`; the rest of `apps/niri/` is a home module |
 | `flake.nix`, `lib/` | both, the wiring reaches both configurations |
 | `apps/wallpaper/wallpaper-guardian/` | `hm-switch.sh`; a submodule bump also needs `nix flake update wallpaper-guardian` in `deploy-system/` |

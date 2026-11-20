@@ -1,6 +1,7 @@
 # The system half of the daily update: the root helper the user timer calls and
 # the root store collection it asks for with a marker file. A host opts in by
-# listing the `daily-update` app; lib/host.nix `dailyUpdate` shapes the run.
+# importing this module and apps/daily-update/home.nix; lib/host.nix
+# `dailyUpdate` shapes the run.
 #
 # The user half is apps/daily-update/home.nix; the run itself is
 # apps/daily-update/daily-update.sh.

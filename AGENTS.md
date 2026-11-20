@@ -13,10 +13,10 @@ The layout is the first thing to read:
 * `flake.nix` declares inputs and outputs, nothing else. The `disko` input is used only by a host that carries a `disko.nix`. The machine list is discovered: every directory under `hosts/` becomes a host, so a new machine is a directory, never a flake edit.
 * `lib/` is the plumbing: nixpkgs instances, the jail wrapper, the kernel call, `mkHost`, and `lib/deploy/` (the wrapper bootstrap script and the public recipe it renders).
 * `base/` is machine-wide config, split by machine type. `base/core.nix` is what every host gets: the account, hostname, firewall, time zone, locale, nix daemon settings, and the six core packages. `base/workstation.nix` is the desktop policy (NetworkManager, tailscale, bluetooth, battery) and a host opts into it by listing the file. On the home side `base/home.nix` is the minimum every host gets and `base/home-workstation.nix` adds stylix, the dark-mode portal key, and the flake modules only a desktop needs. The bootloader is not in `base/`: it is hardware, so each host's `system.nix` sets it.
-* `apps/` is one app's config per file, with split apps in their own subdirectory. An app's own files sit in that subdirectory beside its `.nix`: `apps/quickshell/` is the QML and the scripts it calls, `apps/nvim/neovimBTW/` and `apps/opencode/opencodeBTW/` are submodules, `apps/wallpaper/wallpaper-guardian/` is the Guardian submodule. `apps/default.nix` is a registry keyed by app name, each name mapping to the `home` and `system` modules it contributes; a host lists names, so the filename says nothing about which rebuild applies. The shells are separate apps (`sh` for aliases and small tools, `zsh` and `bash` for one shell's own config), and so are the home-switch link (`home-switch`), the root power helper (`power`), and the daily update (`daily-update`, home and system halves).
+* `apps/` is one app's config per file, with split apps in their own subdirectory. An app's own files sit in that subdirectory beside its `.nix`: `apps/quickshell/` is the QML and the scripts it calls, `apps/nvim/neovimBTW/` and `apps/opencode/opencodeBTW/` are submodules, `apps/wallpaper/wallpaper-guardian/` is the Guardian submodule. There is no registry: a host imports the app module it wants, one import per half for a split app, and the list the import sits in decides which rebuild applies, so a split app's `home.nix` belongs in the home list and its `system.nix` in the system list. The shells are separate apps (`sh` for aliases and small tools, `zsh` and `bash` for one shell's own config), and so are the home-switch link (`home-switch`), the root power helper (`power`), and the daily update (`daily-update`, home and system halves).
 * `pkgs/` is packages this repo builds itself. `pkgs/t3code/` is the T3 Code stable pin, and `pkgs/t3code/update.sh` is the script the daily timer runs to move it.
 * Default apps are declared, never set at runtime. `base/home.nix` enables home-manager's `xdg.mimeApps`, so `~/.config/mimeapps.list` is a read-only store link that each switch rewrites: a program that calls `xdg-mime default` for its own scheme fails silently, so the association never applies. Declare the scheme in that app's module under `apps/` instead. Browser and file defaults are stated there too because `mimeinfo.cache` sorts `chromium-browser.desktop` before `zen-beta.desktop`, which would otherwise make chromium the browser.
-* `hosts/<name>/` is one machine. `config.nix` holds its identity and hardware as data (user, home, hostname, time zone, state versions, panels, battery, GPU, and the `dailyUpdate` group that says which steps of the daily run it takes and how), `default.nix` lists the base modules and the app names that machine opts into, `system.nix` holds the driver, kernel, bootloader, and kernel work, `disk.nix` holds the disk device and filesystem labels that `disko.nix` reads, `disko.nix` is the installer layout, and `lib/mkHost.nix` adds the disko module only when that key is set. A host that is already installed leaves the key out and keeps its `disko.nix` only for a reinstall; asus is that case. `lib/host.nix` is the schema and `lib/mkHost.nix` evaluates it once, passing it to `base/` and `apps/` as `hostConfig`. Never hardcode a username, connector name, or device path in `base/` or `apps/`; add an option to the schema instead.
+* `hosts/<name>/` is one machine. `config.nix` holds its identity and hardware as data (user, home, hostname, time zone, state versions, panels, battery, GPU, and the `dailyUpdate` group that says which steps of the daily run it takes and how), `default.nix` imports the base modules and the app modules that machine opts into, one import per half for a split app, `system.nix` holds the driver, kernel, bootloader, and kernel work, `disk.nix` holds the disk device and filesystem labels that `disko.nix` reads, `disko.nix` is the installer layout, and `lib/mkHost.nix` adds the disko module only when that key is set. A host that is already installed leaves the key out and keeps its `disko.nix` only for a reinstall; asus is that case. `lib/host.nix` is the schema and `lib/mkHost.nix` evaluates it once, passing it to `base/` and `apps/` as `hostConfig`. Never hardcode a username, connector name, or device path in `base/` or `apps/`; add an option to the schema instead.
 
 Subrepos own their domains. Read their docs when you work inside them and do not duplicate them here:
 * `apps/nvim/neovimBTW/`
@@ -29,14 +29,14 @@ This repo is NOT the deploy flake. `deploy-system/` is a private wrapper flake p
 
 All rebuilds go through the wrapper with the live-tree override so uncommitted edits apply immediately:
 
-* System (`base/core.nix`, `base/workstation.nix`, the system side of a host's app list in `apps/default.nix`, `hosts/`): `sudo /usr/local/sbin/nixos-switch.sh`. That is the command the daily timer runs (the wrapper, the live-tree override, the host's `--cores`), it needs no password, and it takes `/run/nixos-switch.lock`. Without the lock a hand run and the timer's run both reach switch-to-configuration through the same transient unit name, the loser dies there after the activation already happened, and its caller reports a switch that did happen as failed. A host that has no helper yet uses the explicit form: `sudo nixos-rebuild switch --flake /home/duskyelf/dotfiles/deploy-system --override-input my-dotfiles path:/home/duskyelf/dotfiles --cores 16`. A `--target-host` run starts that transient unit on the target and cannot take the target's lock, so it collides with that host's own daily run all the same: ssh in and run the helper there, or stop its timer for the redeploy.
-* Home (`base/home.nix`, `base/home-workstation.nix`, the home side of a host's app list in `apps/default.nix`): `~/.config/scripts/hm-switch.sh`
+* System (`base/core.nix`, `base/workstation.nix`, the system imports in a host's `default.nix`, `hosts/`): `sudo /usr/local/sbin/nixos-switch.sh`. That is the command the daily timer runs (the wrapper, the live-tree override, the host's `--cores`), it needs no password, and it takes `/run/nixos-switch.lock`. Without the lock a hand run and the timer's run both reach switch-to-configuration through the same transient unit name, the loser dies there after the activation already happened, and its caller reports a switch that did happen as failed. A host that has no helper yet uses the explicit form, run on that host: `sudo nixos-rebuild switch --flake <wrapper>#<host> --override-input my-dotfiles path:<checkout> --cores <cores>`, which the homelab redeploy below fills in. A `--target-host` run starts the transient unit on the target without taking its lock, so the redeploy races that host's own daily run, and the loser reports a switch that happened as failed.
+* Home (`base/home.nix`, `base/home-workstation.nix`, the home imports in a host's `default.nix`): `~/.config/scripts/hm-switch.sh`
 
 `hm-switch.sh` is the home switch. Evaluation is ~20s of single-core work and is the floor for any content change, so the script keys the generation derivation by the content of the tree, reuses it, and skips activation when that generation is already active: an unchanged tree returns in about a second. `--force` re-activates. It passes `path:`, so untracked files count. Its state is `~/.local/state/hm-switch` (`drv-cache`, `activated`, `generation`, `lock`), which is where to look when a change seems not to apply, or when a switch waits up to 10 min on another one holding the lock. `home-manager switch --rollback` followed by a switch re-activates the tree's generation, undoing the rollback. Rolling back across the `~/.config/scripts` change needs `rm -rf ~/.config/scripts` first, because a pre-move generation wants that path as a directory link and cannot replace the file link this tree creates. The longer `home-manager switch --flake ...deploy-system --override-input my-dotfiles path:...` still works; the script wraps only the switch, so that is the command for `home-manager news`, `rollback` and `generations` (the last two never evaluate the flake). The CLI evaluates the configuration twice, its news feed being a second evaluation, and prints the news count and the overridden-lock notice that the script drops.
 
 Everything on both machines is handled by systemd timers pretty much.
 
-A daily user timer (`daily-update`, fires from 08:30 with up to 30 minutes of jitter, see `apps/daily-update/home.nix`, so a host that lists that app has it) runs `apps/daily-update/daily-update.sh`: it pulls `origin/main` with `git pull --rebase --autostash`, syncs the submodules, locks this checkout's ignored `flake.lock`, runs `nix flake update` on the wrapper inputs that host lists, moves the T3 Code pin through `pkgs/t3code/update.sh`, rebuilds the system through `/usr/local/sbin/nixos-switch.sh`, runs `apps/home-switch/hm-switch.sh`, commits the wrapper lock, pins the devshells, and collects the user store. Which of those steps run is host data, not a branch in the script: `lib/host.nix` `dailyUpdate` sets `t3`, `devshells`, `collect`, `graphicalSession`, `linger`, `cores`, and `wrapperInputs`, and the home module passes each as a flag. The laptop takes all of them (three inputs float from the network; `neovimBTW` and `wallpaper-guardian` are re-locked from their checkouts, which is what carries a merged submodule bump into the switch); the homelab takes the collection only, updates `nixpkgs neovimBTW wallpaper-guardian`, and lingers so its timer runs without a login. The system switch comes first: a change that spans both halves needs the new store copy installed before home activation calls into it, and a failed system switch skips the home switch rather than leaving a half-applied pair.
+A daily user timer (`daily-update`, fires from 08:30 with up to 30 minutes of jitter, see `apps/daily-update/home.nix`, so a host that imports that module has it) runs `apps/daily-update/daily-update.sh`: it pulls `origin/main` with `git pull --rebase --autostash`, syncs the submodules, locks this checkout's ignored `flake.lock`, runs `nix flake update` on the wrapper inputs that host lists, moves the T3 Code pin through `pkgs/t3code/update.sh`, rebuilds the system through `/usr/local/sbin/nixos-switch.sh`, runs `apps/home-switch/hm-switch.sh`, commits the wrapper lock, pins the devshells, and collects the user store. Which of those steps run is host data, not a branch in the script: `lib/host.nix` `dailyUpdate` sets `t3`, `devshells`, `collect`, `graphicalSession`, `linger`, `cores`, and `wrapperInputs`, and the home module passes each as a flag. The laptop takes all of them (three inputs float from the network; `neovimBTW` and `wallpaper-guardian` are re-locked from their checkouts, which is what carries a merged submodule bump into the switch); the homelab takes the collection only, updates `nixpkgs neovimBTW wallpaper-guardian`, and lingers so its timer runs without a login. The system switch comes first: a change that spans both halves needs the new store copy installed before home activation calls into it, and a failed system switch skips the home switch rather than leaving a half-applied pair.
 
 The last step touches `~/.local/state/daily-update/gc-request`, and the system path unit `nix-gc-root` (apps/daily-update/system.nix) turns that into the root collection, so there is one collection round per day, after the switch, keeping two days of generations on both sides. The marker is written from an exit trap, so a run killed with SIGTERM (a system switch can restart the display manager and take the unit's cgroup) still asks for root's collection; only SIGKILL loses it, and the user half is skipped either way. The collection runs even when the update or the switch failed: a bad week must not keep a week of generations. On the laptop the unit is part of the graphical session, so a machine left at the greeter collects nothing until a login; the old GC timers ran without one, and collecting right after the switch is worth that. The homelab has no session to join, so `dailyUpdate.linger` starts its user manager at boot and the timer runs anyway. When the machine disagrees with this repo, suspect that drift first, not a local edit. Do not hand-edit pins the timer owns.
 
@@ -62,7 +62,7 @@ At boot, `screenpad-off` (hosts/asus/system.nix) blanks the screenpad, not niri.
 The second machine is `homelab`, a 2012 AMD A10 laptop (UEFI, 500 GB HDD) that
 lives on the LAN as a headless server. It has no desktop: it does not list
 `base/workstation.nix`, and its home configuration is `base/home.nix` plus the
-`sh`, `bash`, `home-switch`, `daily-update`, `nvim`, and `languages` apps and
+`sh`, `bash`, `home-switch`, `daily-update`, `nvim`, and `languages` modules and
 `hosts/homelab/home.nix` for the git identity. It has no tmux, no zsh, no
 opencode, no T3 Code, and no wallpaper: it takes the shared half of the tree and
 nothing else. Its system side is stable nixpkgs only, plus `neovimBTW` (which
@@ -93,16 +93,34 @@ long way: `apk add nix bash util-linux`, generate the hardware file with
 `nix-store --import` it as root (the installed daemon rejects unsigned pushes
 from an untrusted user), format with disko's `formatScript` after `mdev -s` and
 manual partlabel links, mount with `mountScript`, then
-`nixos-install --root /mnt --system ... --no-root-passwd`. Redeploy with the
-wrapper, so the pinned inputs are the ones the install used:
+`nixos-install --root /mnt --system ... --no-root-passwd`.
 
-    sudo nixos-rebuild switch --flake /home/duskyelf/dotfiles/deploy-system#homelab \
-      --override-input my-dotfiles path:/home/duskyelf/dotfiles \
-      --target-host duskyelf@192.168.1.200 --use-remote-sudo --cores 16
+Redeploy it from its own checkout, so the pinned inputs are the ones the install
+used. Building the attribute on the laptop first is the cheap way to catch an
+evaluation error:
 
-That form cannot take the homelab's lock, so ssh in and run its helper instead;
-otherwise it races that host's own daily run into switch-to-configuration, which
-is the collision above.
+    nix build --no-link \
+      'path:/home/duskyelf/dotfiles/deploy-system#nixosConfigurations.homelab.config.system.build.toplevel' \
+      --override-input my-dotfiles path:/home/duskyelf/dotfiles
+
+    ssh duskyelf@192.168.1.200
+    cd ~/dotfiles && git pull --rebase --autostash
+    sudo /usr/local/sbin/nixos-switch.sh
+    ~/.config/scripts/hm-switch.sh
+
+The helper takes the lock, uses the host's own `dailyUpdate.cores`, and is the
+same thing the daily run calls. The first switch on a host that has no helper
+yet is the explicit form, and it cannot take the lock, so nothing else may be
+switching that host when it runs:
+
+    sudo nixos-rebuild switch --flake ./deploy-system#homelab \
+      --override-input my-dotfiles path:/home/duskyelf/dotfiles --cores 2
+
+Both forms run on the box, in its own checkout with its bootstrapped wrapper,
+which the paragraph below sets up. The system half goes first either way: it
+installs linger, the sudo rule and the helper, and without them that host's
+daily run cannot switch it at all. Do not add a `--target-host` form back; the
+rebuild commands above say why.
 
 Both machines have a daily timer now, so the homelab runs its own wrapper: the
 same `deploy-system/` on that machine, with the same pinned inputs, plus its own

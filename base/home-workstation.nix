@@ -3,7 +3,7 @@
 # real for GTK and zen, and the flake inputs only a desktop needs.
 #
 # The daily update is not part of this: it is the `daily-update` app
-# (apps/daily-update/home.nix), which a headless host lists too.
+# (apps/daily-update/home.nix), which a headless host imports too.
 #
 # The flake inputs that only a desktop needs are imported here, not in
 # lib/mkHost.nix, so a headless host does not evaluate niri or stylix at all.
