@@ -36,6 +36,14 @@
   # the tailscale one only.
   ssh.openLanPort = true;
 
+  # The one service on this box the home LAN may reach: the agent's dashboard,
+  # so a browser on the laptop or a phone can use it without an ssh tunnel. It
+  # is behind the app's own password gate (the credentials are in
+  # ~/.config/hermes/env), and the address is the static one below in
+  # system.nix, stated again because the app binds it and the firewall opens it.
+  # Leave it null on a host that has no reason to publish an agent.
+  hermes.dashboard.host = "192.168.1.200";
+
   # The box updates itself once a day like the laptop, but only the stable
   # track: nixpkgs, and the two submodule inputs the wrapper pins. No T3 Code
   # pin and no devshell pin. It has no graphical session, so the timer needs

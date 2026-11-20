@@ -146,6 +146,7 @@ What needs which rebuild:
 | `base/home.nix`, `base/home-workstation.nix`, the home imports in a host's `default.nix` | `hm-switch.sh` |
 | `base/core.nix`, `base/workstation.nix`, the system imports in a host's `default.nix`, `hosts/` | `sudo /usr/local/sbin/nixos-switch.sh` |
 | `apps/niri/system.nix` | `sudo /usr/local/sbin/nixos-switch.sh`; the rest of `apps/niri/` is a home module |
+| `apps/hermes/system.nix` | `sudo /usr/local/sbin/nixos-switch.sh`; the rest of `apps/hermes/` is a home module |
 | `flake.nix`, `lib/` | both, the wiring reaches both configurations |
 | `apps/wallpaper/wallpaper-guardian/` | `hm-switch.sh`; a submodule bump also needs `nix flake update wallpaper-guardian` in `deploy-system/` |
 | `apps/quickshell/`, `apps/tmux/tmux.conf`, `apps/daily-update/active-projects` | nothing, they are linked live or read at run time |
@@ -195,7 +196,11 @@ the `wallpaper-guardian` home-manager module enabled in `apps/wallpaper.nix`,
 next to `awww-daemon`. `quickshell`, `wl-gammarelay`, and `break-timer` are
 `apps/quickshell.nix`, `apps/gammarelay.nix`, and `apps/idle.nix`.
 `battery-threshold-control` and `screenpad-off` are one-shot system services.
-`llm-lab` starts ollama and Open WebUI only when you ask.
+`llm-lab` starts ollama and Open WebUI only when you ask. On the homelab
+`hermes-agent` and `hermes-backend` are user units, the second serving the agent
+dashboard on the LAN address behind the app's own password gate; the laptop
+installs only the desktop application (`apps/hermes/desktop.nix`), and its
+connection to that backend is made once in the app.
 
 Which of those steps a machine runs is host data, not a branch in the script:
 `lib/host.nix` `dailyUpdate` sets `t3`, `devshells`, `collect`,
@@ -287,7 +292,8 @@ because nothing here reboots the machine.
 That site serves one more thing: `compile-hermes.yml` builds the homelab's agent
 from its rev pin and publishes the paths cache.nixos.org lacks under
 `hermes-<store hash>`, so a home switch downloads them instead of compiling them
-on two cores. Both pipelines deploy the site through
+on two cores. The desktop app is not in that cache: the laptop builds it once.
+Both pipelines deploy the site through
 `.github/workflows/publish-cache.yml`, one deploy at a time, because gh-pages is
 a single branch that each deploy replaces whole. A release whose assets are
 incomplete is left out of the site and reported as a failure, never half-served.

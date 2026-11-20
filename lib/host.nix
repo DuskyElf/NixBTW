@@ -74,6 +74,35 @@ let
         description = "Open 22 on every interface. False keeps sshd on the tailscale interface only, which is the laptop's policy.";
       };
 
+      # The agent's dashboard is the one service besides sshd that a host may
+      # publish to the LAN, and it runs as this user, over their files and keys.
+      # So it is data per host, and null unless a host means it.
+      hermes.dashboard = {
+        host = mkOption {
+          type = types.nullOr types.str;
+          default = null;
+          description = ''
+            Address the Hermes dashboard binds to. Null keeps the module's
+            loopback bind, which is what a host that only tunnels in wants. A
+            value here is a deliberate LAN exposure of an agent that runs as
+            this user: give the machine's own literal address, never 0.0.0.0,
+            because the wildcard also switches off the app's Host header check.
+
+            Any non-loopback value turns on the app's password gate, and a
+            gated dashboard with no provider registered exits and leaves its
+            unit restarting. The host then needs
+            HERMES_DASHBOARD_BASIC_AUTH_USERNAME, _PASSWORD_HASH (or _PASSWORD)
+            and _SECRET in ~/.config/hermes/env; apps/hermes/home.nix says why
+            they live there and not in settings.
+          '';
+        };
+        port = mkOption {
+          type = types.port;
+          default = 9119;
+          description = "Port the dashboard binds, and the one apps/hermes/system.nix opens once host is set.";
+        };
+      };
+
       dotsDir = mkOption {
         type = types.nullOr types.str;
         default = null;

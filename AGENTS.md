@@ -170,17 +170,43 @@ home directory; `cacheRoot` defaults there and the laptop overrides it.
 
 The homelab runs Hermes Agent (`apps/hermes/home.nix`, Nous Research's agent) as
 a user service for `duskyelf`: the messaging gateway always on, the dashboard on
-`127.0.0.1:9119` (reach it with `ssh -L 9119:127.0.0.1:9119`), state in
-`~/.hermes`, shared with the `hermes` command an ssh shell gets. The input is
-rev-pinned in `flake.nix` like `nixpkgs-fast-release`, and the wrapper neither
-pins nor follows it, so that one rev is the pin on every machine and a bump is a
-single line here. It keeps its own nixpkgs out of necessity: its package builds
+`192.168.1.200:9119` for the home LAN, state in `~/.hermes`, shared with the
+`hermes` command an ssh shell gets. That bind is the only LAN-facing service
+here besides sshd: `hermes.dashboard.host` in `lib/host.nix` carries the address,
+and a null there keeps the module's loopback bind, which is what every other host
+wants. `apps/hermes/system.nix` opens the port and asserts the address is one
+this machine configures, so a drift between `hosts/homelab/config.nix` and its
+`system.nix` fails eval, rather than opening a port for an address the app will
+not bind. The app's own password gate stands in front of the dashboard, so the
+box needs `HERMES_DASHBOARD_BASIC_AUTH_USERNAME`, `_PASSWORD_HASH` (scrypt, or
+`_PASSWORD` plaintext) and `_SECRET` (a literal base64 key; a value that looks
+like a shell command is discarded) in `~/.config/hermes/env`, because with the
+gate on and no provider registered the backend exits and its unit restarts for
+ever. Those three live in that file and not in `settings`, which are rendered
+into the store where every user can read them. `backend.sessionTokenFile` adds a
+second provider, the bearer token in `~/.config/hermes/session-token`: that is the
+machine-client path, and the fallback when the app's sign-in window does not take
+the password form.
+
+The laptop installs the desktop app (`apps/hermes/desktop.nix`) and runs no
+services. Nix can only point that app at a local backend, so the remote
+connection is made once in the app's Settings under Gateways, which reads the
+provider list from the URL. The gate is a password over plain HTTP, on the LAN
+`base/core.nix` calls shared with IOT devices, and behind it sits an agent
+running as this user over their files and keys: treat that password like the
+box's login and keep the port off the router. A tailnet bind with
+`tailscale serve` would drop the cleartext hop at the price of the LAN
+convenience. The input is rev-pinned in `flake.nix` like
+`nixpkgs-fast-release`, and the wrapper neither pins nor follows it, so that one
+rev is the pin on every machine and a bump is a single line here. It keeps its
+own nixpkgs out of necessity: its package builds
 patchelf 0.19.2 plus a fix patch, and every channel this repo pins defaults that
 package to 0.15.2, so a follows fails in patchPhase. Nothing upstream carries its
 closure, so `.github/workflows/compile-hermes.yml` publishes the paths
 cache.nixos.org lacks (about 240 of 385) to the same signed site under
 `hermes-<store hash>`, and the box substitutes them. A release that is pruned or
-incomplete puts those paths back on its two cores. Keys go in
+incomplete puts those paths back on its two cores. That cache carries the agent,
+not the desktop app, so the laptop builds the app itself once. Keys go in
 `~/.config/hermes/env` (mode 0600, `mkdir -p` first, made on the box
 by hand, never in the tree): the activation merges that file into
 `~/.hermes/.env`, so a new key needs `hm-switch.sh --force` and a restart of

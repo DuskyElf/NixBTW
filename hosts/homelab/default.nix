@@ -18,6 +18,8 @@
 
     ../../apps/openssh.nix
     ../../apps/daily-update/system.nix
+    # The firewall side of the agent's dashboard bind in config.nix.
+    ../../apps/hermes/system.nix
   ];
   home = [
     ./home.nix
@@ -29,8 +31,9 @@
     ../../apps/nvim.nix
     ../../apps/languages.nix
 
-    # The always-on agent. Home half only: it runs as duskyelf through the
-    # linger this box already sets.
+    # The always-on agent. Home half here; the system half above opens its
+    # dashboard port. It runs as duskyelf through the linger this box already
+    # sets.
     ../../apps/hermes/home.nix
   ];
 
