@@ -130,22 +130,26 @@ The homelab is tuned for what it is: a box that idles 20 hours a day and
 compiles for the rest. `apps/auto-cpufreq.nix` is the laptop's module and the
 homelab does not import it, because on the charger it pinned this APU to
 1.4 GHz under every load: one fixed ALU loop takes 7.6 s there and 5.1 s at
-2.3 GHz, and a build gets the same ratio. With it gone
-the kernel's own default (schedutil) idles at 1.4 GHz and requests 2.3 GHz when
-there is work. Turbo is not available on this board: the HP firmware leaves the
-APM boost engine off (`D18F4x15C[ApmMasterEn]=0`), and setting those bits on and
-measuring made the part *slower* under load (2.08 vs 2.3 GHz all-core, 12 °C
-cooler), because that engine is what enforces the 35 W limit; do not "fix" it
-again without a benchmark. The voltage offset in `hosts/homelab/cpu.nix` is a
-`wrmsr` on the P-state table with a boot guard: it writes `pending` before the
-write and only records the boot as good three minutes later, so a boot that
-hangs comes back at stock voltage and stays there until somebody clears
-`/var/lib/homelab-undervolt/state`. -50 mV ships; -100 mV survived a 12-round
-digest soak and -150 mV hung the box, so a change there is an experiment whose
-way out is the power button. The internal panel is off by kernel cmdline plus a
-udev `bl_power` rule (an external screen on HDMI still works for recovery), and
-`hosts/homelab/idle.nix` has the rest: audio codec power-down, fstrim off on a
-rotational disk, batched writeback, and no NixOS HTML manual.
+2.3 GHz, and a build gets the same ratio. With it gone the kernel's own default
+(schedutil) idles at 1.4 GHz and requests 2.3 GHz when there is work. The clock
+cannot be raised: the 2.3 GHz P-state refuses a higher frequency, `_PSS` exports
+only the five states below the two boosted ones, and turning the boost engine on
+measures slower. Heat is not what caps it; `hosts/homelab/cpu.nix` has the
+numbers and the register detail. The slowest routine thing this box does is read
+the store off its 5400 rpm disk: a cold flake evaluation takes 54 s against 14 s
+warm, and the bay is SATA, so an SSD is the upgrade. CPU mitigations stay on;
+`hosts/homelab/kernel.nix` has what they cost, the preemption numbers, and why
+HZ 250 is the value. The voltage offset in `hosts/homelab/cpu.nix` is a `wrmsr`
+on the P-state table with a boot guard: it writes `pending` before the write and
+only records the boot as good
+three minutes later, so a boot that hangs comes back at stock voltage and stays
+there until somebody clears `/var/lib/homelab-undervolt/state`. -50 mV ships;
+-100 mV survived a 12-round digest soak and -150 mV hung the box, so a change
+there is an experiment whose way out is the power button. The internal panel is
+off by kernel cmdline plus a udev `bl_power` rule (an external screen on HDMI
+still works for recovery), and `hosts/homelab/idle.nix` has the rest: audio
+codec power-down, fstrim off on a rotational disk, batched writeback, and no
+NixOS HTML manual.
 
 One ordering rule comes out of that: the trust for the kernel cache lives in
 `hosts/homelab/system.nix`, and the generation that would use it is the one being

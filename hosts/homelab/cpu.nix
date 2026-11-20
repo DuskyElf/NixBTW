@@ -14,10 +14,30 @@
 # seventh state exists but the firmware leaves it disabled):
 # SVI2, 6.25 mV per CpuVid step, so +8 steps is -50 mV on every state. It
 # lowers power at the same clocks, which on this board means a cooler package
-# and a slower fan rather than a higher ceiling: the firmware leaves the APM
-# boost engine off (D18F4x15C[ApmMasterEn]=0), and turning it on to get the
-# 3.2 GHz boost state measured *slower* under load (2.08 vs 2.3 GHz, all-core),
-# because that engine is what enforces the 35 W limit. Tested, not assumed.
+# and a slower fan rather than a higher ceiling.
+#
+# The clock cannot be raised. PStateDef[2] is the top state the governor can
+# ask for (2.3 GHz); writing 2.4 through 2.8 GHz into it reads back unchanged,
+# while fid 5 (2.1 GHz) and two DID 1 writes (1.5 and 1.8 GHz) stick, so the
+# register takes writes and refuses those definitions. The 3.2 and 2.7 GHz
+# entries are the boosted P-states and `_PSS` exports only the five below them:
+# writing control 0 selects the 2.3 GHz state and control 1 the 2.0 GHz one, so
+# cpufreq cannot ask for the boosted states either. Turning the boost engine on
+# is a loss: with HWCR CpbDis=0 on every core and D18F4x15C written to
+# 0x80000089 (ApmMasterEn and BoostSrc set, NumBoostStates=2 unchanged), a
+# pinned single thread runs 2058 MHz instead of 2295, four spinners sit at
+# 1689 MHz instead of 2295, and the xz bench goes from 36.5/10.8 s to
+# 38.7/12.8 s. The boosted states never arrive; the part only gets slower.
+# Heat is not what caps the clock: four threads read 62 °C after 90 s and peak
+# at 63 °C over 210 s against a 102 °C trip.
+#
+# A test that writes PStateDef or D18F4x15C survives until the next reboot; a
+# rebuild resets neither register. The guard compares CpuVid only, so a
+# frequency-only test looks like the firmware's table to it: the next switch
+# writes the intended VIDs over the test, which erases that test rather than
+# refusing it. A test that moves a VID is caught, and then the unit marks
+# itself failed and stays off until both /var/lib/homelab-undervolt/state and
+# /var/lib/homelab-undervolt/stock are removed.
 {
   lib,
   pkgs,

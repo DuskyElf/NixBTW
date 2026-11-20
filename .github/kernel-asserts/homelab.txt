@@ -20,6 +20,24 @@ CONFIG_STRICT_KERNEL_RWX=y
 CONFIG_STRICT_MODULE_RWX=y
 CONFIG_RANDOMIZE_BASE=y
 CONFIG_LIST_HARDENED=y
+# The CPU-mitigation and hardening set kernel.nix names, so a "minimal" trim
+# cannot drop the barrier between user space and the kernel without failing the
+# build. The rest of the MITIGATION_* family applies to Intel parts this box
+# does not have; these six are the ones that exist on fam15h.
+CONFIG_MITIGATION_RETPOLINE=y
+CONFIG_MITIGATION_SPECTRE_V1=y
+CONFIG_MITIGATION_SPECTRE_V2=y
+CONFIG_MITIGATION_RETBLEED=y
+CONFIG_MITIGATION_UNRET_ENTRY=y
+CONFIG_MITIGATION_SSB=y
+CONFIG_FORTIFY_SOURCE=y
+CONFIG_STACKPROTECTOR_STRONG=y
+CONFIG_VMAP_STACK=y
+CONFIG_SHUFFLE_PAGE_ALLOCATOR=y
+CONFIG_BUG_ON_DATA_CORRUPTION=y
+CONFIG_SECURITY_LANDLOCK=y
+CONFIG_SECURITY_YAMA=y
+CONFIG_LSM="landlock,lockdown,yama,loadpin,safesetid,selinux,smack,tomoyo,apparmor,ipe,bpf"
 # CONFIG_DEBUG_LIST is not set
 # CONFIG_KFENCE is not set
 # CONFIG_KALLSYMS_ALL is not set

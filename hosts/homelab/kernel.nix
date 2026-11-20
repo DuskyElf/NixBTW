@@ -66,12 +66,14 @@
         HZ_250 = yes;
         HZ_1000 = no;
 
-        # PREEMPT_LAZY is what nixpkgs picks for >= 6.18, and it is right here:
-        # near-PREEMPT_NONE throughput, with preemption points that keep ssh
-        # usable while two cores compile. Named, not forced, so a future
-        # nixpkgs that changes its mind fails evaluation instead of quietly
-        # changing the model. PREEMPT is in the same Kconfig choice group and
-        # must never be set at the same time.
+        # PREEMPT_LAZY is what nixpkgs picks for >= 6.18, and it is what this
+        # config keeps: it preempts at explicit points, which keeps ssh usable
+        # while two cores compile. Switching between none, voluntary, lazy and
+        # full at runtime moved nothing beyond the bench's own spread (25% on
+        # fork/exec), so this is a choice to keep, not a knob to tune. Set here
+        # rather than inherited, so a nixpkgs that changes its default does not
+        # quietly change the model; PREEMPT is in the same Kconfig choice group
+        # and must never be set at the same time.
         PREEMPT_LAZY = lib.mkForce yes;
         PREEMPT_DYNAMIC = yes;
 
@@ -113,14 +115,19 @@
 
         # --- security: these are choices, not leftovers -------------------
         # Left at nixpkgs' values on purpose and named so a later trim has to
-        # argue with them: KASLR, the whole MITIGATION_* set (Spectre v2 does
-        # affect fam15h even though Retbleed does not), HARDENED_USERCOPY,
+        # argue with them: KASLR, the MITIGATION_* set, HARDENED_USERCOPY,
         # FORTIFY_SOURCE, STACKPROTECTOR_STRONG, STRICT_KERNEL_RWX,
         # STRICT_MODULE_RWX, VMAP_STACK, INIT_ON_ALLOC, SLAB_FREELIST_HARDENED,
         # SHUFFLE_PAGE_ALLOCATOR, BUG_ON_DATA_CORRUPTION, and the LSM list
         # nixpkgs' CONFIG_LSM carries (landlock,lockdown,yama,... which is why
-        # the cmdline says lsm=landlock,yama,bpf). A "minimal" config drops
-        # these, and the assertions in CI check they are still on.
+        # the cmdline says lsm=landlock,yama,bpf). This part takes the Spectre
+        # v1/v2 and retbleed mitigations; Meltdown, MDS and L1TF report not
+        # affected. A "minimal" config drops all of it, and the assertion file
+        # in CI checks the six mitigations and these hardening lines are still
+        # on. The cost of keeping them was measured: mitigations=off measured
+        # 1.5% on a flake evaluation, 9% on a bare stat loop and nothing on xz,
+        # which is not worth a userspace process being able to read kernel
+        # memory.
         RANDOMIZE_BASE = lib.mkForce yes;
         HARDENED_USERCOPY = lib.mkForce yes;
         INIT_ON_ALLOC_DEFAULT_ON = lib.mkForce yes;
