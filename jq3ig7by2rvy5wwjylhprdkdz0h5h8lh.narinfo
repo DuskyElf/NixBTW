@@ -1,0 +1,10 @@
+StorePath: /nix/store/jq3ig7by2rvy5wwjylhprdkdz0h5h8lh-jsonschema-4.26.0
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/1b7jbbacx8680qfickfdr7clzzh4pw9f62mi241qqr2m2dw4msj7.nar.xz
+Compression: xz
+FileHash: sha256:1b7jbbacx8680qfickfdr7clzzh4pw9f62mi241qqr2m2dw4msj7
+FileSize: 178392
+NarHash: sha256:0ll4npw2wf1lpa3nnb6iilmy257ph0km5x8qsg5gmbigysm240j3
+NarSize: 990936
+References: jq3ig7by2rvy5wwjylhprdkdz0h5h8lh-jsonschema-4.26.0 xahxrjs30p3mw0a42bqg9ikgkikskw8m-python3-3.14.8
+Deriver: p5zmd3ii7np3yh723bql7p6vaf9lz4s5-jsonschema-4.26.0.drv
+Sig: i9-kernel-cache:aamIzNWwoyjjI1WqGFeNXW0SBgjmieQWhfulJWFUYQMaek+euJrX0j39O9/Ixptg//n2l8vuYYc3C3W4jskhCQ==

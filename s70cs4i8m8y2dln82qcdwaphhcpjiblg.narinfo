@@ -1,0 +1,10 @@
+StorePath: /nix/store/s70cs4i8m8y2dln82qcdwaphhcpjiblg-filelock-4.2.6
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/09qjg71fp85lcjv620270zb96yl6jx70mcm5im4bs6fjgrhh5c9l.nar.xz
+Compression: xz
+FileHash: sha256:09qjg71fp85lcjv620270zb96yl6jx70mcm5im4bs6fjgrhh5c9l
+FileSize: 308436
+NarHash: sha256:0bbkapv3k5hjkzhwd8sw58ch5m1cn0iak2ak7y79jmh695ays5yq
+NarSize: 1355032
+References: s70cs4i8m8y2dln82qcdwaphhcpjiblg-filelock-4.2.6
+Deriver: dbsv9ckf4n017zinzc5ybaasznw5q43r-filelock-4.2.6.drv
+Sig: i9-kernel-cache:rFhGt8664j3UpliQTTpaPSR5LsVQvxxEKJ1ShhA6QwTt6rQgKiztRLRMrfY63kQ5tONZIxQy4+Jyfw6ekGhKAw==

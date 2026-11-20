@@ -1,0 +1,10 @@
+StorePath: /nix/store/fa1b6cplimd85d80rmhdc5gpb1xz90fv-daytona-toolbox-api-client-0.225.0
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/1r3nlcncicyg0amga2mccnpl3kh1jjs2dxlfxggwr547raphibs3.nar.xz
+Compression: xz
+FileHash: sha256:1r3nlcncicyg0amga2mccnpl3kh1jjs2dxlfxggwr547raphibs3
+FileSize: 162840
+NarHash: sha256:1p8amy8i5mivp73fxs1gbkqpkk2m43zbajhlhp7xkyrvfbf2zf45
+NarSize: 3288008
+References: fa1b6cplimd85d80rmhdc5gpb1xz90fv-daytona-toolbox-api-client-0.225.0
+Deriver: alqqbvv4rqcvmmn1gbzzmf908s9c8a58-daytona-toolbox-api-client-0.225.0.drv
+Sig: i9-kernel-cache:0WZXE7TtRlHRX8O6Sg1uzNT5odEIuFwTOtRPa2wMx7lcu4pgkKP2VYK0ZVDyd2l6H9LIctRjREInc+u9oKn3Bw==

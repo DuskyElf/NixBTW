@@ -1,0 +1,10 @@
+StorePath: /nix/store/rg1351gsmp52hjdhrgif363jl448wg7i-opentelemetry-semantic-conventions-0.66b2
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/1l6lr1b7vazp3rd3l9n65j60smm7lfjp14vvzghdg7jrbfkdad0h.nar.xz
+Compression: xz
+FileHash: sha256:1l6lr1b7vazp3rd3l9n65j60smm7lfjp14vvzghdg7jrbfkdad0h
+FileSize: 189640
+NarHash: sha256:0b97bp4mmanjsnaa4bfdzvhwi6ygv9djdyhiq8p93ry59m4y48dv
+NarSize: 1416120
+References: rg1351gsmp52hjdhrgif363jl448wg7i-opentelemetry-semantic-conventions-0.66b2
+Deriver: pp1kw6yy7kg2i84xv3a2cfjh3n30fzym-opentelemetry-semantic-conventions-0.66b2.drv
+Sig: i9-kernel-cache:7ATR965cJ0A07KhUoRP0sg85P+0REolQx/3C89qBaDHWQoUPS1+NgW55RPDXkO613Aw7xpa5rDKEcLO45g5CDQ==

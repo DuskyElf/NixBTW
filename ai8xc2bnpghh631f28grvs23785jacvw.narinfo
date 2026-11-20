@@ -1,0 +1,10 @@
+StorePath: /nix/store/ai8xc2bnpghh631f28grvs23785jacvw-proto-plus-1.29.0
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/0pdr1zry4mf093rbb44fh55d2jhp7j76bsyn8nhhsg5qi9g3k4m0.nar.xz
+Compression: xz
+FileHash: sha256:0pdr1zry4mf093rbb44fh55d2jhp7j76bsyn8nhhsg5qi9g3k4m0
+FileSize: 65988
+NarHash: sha256:1qvn18s11g20x055yghykpz8xf4b9m5agdmyh2fdkh3ss1m8c1cd
+NarSize: 284720
+References: ai8xc2bnpghh631f28grvs23785jacvw-proto-plus-1.29.0
+Deriver: ygym4y90f5s7jab0iwpxm9k34p9jx9fg-proto-plus-1.29.0.drv
+Sig: i9-kernel-cache:aDafZ4ky14cmRvLDtW6xdeyM6qM9DJkepzAY6h82r3BamKP+Vr3Qrj08AEs1nN1rSqym1BJYFq9v2lxVRCGvBQ==

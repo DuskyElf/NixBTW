@@ -1,0 +1,10 @@
+StorePath: /nix/store/q2rssfxb5icmhmp9s57y8y6qya887c5c-daytona-analytics-api-client-0.225.0
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/0xkszlrsxjrbb1n5gvj10aiv9pyv4lmhjw7rr5908dg453xrbi1p.nar.xz
+Compression: xz
+FileHash: sha256:0xkszlrsxjrbb1n5gvj10aiv9pyv4lmhjw7rr5908dg453xrbi1p
+FileSize: 59236
+NarHash: sha256:1ywq4gf0f0m9vziark98z6rszgda02kryi2v9c1klrz35l5ba43z
+NarSize: 447080
+References: q2rssfxb5icmhmp9s57y8y6qya887c5c-daytona-analytics-api-client-0.225.0
+Deriver: fc2cr2fbfakc67rs1kk15vn7dqysdy93-daytona-analytics-api-client-0.225.0.drv
+Sig: i9-kernel-cache:0BcMBvyzwf3akh/gX2uQRKSlAA4HV5iCrhb3KTyxbgryctDvR0W/bHUXo6IWYh1h6BCYUbnNsOIw4ZzJV1fPCQ==

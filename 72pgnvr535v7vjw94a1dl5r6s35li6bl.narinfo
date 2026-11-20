@@ -1,0 +1,10 @@
+StorePath: /nix/store/72pgnvr535v7vjw94a1dl5r6s35li6bl-youtube-transcript-api-1.2.4
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/1672kzg8ny7x961478b1f9nbn16x15nmlrfjglcnf7ic0k8wgd0m.nar.xz
+Compression: xz
+FileHash: sha256:1672kzg8ny7x961478b1f9nbn16x15nmlrfjglcnf7ic0k8wgd0m
+FileSize: 223328
+NarHash: sha256:163dr7nm21nz8q7iwv7976pv6j94rbkmjv3hklph04n76x3b4mk5
+NarSize: 2373440
+References: 72pgnvr535v7vjw94a1dl5r6s35li6bl-youtube-transcript-api-1.2.4 xahxrjs30p3mw0a42bqg9ikgkikskw8m-python3-3.14.8
+Deriver: zm37d86pv8sgw30a392ig75yyxj2gc9d-youtube-transcript-api-1.2.4.drv
+Sig: i9-kernel-cache:Yk7er8GtPSrT5NChpVd/2yUfptbaKxK4ajLgisiGjWDX3bnBBadExONvYjeGRvuSkuUDLATuPbdFX0oxxGP+DA==

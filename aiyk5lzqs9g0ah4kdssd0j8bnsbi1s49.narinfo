@@ -1,0 +1,10 @@
+StorePath: /nix/store/aiyk5lzqs9g0ah4kdssd0j8bnsbi1s49-charset-normalizer-3.5.2
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/1h96l9fmx0azjz58ic0sljjpnmmh16h90lnmmj9x91g7gw32n73w.nar.xz
+Compression: xz
+FileHash: sha256:1h96l9fmx0azjz58ic0sljjpnmmh16h90lnmmj9x91g7gw32n73w
+FileSize: 248044
+NarHash: sha256:0mglmg72m57hmidg2dwvfi8c2hhnik7jsdzq84s09p9x87nl7m1z
+NarSize: 979648
+References: aiyk5lzqs9g0ah4kdssd0j8bnsbi1s49-charset-normalizer-3.5.2 xahxrjs30p3mw0a42bqg9ikgkikskw8m-python3-3.14.8
+Deriver: b2q3w3yfkzc0m6iy0dvf8745hlcvpgnb-charset-normalizer-3.5.2.drv
+Sig: i9-kernel-cache:kJgZg5Mj3F1TJV1VKBu0zpKyCkPHj377CU0ax6qMfxE3fHDQDewXeavWSRAbHeoRiEHOCwm9YGbNfKY6T9STBw==

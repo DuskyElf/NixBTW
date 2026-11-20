@@ -1,0 +1,10 @@
+StorePath: /nix/store/rq6yclx6i5wasfzb3mmw199vpk2zjw1h-exa-py-2.26.0
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/1mjkgyp8i5rhkj6y5m5kki9wh0rk4462zid1lxc37xrf9ax83db4.nar.xz
+Compression: xz
+FileHash: sha256:1mjkgyp8i5rhkj6y5m5kki9wh0rk4462zid1lxc37xrf9ax83db4
+FileSize: 221720
+NarHash: sha256:1bsp12rj5hqr86isi9sncapl370qd0lhjzv2bi079nhx8wj24cxc
+NarSize: 1510216
+References: rq6yclx6i5wasfzb3mmw199vpk2zjw1h-exa-py-2.26.0
+Deriver: s1r14g8yq2l9h5vp96fmd1g1vymwmqc2-exa-py-2.26.0.drv
+Sig: i9-kernel-cache:kOKkkeW+wwwsaiOqN9c4d1Or2EeEt6LsytxeuptOYzouIKVz2oF8UeORRwFlJ2RgiOyLHa+0A3YTEa3NSWcYDw==

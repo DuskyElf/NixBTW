@@ -1,0 +1,10 @@
+StorePath: /nix/store/limkgvyzafhs96nsm5lwicjvzpf2xvz3-python-dateutil-2.9.0.post0
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/196hhaj4ijxq8f2nib9p2a1ijjmca1l7dbp0wfa8a7xxlq01ngkk.nar.xz
+Compression: xz
+FileHash: sha256:196hhaj4ijxq8f2nib9p2a1ijjmca1l7dbp0wfa8a7xxlq01ngkk
+FileSize: 296084
+NarHash: sha256:0lf84a5lscqyhkqz992ipql5g4ni88ccy469sg1vhxy7lmvi5xqb
+NarSize: 767480
+References: limkgvyzafhs96nsm5lwicjvzpf2xvz3-python-dateutil-2.9.0.post0
+Deriver: 95s5m27v1p4rcfxc3ykkd167fabar16a-python-dateutil-2.9.0.post0.drv
+Sig: i9-kernel-cache:zd8xMP+jDU3BXn2gcuTCvvGksn2KVxDQJZ5NOxt+Ola1Q9msWUmMPbTO1AuxIBbV2sqlBsd7NzKzHWUig5HgAg==

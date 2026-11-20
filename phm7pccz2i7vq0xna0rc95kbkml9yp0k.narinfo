@@ -1,0 +1,10 @@
+StorePath: /nix/store/phm7pccz2i7vq0xna0rc95kbkml9yp0k-aiosignal-1.4.0
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/1d1r3j56q2cxmcnlyvcpdq4sp1ha0nqwbm0ghjwwrrrpjdw458x2.nar.xz
+Compression: xz
+FileHash: sha256:1d1r3j56q2cxmcnlyvcpdq4sp1ha0nqwbm0ghjwwrrrpjdw458x2
+FileSize: 8100
+NarHash: sha256:180f1zipky17c38dwhlc5f3vgj84bhyczrj5bmd3x4s7pbys5ix9
+NarSize: 24144
+References: phm7pccz2i7vq0xna0rc95kbkml9yp0k-aiosignal-1.4.0
+Deriver: 1swbys0n337d9v0ph7p62b38a5j81jrr-aiosignal-1.4.0.drv
+Sig: i9-kernel-cache:LtZ1Wqmk81+1ezZMG8BEmcUbUIlSgaIB/XyuK4dH6eEO8TceH7zjBSoIb+ZTtze7w7EezMa+RsiojHo4v1ITDw==

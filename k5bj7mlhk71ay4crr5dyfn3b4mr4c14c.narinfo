@@ -1,0 +1,10 @@
+StorePath: /nix/store/k5bj7mlhk71ay4crr5dyfn3b4mr4c14c-jmespath-1.1.0
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/1d2rf5zpnyanmk9lca4nhgbgyhn3axh0797l94hj91b6mw2kpcyd.nar.xz
+Compression: xz
+FileHash: sha256:1d2rf5zpnyanmk9lca4nhgbgyhn3axh0797l94hj91b6mw2kpcyd
+FileSize: 39972
+NarHash: sha256:0zixg6dmd9lcayknbr3mnrfm2i4fkbb971birhy4v5y8bs14v7fd
+NarSize: 157040
+References: k5bj7mlhk71ay4crr5dyfn3b4mr4c14c-jmespath-1.1.0 xahxrjs30p3mw0a42bqg9ikgkikskw8m-python3-3.14.8
+Deriver: zvqbxn3p4vx0f5blxd7qzf865i1ql2bl-jmespath-1.1.0.drv
+Sig: i9-kernel-cache:u+aElMZ1zBBkykbAYVPB0YhMinGpg7p4hBE/IRTprXKwCF/L7pVut5DjP+TOHDg4KTkv3SCp/+qYOOWiApq8Dg==

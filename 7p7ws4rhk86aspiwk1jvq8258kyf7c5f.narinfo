@@ -1,0 +1,10 @@
+StorePath: /nix/store/7p7ws4rhk86aspiwk1jvq8258kyf7c5f-browser-harness-0.1.13
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/0603qfri2xj8ln2wnsli62nrv63q1c0vv4k83mbbwc9gq3aanczk.nar.xz
+Compression: xz
+FileHash: sha256:0603qfri2xj8ln2wnsli62nrv63q1c0vv4k83mbbwc9gq3aanczk
+FileSize: 217272
+NarHash: sha256:0csx982q48hk6pmkpa5q0l8dqgfk4j9cd55ydlc4v1gvhqhl4237
+NarSize: 753792
+References: 7p7ws4rhk86aspiwk1jvq8258kyf7c5f-browser-harness-0.1.13 xahxrjs30p3mw0a42bqg9ikgkikskw8m-python3-3.14.8
+Deriver: habn1sqcx0rhxh1r5c6yck5qz982nxb0-browser-harness-0.1.13.drv
+Sig: i9-kernel-cache:aOgrToHZhOD1b2jk40YgyWkRo7HX/X9x29UURU9jn5WwixJJ6WUZaN1R8BhHHUJItHcqJmC+KPg0XR0+93/oDw==

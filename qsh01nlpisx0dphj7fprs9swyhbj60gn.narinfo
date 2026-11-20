@@ -1,0 +1,10 @@
+StorePath: /nix/store/qsh01nlpisx0dphj7fprs9swyhbj60gn-fastapi-0.133.1
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/1rrpy8kqzx9xq5mdmrs9l13gk2cjyiklgb0wmn1jxv9c5a2r5arf.nar.xz
+Compression: xz
+FileHash: sha256:1rrpy8kqzx9xq5mdmrs9l13gk2cjyiklgb0wmn1jxv9c5a2r5arf
+FileSize: 185044
+NarHash: sha256:0wchc2fjw6izd7yhgckfm1s7fzb15f5hkmbyswvn7yxczb3sk635
+NarSize: 1335496
+References: qsh01nlpisx0dphj7fprs9swyhbj60gn-fastapi-0.133.1 xahxrjs30p3mw0a42bqg9ikgkikskw8m-python3-3.14.8
+Deriver: 7xd2g373q6m33wz07fxhgrk5vx1x4n9i-fastapi-0.133.1.drv
+Sig: i9-kernel-cache:hMBjHH6cRWSJnkGD0re+bkgIkatXCWdGnRNFSYfsT3dBRZ/lBhT4mvG2SsKh3JyxLWkVxE4MNndb2I0adU3ADg==

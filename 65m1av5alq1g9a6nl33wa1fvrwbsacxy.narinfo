@@ -1,0 +1,10 @@
+StorePath: /nix/store/65m1av5alq1g9a6nl33wa1fvrwbsacxy-simple-websocket-1.1.0
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/0mlsp1c5xg74y454yf21kqdwzj4l10g8kja6c87avxx0mdn9rrkp.nar.xz
+Compression: xz
+FileHash: sha256:0mlsp1c5xg74y454yf21kqdwzj4l10g8kja6c87avxx0mdn9rrkp
+FileSize: 22052
+NarHash: sha256:0isgkdlmq1prv56xm94137ji1nckjny5b19aks8q066ga0ds7clx
+NarSize: 110688
+References: 65m1av5alq1g9a6nl33wa1fvrwbsacxy-simple-websocket-1.1.0
+Deriver: g9hjh2rnxab1y1f3rgs7qvb936qk27n8-simple-websocket-1.1.0.drv
+Sig: i9-kernel-cache:FWHznpGJEc/5MB+tjs7qZOslXONHbUAX65cWDIldpkG5uJpzx94jA72otlczsCxAJljXIBwtcChkDzHwCC2RAA==

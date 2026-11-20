@@ -1,0 +1,10 @@
+StorePath: /nix/store/wkixnya5ipqcrkq3ycmpybj76knv6y5w-nodejs-26-npm-12
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/0wh03fqddwj1zjw9payy4xgzp85lxi0wd7x22pr4xv763sj6vydy.nar.xz
+Compression: xz
+FileHash: sha256:0wh03fqddwj1zjw9payy4xgzp85lxi0wd7x22pr4xv763sj6vydy
+FileSize: 42024
+NarHash: sha256:0izgim3p9j4hfcyd87jnrai0f7qzkyma5nf0fb1ysfziqmhfxi3y
+NarSize: 1679256
+References: k1hplqiay9iqsgz8v51x9axcrxv11ja9-npm-12.2.2 w3sf3cnrwjp70v6d3kv8mvz7vl9rgrp2-node-26.12.1
+Deriver: mc7s6ig87mm15j4cv33iwmg3d1fyjary-nodejs-26-npm-12.drv
+Sig: i9-kernel-cache:ngMo1i3VZYD6CRvC7s5Xzb6qbsa8Ca3kI1le/qH3//5aeW2jTX5fB0wTX5fLE1iT6Ai/w4R9+MlTqSO49ZP+BA==

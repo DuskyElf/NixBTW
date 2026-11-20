@@ -1,0 +1,10 @@
+StorePath: /nix/store/dbdnqfh92ic14xq9bbkqndv5nrf5lpkz-firecrawl-anydoc-0.2.4
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/0qsinkpz1xv3jam79sizagrwa76gg9lqq07gi479ihlvqk6zjhf0.nar.xz
+Compression: xz
+FileHash: sha256:0qsinkpz1xv3jam79sizagrwa76gg9lqq07gi479ihlvqk6zjhf0
+FileSize: 2442004
+NarHash: sha256:1h1gmlc3wqxn4j979xsvrl9ff3zsvn5pm11lvf7bkacz1m79vqx4
+NarSize: 8415624
+References: 3sj8msrsym648f35mk3gb3pp385hhk8r-gcc-16.2.0-libgcc dbdnqfh92ic14xq9bbkqndv5nrf5lpkz-firecrawl-anydoc-0.2.4
+Deriver: kbk7z7fzf6z0zrb6nzpmlnk494xafksp-firecrawl-anydoc-0.2.4.drv
+Sig: i9-kernel-cache:Q51pmKeJqCnwNgLe3C+wtbwJ/dND7k0Y0k8YOxb3WaKjAd/gE2Gvaxq5dvvrF0qPZB72AeNKwJdqdk64IQ66Bg==

@@ -1,0 +1,10 @@
+StorePath: /nix/store/zx1v4ibyada5429s4prr6fk4h4871g9l-python-telegram-bot-22.8
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/1wbnk54j5kg2kr72vwahnaksi62qzmzyb8an7lih7sl3ma5wv0pl.nar.xz
+Compression: xz
+FileHash: sha256:1wbnk54j5kg2kr72vwahnaksi62qzmzyb8an7lih7sl3ma5wv0pl
+FileSize: 831956
+NarHash: sha256:1p82aw67yl0xg7x28hj5r7bzsb9fkmgn5406yq6m8aylvb34lbm6
+NarSize: 7567208
+References: zx1v4ibyada5429s4prr6fk4h4871g9l-python-telegram-bot-22.8
+Deriver: fn9aihidfvjd5nmihsribbbm3j0dn2fq-python-telegram-bot-22.8.drv
+Sig: i9-kernel-cache:BV+NYyCDG3HNh5g6XTASTfMRlv5rKXewCS22BW/yX4FD6TLTPlP0ML7b2QoWPsHBfGNIG/WAj4ikkfbADVcECQ==

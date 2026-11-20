@@ -1,0 +1,10 @@
+StorePath: /nix/store/piy2rcaq2ag9z7xan895pjwz6dcq53j4-davey-0.1.7
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/19mz10h9mdc8xa3bk9n0qyip93lxa4r952qhwwwpd8289vpy201j.nar.xz
+Compression: xz
+FileHash: sha256:19mz10h9mdc8xa3bk9n0qyip93lxa4r952qhwwwpd8289vpy201j
+FileSize: 721824
+NarHash: sha256:1ay2zbalm4mc2ddpf72yk54g5b8wvv10xfn997z1hsk75hdifwaq
+NarSize: 2025608
+References: 3sj8msrsym648f35mk3gb3pp385hhk8r-gcc-16.2.0-libgcc piy2rcaq2ag9z7xan895pjwz6dcq53j4-davey-0.1.7
+Deriver: w2k6f29m8s5y6gdhjd2rx8dfa89brg3m-davey-0.1.7.drv
+Sig: i9-kernel-cache:AQziYB6plDBWAT3R9GKQKXm7OlUhXu5ajks5zyFSrssYZOg14qrkHxeScmNE5j8pClKyWNd039LlUmB4J+x9DQ==

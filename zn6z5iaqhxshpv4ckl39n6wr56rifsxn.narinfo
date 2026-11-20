@@ -1,0 +1,10 @@
+StorePath: /nix/store/zn6z5iaqhxshpv4ckl39n6wr56rifsxn-vercel-internal-telemetry-0.8.1
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/1l06gm6rx5ix4h9kyg6k32xb2cqn6v2bz3lpjy6m53c603ghi08m.nar.xz
+Compression: xz
+FileHash: sha256:1l06gm6rx5ix4h9kyg6k32xb2cqn6v2bz3lpjy6m53c603ghi08m
+FileSize: 13636
+NarHash: sha256:0zc5wsqn1zzzs3n02q6xiar7c3dfa5i3bvpyz039xm6x1i8d7y1s
+NarSize: 47848
+References: zn6z5iaqhxshpv4ckl39n6wr56rifsxn-vercel-internal-telemetry-0.8.1
+Deriver: wifd1mqxpc2296ql4hw8509jik6skz94-vercel-internal-telemetry-0.8.1.drv
+Sig: i9-kernel-cache:scRonGPv6t/25+dR5Oe+yaoW/zTGc7sjcvh6xfsKRmgsTj1Mr6Ey4Xozex+OvK1nobRQmNtm74rmLA6+hs3pBQ==

@@ -1,0 +1,10 @@
+StorePath: /nix/store/bhfxa3ijgqrg7wbgj95x6hfsgv2bbgbk-dingtalk-stream-0.24.3
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/0ir7ip6izhxvmpfxw9n1gmnllzqyg8171l7p133il684x68lhrz5.nar.xz
+Compression: xz
+FileHash: sha256:0ir7ip6izhxvmpfxw9n1gmnllzqyg8171l7p133il684x68lhrz5
+FileSize: 55800
+NarHash: sha256:15h3r4pp0fw9x4vp29ngxvzkdi61z2qr1vba51n5kaw6g4f0ii9r
+NarSize: 283936
+References: bhfxa3ijgqrg7wbgj95x6hfsgv2bbgbk-dingtalk-stream-0.24.3
+Deriver: kaw8nhl0qfqk9mslljaswhlyzl3bia08-dingtalk-stream-0.24.3.drv
+Sig: i9-kernel-cache:x3juke3bNPW/llVU8j5VtnaQJMMFDL2gOxELjFZmKL0mulC9xTeq6Bt8jTplEaJBLhg/3yU1FmNidScJBqnoDQ==

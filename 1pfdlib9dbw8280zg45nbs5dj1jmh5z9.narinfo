@@ -1,0 +1,10 @@
+StorePath: /nix/store/1pfdlib9dbw8280zg45nbs5dj1jmh5z9-rich-14.3.4
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/00ka27gmq5rwv3d24lcyqqfb0p4z64njklgjhxmddvlv2b29nvd7.nar.xz
+Compression: xz
+FileHash: sha256:00ka27gmq5rwv3d24lcyqqfb0p4z64njklgjhxmddvlv2b29nvd7
+FileSize: 524460
+NarHash: sha256:0b02w8vxw0bwq7j5alb12ddl7mvgzs7ihz4ijwm9bmrn0gjqng4x
+NarSize: 3021768
+References: 1pfdlib9dbw8280zg45nbs5dj1jmh5z9-rich-14.3.4
+Deriver: 08qkd25d8ww0p0cyxvabh17hybg722vs-rich-14.3.4.drv
+Sig: i9-kernel-cache:Ug3qp0Li91ZleJJFH2w+psYEpr868lqyUDlbWpQ0lSNqB0vNmxaVExKSBJmVlFx8KsEEq7cNihHK/oeF9H/aDg==

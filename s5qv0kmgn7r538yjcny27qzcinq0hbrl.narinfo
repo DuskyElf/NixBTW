@@ -1,0 +1,10 @@
+StorePath: /nix/store/s5qv0kmgn7r538yjcny27qzcinq0hbrl-mcp-2.3.0
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/001h1lck05mfxz883yxpys15fwg06gl5faa4g7qnwzgdp0mqz881.nar.xz
+Compression: xz
+FileHash: sha256:001h1lck05mfxz883yxpys15fwg06gl5faa4g7qnwzgdp0mqz881
+FileSize: 622348
+NarHash: sha256:18iq9s69ydi5cv273s7y1wl18mzvvaw163vlh63vqqwp94wrm138
+NarSize: 2819232
+References: s5qv0kmgn7r538yjcny27qzcinq0hbrl-mcp-2.3.0 xahxrjs30p3mw0a42bqg9ikgkikskw8m-python3-3.14.8
+Deriver: 9zcklrb961c2a5mwszcmldmgbc8hdi10-mcp-2.3.0.drv
+Sig: i9-kernel-cache:cxOANqZwGovVt5OZyIRWe8VT1quaVwQJWi32uUI73DkwCDd2UKg6U1fkl03X3KdrW34RULZ+nW/+Y0VeoOzYCA==

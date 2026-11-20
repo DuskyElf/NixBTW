@@ -1,0 +1,10 @@
+StorePath: /nix/store/jjs2s6l8phda44i01icxybhqr52mncar-pillow-heif-1.8.1
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/0whyrdc75d8vwscgpqirjh7niv089ikicz1vcb6ggr4mc54569mk.nar.xz
+Compression: xz
+FileHash: sha256:0whyrdc75d8vwscgpqirjh7niv089ikicz1vcb6ggr4mc54569mk
+FileSize: 3111484
+NarHash: sha256:0jcpxvw0nqz1n682krxldxfffpm4xq91y72c1g43rjvcqk64ns2x
+NarSize: 27742552
+References: 3sj8msrsym648f35mk3gb3pp385hhk8r-gcc-16.2.0-libgcc 7a2cjhcgzyym5zaz6m4fksw47qvm150w-gcc-16.2.0-lib jjs2s6l8phda44i01icxybhqr52mncar-pillow-heif-1.8.1
+Deriver: h295agggwna182f2jfc88mphsxc1v66r-pillow-heif-1.8.1.drv
+Sig: i9-kernel-cache:+snJWEdW04GxBifFMEH5FEo0NXRYXQ5rcRGgtqtrLcJb/b5yuRlYZesstVOoJbOXLTfaHPU30ePa2hJEylUwCw==

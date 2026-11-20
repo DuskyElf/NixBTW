@@ -1,0 +1,10 @@
+StorePath: /nix/store/58p2fsjzqg26yxj2y12rii8j19ngf82b-socksio-1.0.0
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/0pni8n0w0igd3ygjlfcz0gncx0rlrpdj3nbzh5ax1363q8m2bym9.nar.xz
+Compression: xz
+FileHash: sha256:0pni8n0w0igd3ygjlfcz0gncx0rlrpdj3nbzh5ax1363q8m2bym9
+FileSize: 21032
+NarHash: sha256:03zwrxab84g0j53gircq3jj0vbvp9y92jb1m8mx3c465v485xsw7
+NarSize: 88464
+References: 58p2fsjzqg26yxj2y12rii8j19ngf82b-socksio-1.0.0
+Deriver: i1nlvjkbh3mkmp5z4l4z20y1zczdkaf4-socksio-1.0.0.drv
+Sig: i9-kernel-cache:Yg6YYvlCqbYGwcGwGOEmSSpcqawgqzAfJM0irKzZMcG+kMj8W2fLGoW2Uzoe+YrAwcQmfmwCY8roy5WR6sUfAw==

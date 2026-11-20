@@ -1,0 +1,10 @@
+StorePath: /nix/store/fzp6q1c3a9x9954y01czkb9jhwz6dicq-googleapis-common-protos-1.75.5
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/1s97ayggqwyyk6xddfly8bymzc60xwl22bwvrf39w03ky7iihg22.nar.xz
+Compression: xz
+FileHash: sha256:1s97ayggqwyyk6xddfly8bymzc60xwl22bwvrf39w03ky7iihg22
+FileSize: 140724
+NarHash: sha256:0ds71d13z58whiicwpddnqq046gjfxsvm2zbzwn5igc7ccn7wscw
+NarSize: 1031624
+References: fzp6q1c3a9x9954y01czkb9jhwz6dicq-googleapis-common-protos-1.75.5
+Deriver: vaiq6a4vapm30f0fqvkyl9zgybdkny0v-googleapis-common-protos-1.75.5.drv
+Sig: i9-kernel-cache:H1gJQkKDGi8pMMwr57JLGbSLo0dSUfvq/XIXmp/ysa+AyljUWicch/Q9hO6K7dMu0v79WI0TXCsr+5P3Lt3OBA==

@@ -1,0 +1,10 @@
+StorePath: /nix/store/7g0xilhfw2vx2yl1g8v4jdy4dr28vmmx-ffmpeg-9.0.1
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/141s2489g83wjxnv95fd0kj68pgkkpvqg38i9qhayiwx66y7c023.nar.xz
+Compression: xz
+FileHash: sha256:141s2489g83wjxnv95fd0kj68pgkkpvqg38i9qhayiwx66y7c023
+FileSize: 127434064
+NarHash: sha256:12kc9ri2ll7rjiixqhlzr4431iz9rkmsj3b6cznlqmybm2c14mw2
+NarSize: 452905584
+References: 3sj8msrsym648f35mk3gb3pp385hhk8r-gcc-16.2.0-libgcc pqyiidz5mi73wv5f91d48s9plcqyj5bz-glibc-2.44-57
+Deriver: 4k62c3ig4wybmjlv7hlg0b6bf576rkc8-ffmpeg-9.0.1.drv
+Sig: i9-kernel-cache:/z9clskumwjoMXTTwLdWVr1+vuAJhJOwqXgP/Ib+Sc1FhScssMFWF2QviFs7bTjUQzROmemYenNLEmUPU2mlBQ==

@@ -1,0 +1,10 @@
+StorePath: /nix/store/20b84hwxxjkw3l631xvp0x5jcq9hyfha-opentelemetry-instrumentation-0.66b2
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/0337pzzix3f4ga3mqly0wdy0lslsin3sbnd8gdlmfia5lbzabd4k.nar.xz
+Compression: xz
+FileHash: sha256:0337pzzix3f4ga3mqly0wdy0lslsin3sbnd8gdlmfia5lbzabd4k
+FileSize: 58800
+NarHash: sha256:1fawz9cfri8b8fc06761gxgaljkmsjwwvckar8jva6jacj7jjdbb
+NarSize: 246352
+References: 20b84hwxxjkw3l631xvp0x5jcq9hyfha-opentelemetry-instrumentation-0.66b2 xahxrjs30p3mw0a42bqg9ikgkikskw8m-python3-3.14.8
+Deriver: kw7h3z6m5s7r935xjjqwv1nkb2yh2lmn-opentelemetry-instrumentation-0.66b2.drv
+Sig: i9-kernel-cache:dJz4+MYfEz+yTP+QqOKPWHxeC/+fcfxMYeCE6Ks+XUnXb2IafQAmzllVxkmGnwLJuBAWMjqqmL8KI8KEIQBXBQ==

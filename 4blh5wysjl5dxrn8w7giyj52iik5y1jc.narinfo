@@ -1,0 +1,10 @@
+StorePath: /nix/store/4blh5wysjl5dxrn8w7giyj52iik5y1jc-s3transfer-0.19.3
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/0cx6lhvqv3lh2q3j6cbwfyd4k1wk1c63db6l8qcpcw33jpmk6fcz.nar.xz
+Compression: xz
+FileHash: sha256:0cx6lhvqv3lh2q3j6cbwfyd4k1wk1c63db6l8qcpcw33jpmk6fcz
+FileSize: 145872
+NarHash: sha256:1x64rxbiq9jv6fx4gviwqm5p9x0x9axhdc59zq0172ryzy2yn061
+NarSize: 707232
+References: 4blh5wysjl5dxrn8w7giyj52iik5y1jc-s3transfer-0.19.3
+Deriver: f62da35227fjmj7nhbywd9rrgq8hwqll-s3transfer-0.19.3.drv
+Sig: i9-kernel-cache:ON1Ya1U8pV/tGEtCfGu0Dywq9EfnH4NZ9DJf6PxirERLlP1pdLXYjobn39jXX6Uv06jynUHe5iotzCoDuo2hAQ==

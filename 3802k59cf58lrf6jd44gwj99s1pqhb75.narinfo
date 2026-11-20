@@ -1,0 +1,10 @@
+StorePath: /nix/store/3802k59cf58lrf6jd44gwj99s1pqhb75-alibabacloud-endpoint-util-0.0.4
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/0lbis061w6vmzc1b2b5xkq21c2a6gd8lvl1rfgn1mkg1xmsvr03l.nar.xz
+Compression: xz
+FileHash: sha256:0lbis061w6vmzc1b2b5xkq21c2a6gd8lvl1rfgn1mkg1xmsvr03l
+FileSize: 2748
+NarHash: sha256:1xqr7rmfnvhi6zfmasgx6d1isbzbppa0nhlpg90kmz868vk5xq6h
+NarSize: 8624
+References: 3802k59cf58lrf6jd44gwj99s1pqhb75-alibabacloud-endpoint-util-0.0.4
+Deriver: pxd65n9jdyijax5gki9yzihhdcdcsksy-alibabacloud-endpoint-util-0.0.4.drv
+Sig: i9-kernel-cache:hgAM4DiOE6XA52gHnpVO0g+kMiI0MxjLKHY8MGtBRH7aRpIrCxgfvfnxzy/0MpMShPtHkbf+A95aQ/0qoU8XAA==

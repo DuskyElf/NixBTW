@@ -1,0 +1,10 @@
+StorePath: /nix/store/2kb9nh189045gi11p4382g9ka9q6gzmc-nemo-relay-0.11.0
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/1fzavvih5mlsnpj8s9vv4j0s9vv9v2p6m82xw67v6y572pnsf9sb.nar.xz
+Compression: xz
+FileHash: sha256:1fzavvih5mlsnpj8s9vv4j0s9vv9v2p6m82xw67v6y572pnsf9sb
+FileSize: 7845184
+NarHash: sha256:08lfkb81q751vnxlpcqsf72a6p77l45x1l7v6xcnxj6xdr07imx7
+NarSize: 29153144
+References: 2kb9nh189045gi11p4382g9ka9q6gzmc-nemo-relay-0.11.0
+Deriver: byvwi3qxz3fs4h6l2aw62dl3dq7zd2nw-nemo-relay-0.11.0.drv
+Sig: i9-kernel-cache:cq9ACSA/yj9UJV5zObNm2nZ29XDnqrTCAbrtWuqsG17dULUhCRb+M01Ko4OM824r1zt71o1DlznhNz6dY+fJAw==

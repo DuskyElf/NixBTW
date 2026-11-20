@@ -1,0 +1,10 @@
+StorePath: /nix/store/ndwpc04m1zzm4mhir9c1lvp409r6lf0v-elevenlabs-1.59.0
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/1h4gf0f7g98dri7gzndl927zz7cjyfgrnzfwwfjy2xbj6p0jw679.nar.xz
+Compression: xz
+FileHash: sha256:1h4gf0f7g98dri7gzndl927zz7cjyfgrnzfwwfjy2xbj6p0jw679
+FileSize: 362692
+NarHash: sha256:0wawcv69fd91w1wpz9r0hc0vc1g5mhm533mzbddc797y9p25p0ds
+NarSize: 4509456
+References: ndwpc04m1zzm4mhir9c1lvp409r6lf0v-elevenlabs-1.59.0
+Deriver: 5pdfx0v862bmzy3bpgsbikcshfp810nn-elevenlabs-1.59.0.drv
+Sig: i9-kernel-cache:wE7zsr/i1SLRyW163In0ObBixvX095+CIIvn+mre7FbMz53bXP5xbOGaG+DuiJ9PBtJ2bg7MT+3psidxEhN9Dg==

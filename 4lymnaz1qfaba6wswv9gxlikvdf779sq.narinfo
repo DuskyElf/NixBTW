@@ -1,0 +1,10 @@
+StorePath: /nix/store/4lymnaz1qfaba6wswv9gxlikvdf779sq-google-api-core-2.42.0
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/0a5s900ab843qyr7bj9pyc3qhckwzlnc1p1hy742hc956g6sh4ji.nar.xz
+Compression: xz
+FileHash: sha256:0a5s900ab843qyr7bj9pyc3qhckwzlnc1p1hy742hc956g6sh4ji
+FileSize: 261240
+NarHash: sha256:10v4jp9n4m8nalk7vdakinbj7p5am0ka41832180mr3g7vmd4ggh
+NarSize: 1573352
+References: 4lymnaz1qfaba6wswv9gxlikvdf779sq-google-api-core-2.42.0
+Deriver: csd6vg6axgkdxlqv3qxjw9vdkrymzbd7-google-api-core-2.42.0.drv
+Sig: i9-kernel-cache:LYVxGUVUzDf3qtHvCjXR2N7OOu1JHWPMnwZqioaIVVT+rmwLdqvFilzCtHj5Puc/Uk4gqNovlBqQ4xFrMZO5Ag==

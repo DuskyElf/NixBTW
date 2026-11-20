@@ -1,0 +1,10 @@
+StorePath: /nix/store/bf8n2qbwc13w76nh2cxyma1wp1691lxn-requests-toolbelt-1.0.0
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/107jgywsxk2vnsicix405ih8ialbwcp63fabi22a4p7rfj9g8ni6.nar.xz
+Compression: xz
+FileHash: sha256:107jgywsxk2vnsicix405ih8ialbwcp63fabi22a4p7rfj9g8ni6
+FileSize: 78348
+NarHash: sha256:11p2s9lkv0q10kh7sq5qxqn1vw88nnvr8kz4j1anbpn3wnnm47l7
+NarSize: 335344
+References: bf8n2qbwc13w76nh2cxyma1wp1691lxn-requests-toolbelt-1.0.0
+Deriver: 1fm7f6p1fab06gmaikmvlw0n1s4jd38h-requests-toolbelt-1.0.0.drv
+Sig: i9-kernel-cache:10ke4KKdK6KGvL5sqP0rJRajbDS1zlRXfXQaiOKIysSQ8e3IPIemycO3/YxZxZxCrUvgkbo6xsNZMipeELkkAA==

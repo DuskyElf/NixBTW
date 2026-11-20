@@ -1,0 +1,10 @@
+StorePath: /nix/store/waan15rc00snkw6kbph45rx8sqxalxzc-pyasn1-0.6.5
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/1sj9nqlxhimjfqyw5b4kgwpcxpgpk6w2kvglxcajq735s19dz24g.nar.xz
+Compression: xz
+FileHash: sha256:1sj9nqlxhimjfqyw5b4kgwpcxpgpk6w2kvglxcajq735s19dz24g
+FileSize: 154592
+NarHash: sha256:0dc9a0i1x47r0w96lazsnx185sc5as7mz606fpafds6i6b5c8rda
+NarSize: 858040
+References: waan15rc00snkw6kbph45rx8sqxalxzc-pyasn1-0.6.5
+Deriver: biy2d9qdz7j20hncvbzmkhc4acslaknm-pyasn1-0.6.5.drv
+Sig: i9-kernel-cache:/pjDqahS1jgeu8WEKluI0Np94qpuQwAn5hH7on1yzMTwmSnyXSMJDj/Ig+G+qU7fP15b2vNPrHhw2/EMzDVfAA==

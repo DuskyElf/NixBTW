@@ -1,0 +1,10 @@
+StorePath: /nix/store/6mxkd61mrk7rrh03fl3lpmklhjcypchd-python-multipart-0.0.32
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/1g94k1dqgfdz66i4k4v5q4vg3dzl1harmhgy65qz97384004sxwf.nar.xz
+Compression: xz
+FileHash: sha256:1g94k1dqgfdz66i4k4v5q4vg3dzl1harmhgy65qz97384004sxwf
+FileSize: 49408
+NarHash: sha256:1f97kgfijkn5wxnkxf2hf7jfzrbmg5ma59ambs2hj4rm4kpry846
+NarSize: 207016
+References: 6mxkd61mrk7rrh03fl3lpmklhjcypchd-python-multipart-0.0.32
+Deriver: 5s4yqix3g0d6nig7b1xnrsqnvnn88f7b-python-multipart-0.0.32.drv
+Sig: i9-kernel-cache:XXYPbyNcagzGrEBVBI3QOXG4ikX/8q8MvJadXc+y8/bdEAaFPA4+DPpXoLQnuuKKesQwoHMEHhi7pwO0iinIAQ==

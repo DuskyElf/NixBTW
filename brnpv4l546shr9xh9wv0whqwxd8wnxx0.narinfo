@@ -1,0 +1,10 @@
+StorePath: /nix/store/brnpv4l546shr9xh9wv0whqwxd8wnxx0-multidict-6.9.1
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/0ifs2fl8yc7id5za1kcr8a4n50g1698ai1f6za55xa1y2w7xnc53.nar.xz
+Compression: xz
+FileHash: sha256:0ifs2fl8yc7id5za1kcr8a4n50g1698ai1f6za55xa1y2w7xnc53
+FileSize: 289640
+NarHash: sha256:0p4nbn26vibrsc2xv4r309n0rmk86mbf58s3n5glr88wlc45vj4a
+NarSize: 1313672
+References: brnpv4l546shr9xh9wv0whqwxd8wnxx0-multidict-6.9.1
+Deriver: 9m4bxcfnzbcf2445d7zaql6bmx2q370n-multidict-6.9.1.drv
+Sig: i9-kernel-cache:pqKaVAN/KzK01Qfe+aF2b+mJHaX+SEhKd5fG+Zu8LS+81D1X0z5Cpd9iFRZzaJcr0iw4uEmUGWACgUTvp+e0Dg==

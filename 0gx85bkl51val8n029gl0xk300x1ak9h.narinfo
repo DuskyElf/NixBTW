@@ -1,0 +1,10 @@
+StorePath: /nix/store/0gx85bkl51val8n029gl0xk300x1ak9h-opentelemetry-util-http-0.66b2
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/0b7ws7mn18ijaakq1dxbwdfzqdc5rysmizczyrs8vfkj60dc2jpr.nar.xz
+Compression: xz
+FileHash: sha256:0b7ws7mn18ijaakq1dxbwdfzqdc5rysmizczyrs8vfkj60dc2jpr
+FileSize: 15640
+NarHash: sha256:0lmy0dv3gjn3qxdnci4p997ijs1m9d9pilkrjk72kv6vrx4jiabl
+NarSize: 54112
+References: 0gx85bkl51val8n029gl0xk300x1ak9h-opentelemetry-util-http-0.66b2
+Deriver: clmc7vmwrc42h3kx8yl4cjv93lnvv3zg-opentelemetry-util-http-0.66b2.drv
+Sig: i9-kernel-cache:Rjg0IBLtHDARKwVpl8Zedo1gje/WeaN9TBn0coJWziqdwU6rhiBYFjxTubgxyK9I2u+8wlnm628Va/UNZImUAA==

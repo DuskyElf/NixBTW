@@ -1,0 +1,10 @@
+StorePath: /nix/store/syx0jscrgn86vij0dxv48vbdywq394g7-alibabacloud-gateway-spi-0.0.4
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/0cd2gl3vaj0z745jpxdxg0wy7g9q60w48hafabmgg8rj52a8gcpq.nar.xz
+Compression: xz
+FileHash: sha256:0cd2gl3vaj0z745jpxdxg0wy7g9q60w48hafabmgg8rj52a8gcpq
+FileSize: 7780
+NarHash: sha256:0rlacf6m7qw2izqqiysayb95mmmlvhznqrgawmsby1rxpfr8v9gg
+NarSize: 41216
+References: syx0jscrgn86vij0dxv48vbdywq394g7-alibabacloud-gateway-spi-0.0.4
+Deriver: fa7bsf1p4zciic0xgd1lldkqcsr5mkg2-alibabacloud-gateway-spi-0.0.4.drv
+Sig: i9-kernel-cache:bEJY4uy6oVYteY1VmesM4OpeeYjkpIZajnmIsUwGi1CicHdkwdcyWTRbWkfGN/zHXmYWaDt5hvx3mtk3wkTVCQ==

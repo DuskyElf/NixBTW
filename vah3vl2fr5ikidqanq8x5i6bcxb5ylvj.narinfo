@@ -1,0 +1,10 @@
+StorePath: /nix/store/vah3vl2fr5ikidqanq8x5i6bcxb5ylvj-huggingface-hub-1.33.0
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/0wxsb0fxpv32y4krvarjz9cxfyj59dm694qkqp0rxlxhlrkxbkkk.nar.xz
+Compression: xz
+FileHash: sha256:0wxsb0fxpv32y4krvarjz9cxfyj59dm694qkqp0rxlxhlrkxbkkk
+FileSize: 1342952
+NarHash: sha256:1yipjgb804f6kyhr17jf3r9dbk6dh59yaj9zqlsz8dzh7yaxqr6d
+NarSize: 7284552
+References: vah3vl2fr5ikidqanq8x5i6bcxb5ylvj-huggingface-hub-1.33.0 xahxrjs30p3mw0a42bqg9ikgkikskw8m-python3-3.14.8
+Deriver: ldzfcvpvbm6bvzih5plr6sfyz56lrbyj-huggingface-hub-1.33.0.drv
+Sig: i9-kernel-cache:Pj4AolmCvTLXQY8Fs5gRuxvf8cRHF278Rhc+hjKTF+Qo24MvB2/vqmMa0n86h8wXe3LNhwBMF3RvlW4uIwVwAQ==

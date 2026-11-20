@@ -1,0 +1,10 @@
+StorePath: /nix/store/icxw4w2gwjkyxzbh4n1frp5ij8x6nd7p-anthropic-0.125.0
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/14n7yzbym0ynqkn12mrakdx8v9v972k30ag29yry6dyfrwrc2vhb.nar.xz
+Compression: xz
+FileHash: sha256:14n7yzbym0ynqkn12mrakdx8v9v972k30ag29yry6dyfrwrc2vhb
+FileSize: 941500
+NarHash: sha256:1591v6v8aibjfb7n38qhjhygpk83mhj4pm2jrgj582wmwxlkq60v
+NarSize: 8246728
+References: icxw4w2gwjkyxzbh4n1frp5ij8x6nd7p-anthropic-0.125.0
+Deriver: 724mj6z4h297izb48lkfmy3aqmjg9amv-anthropic-0.125.0.drv
+Sig: i9-kernel-cache:rIpskbhlVqloij93sJt8F6swhT/RS2dZCIGfrqln4SOU0D6qvgygYsS67GvDWaEE+fNep5L2nHSdfVo42slyAg==

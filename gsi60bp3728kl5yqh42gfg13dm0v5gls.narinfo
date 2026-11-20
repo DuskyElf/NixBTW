@@ -1,0 +1,10 @@
+StorePath: /nix/store/gsi60bp3728kl5yqh42gfg13dm0v5gls-h11-0.16.0
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/0r1zjfb2ykmara0zzqj9h1xmj9c9yhg6fgyi9in37ny0zm71hca7.nar.xz
+Compression: xz
+FileHash: sha256:0r1zjfb2ykmara0zzqj9h1xmj9c9yhg6fgyi9in37ny0zm71hca7
+FileSize: 56540
+NarHash: sha256:12dazycfbp31n5abasfv90h307mrhhy78dy6g1xvj01wdhglqpfg
+NarSize: 212264
+References: gsi60bp3728kl5yqh42gfg13dm0v5gls-h11-0.16.0
+Deriver: m335z8wpcbslgxdpgnrm6vbbs757hn1y-h11-0.16.0.drv
+Sig: i9-kernel-cache:PEMVcVQZdQY9ouFSzm9c3mt/1pWI4I6lPwr7vGvvQibxnwgt84uDY8EkqYYr3xZmQJedoT6blfObTS5DkmsFCA==

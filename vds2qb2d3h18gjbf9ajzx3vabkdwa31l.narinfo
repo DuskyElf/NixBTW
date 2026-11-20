@@ -1,0 +1,10 @@
+StorePath: /nix/store/vds2qb2d3h18gjbf9ajzx3vabkdwa31l-pydantic-core-2.50.1
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/1jin8gqq3siaqi4gfh3ycjr67519nvwsm45gcgwljjccaifyranq.nar.xz
+Compression: xz
+FileHash: sha256:1jin8gqq3siaqi4gfh3ycjr67519nvwsm45gcgwljjccaifyranq
+FileSize: 1617748
+NarHash: sha256:09kjbfqwl1qd9b7dm2r81gybgpbx8j88w5lls00fs7jij40a3rhn
+NarSize: 5431096
+References: 3sj8msrsym648f35mk3gb3pp385hhk8r-gcc-16.2.0-libgcc vds2qb2d3h18gjbf9ajzx3vabkdwa31l-pydantic-core-2.50.1
+Deriver: nl0l496wh2ys2g2hyndfn0c5z2dbkybm-pydantic-core-2.50.1.drv
+Sig: i9-kernel-cache:6VDAxR7JKMr33mFvP6Yk4Lz3pJfZ2uHG+SD2ocyLgJw0VGvBtnJLhJxuUKAyubaBf/bXDaDTGarnjfeCLQWnCg==

@@ -1,0 +1,10 @@
+StorePath: /nix/store/5xb22wfc2l2v5704c3gli6kzgs9ngsw5-botocore-1.43.115
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/0390k3i9bp29b8pjv3chia2rkdna0z0zx37b6dz03hv6c9djavgy.nar.xz
+Compression: xz
+FileHash: sha256:0390k3i9bp29b8pjv3chia2rkdna0z0zx37b6dz03hv6c9djavgy
+FileSize: 15661964
+NarHash: sha256:1wl0wymw8hr4y2dxida8kjjskdvdqjxa6nqnnrr40s8syk8f4xhv
+NarSize: 22788120
+References: 5xb22wfc2l2v5704c3gli6kzgs9ngsw5-botocore-1.43.115
+Deriver: cwa6q8nlxcrdls64ylrc892qqckbs1nz-botocore-1.43.115.drv
+Sig: i9-kernel-cache:D10iYUTleEliuqj/zjUjm814GE39MgHFTWZi8dTtUN5uCRM+1OW10aoZP8/4LztqHAMLwMyEdIU/l0jMdMpsDw==

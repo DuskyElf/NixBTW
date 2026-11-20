@@ -1,0 +1,10 @@
+StorePath: /nix/store/f34rr45ak58yp2rkcv1jn51wikkj0vrk-brotlicffi-1.2.1.0
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/0k4y5ykc9lrsb6170p1k7ggyvv8zpa5ic542jhh60w1g714qs92y.nar.xz
+Compression: xz
+FileHash: sha256:0k4y5ykc9lrsb6170p1k7ggyvv8zpa5ic542jhh60w1g714qs92y
+FileSize: 1131952
+NarHash: sha256:1n2504n03f22yrxdfqb1a18s6cnn1gibkj3z6p360d9fdybfybb8
+NarSize: 5583328
+References: f34rr45ak58yp2rkcv1jn51wikkj0vrk-brotlicffi-1.2.1.0
+Deriver: kmczsgymwhjrfkc99piiazc06hyk0hl3-brotlicffi-1.2.1.0.drv
+Sig: i9-kernel-cache:cJ5Y7G7+AoUmDCpLiW6wGoo+5a8KecjdwJfj8YOupvSHAyZbURW20Pzu56kvm5PO61DL2Pe0FwJXwmSJIl7uAw==

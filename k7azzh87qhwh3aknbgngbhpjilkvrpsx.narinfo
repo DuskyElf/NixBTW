@@ -1,0 +1,10 @@
+StorePath: /nix/store/k7azzh87qhwh3aknbgngbhpjilkvrpsx-vercel-headers-0.7.2
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/01cvz3p44kvcz8pmiwpfqhmln278sbghfj3f7ww5w7pkxs6hd87w.nar.xz
+Compression: xz
+FileHash: sha256:01cvz3p44kvcz8pmiwpfqhmln278sbghfj3f7ww5w7pkxs6hd87w
+FileSize: 7088
+NarHash: sha256:0xdpxk92c2c66s7sawbrs8vcn4xz0d2n2rk837hqksl3kllrja4w
+NarSize: 20768
+References: k7azzh87qhwh3aknbgngbhpjilkvrpsx-vercel-headers-0.7.2
+Deriver: mf0k9sfzrwvw7hn1rz41g5qa09kbiq11-vercel-headers-0.7.2.drv
+Sig: i9-kernel-cache:uML8dkumrDtbR5bt7HEVYMm/5p2ddFYt1ghFe8iN2T/67PEh6J3tzgXngxqFUHEVXXHZPAKBJILQYrgxoowGAg==

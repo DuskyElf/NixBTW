@@ -1,0 +1,10 @@
+StorePath: /nix/store/lhq603hzayk52a059sn2rl8clhqcl1qi-pillow-13.0.0
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/00yy8fcdc4hz1ikr8pnh3zxwz7gfdk1hrgvxlqhifp9gax075mdh.nar.xz
+Compression: xz
+FileHash: sha256:00yy8fcdc4hz1ikr8pnh3zxwz7gfdk1hrgvxlqhifp9gax075mdh
+FileSize: 5939580
+NarHash: sha256:1zfb9yki348kzdk5c7fp1a33lzajk1s8hfnhhsbyghap1jpwprap
+NarSize: 22239096
+References: 3sj8msrsym648f35mk3gb3pp385hhk8r-gcc-16.2.0-libgcc 7a2cjhcgzyym5zaz6m4fksw47qvm150w-gcc-16.2.0-lib ji36842higmp6b06hbbpmzbd59g1c07c-zlib-1.3.2 lhq603hzayk52a059sn2rl8clhqcl1qi-pillow-13.0.0
+Deriver: q5w0mb7agmd5vjbiv9y3vyxl6svffdyc-pillow-13.0.0.drv
+Sig: i9-kernel-cache:gC1HLtav3iuZBYgDxE2HvYjTv3LJA4R25EsZ4lW+yioEAl6jiATOlQTcrUC0l4Ydi+six0USOWcUxTt+uPTbBg==

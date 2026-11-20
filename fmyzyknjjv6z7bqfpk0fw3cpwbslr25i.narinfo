@@ -1,0 +1,10 @@
+StorePath: /nix/store/fmyzyknjjv6z7bqfpk0fw3cpwbslr25i-asyncpg-0.32.0
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/0ahvsjkyhiyvjhr5h9q05bsq1s99ivd4pmxa6gcpw82vpmcaq98q.nar.xz
+Compression: xz
+FileHash: sha256:0ahvsjkyhiyvjhr5h9q05bsq1s99ivd4pmxa6gcpw82vpmcaq98q
+FileSize: 2907032
+NarHash: sha256:0b6ph0w5n3jm745wc8mx80xk09j3mf3hs8sl3qy0pjqg98791d43
+NarSize: 14482224
+References: fmyzyknjjv6z7bqfpk0fw3cpwbslr25i-asyncpg-0.32.0
+Deriver: q3rgkz5xjac17ajkwl20rbkrk8rc9vgd-asyncpg-0.32.0.drv
+Sig: i9-kernel-cache:IlN46SmPZTqatsksFFtzxoKGHAwy4Y++AjWQX/59Flt96nlkgSQXNY3pVilmUWyyGQW0gmYRIHPy463LbA36DA==

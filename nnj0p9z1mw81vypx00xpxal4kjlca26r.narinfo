@@ -1,0 +1,10 @@
+StorePath: /nix/store/nnj0p9z1mw81vypx00xpxal4kjlca26r-python-dotenv-1.2.4
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/1yld3baw9grm3d7ch1x90772c5nvd0y5azbbrniq9ks5rxfb0dxq.nar.xz
+Compression: xz
+FileHash: sha256:1yld3baw9grm3d7ch1x90772c5nvd0y5azbbrniq9ks5rxfb0dxq
+FileSize: 38760
+NarHash: sha256:0ihl3kphmxlsdi672gbrachgzv5zvh2wik0322440q90y118va4x
+NarSize: 136288
+References: nnj0p9z1mw81vypx00xpxal4kjlca26r-python-dotenv-1.2.4 xahxrjs30p3mw0a42bqg9ikgkikskw8m-python3-3.14.8
+Deriver: 5sacqxjjs1w92jrim5gblfx5cykzkm8z-python-dotenv-1.2.4.drv
+Sig: i9-kernel-cache:b/7RQTabkWuK0eCH6dRLDP7LpmvF/+Ze+UfDtT+5Nm+pGHKSz41uau9/NQjtyX50YCpfsL8eOGOkyfYABDMLDw==

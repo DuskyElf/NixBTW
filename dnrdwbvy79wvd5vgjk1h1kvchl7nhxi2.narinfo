@@ -1,0 +1,10 @@
+StorePath: /nix/store/dnrdwbvy79wvd5vgjk1h1kvchl7nhxi2-sse-starlette-3.5.0
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/1aqmi6spnkkbyzcm0a5mla9pr677jq83xssc4r4x0111p8j5c4w6.nar.xz
+Compression: xz
+FileHash: sha256:1aqmi6spnkkbyzcm0a5mla9pr677jq83xssc4r4x0111p8j5c4w6
+FileSize: 25860
+NarHash: sha256:1rrd7xaf5dwynv3wl7vw4hv2visws9ig4l8p0yz1s0kzhdpfc6hd
+NarSize: 85224
+References: dnrdwbvy79wvd5vgjk1h1kvchl7nhxi2-sse-starlette-3.5.0
+Deriver: knlk4w1wr007dz2a8s97gz2ixzlfyy77-sse-starlette-3.5.0.drv
+Sig: i9-kernel-cache:v98thtaehe/cObAXY9C5fbU0nU0irmarWgcfcbVw5YGnegGcERkpBVbAUdE5W+7uuIzRhW5Nzv9wj5Bn7pShDg==

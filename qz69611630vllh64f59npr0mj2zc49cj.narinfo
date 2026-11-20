@@ -1,0 +1,10 @@
+StorePath: /nix/store/qz69611630vllh64f59npr0mj2zc49cj-distro-1.9.0
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/1spbaabf6pvbzvznd77j1cb4rgpp76ng1wm3gzdl7b3z5wf9rbp3.nar.xz
+Compression: xz
+FileHash: sha256:1spbaabf6pvbzvznd77j1cb4rgpp76ng1wm3gzdl7b3z5wf9rbp3
+FileSize: 31204
+NarHash: sha256:0p0n5dx5s88wbg7c6sc2qw18nngdqj9n5fdkhrs8wvb7s1yl8lwc
+NarSize: 137112
+References: qz69611630vllh64f59npr0mj2zc49cj-distro-1.9.0 xahxrjs30p3mw0a42bqg9ikgkikskw8m-python3-3.14.8
+Deriver: bnzpz6w3lr1zy8bqs0phskzx4rrv1wd4-distro-1.9.0.drv
+Sig: i9-kernel-cache:kF8YT38by5+9oN77aZJIY7opnEwMyxl7FuyZf+08DPFJ7tnGJXKUAdsEQXzpyR5b7qFZ+jXfyb8May3U2f8VDA==

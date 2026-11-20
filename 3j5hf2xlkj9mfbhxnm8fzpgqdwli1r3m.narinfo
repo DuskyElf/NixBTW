@@ -1,0 +1,10 @@
+StorePath: /nix/store/3j5hf2xlkj9mfbhxnm8fzpgqdwli1r3m-mautrix-0.21.1
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/079sslb4195zvffib2qy61wsyq510vdd8s1l3qfllrjdf6a1rf39.nar.xz
+Compression: xz
+FileHash: sha256:079sslb4195zvffib2qy61wsyq510vdd8s1l3qfllrjdf6a1rf39
+FileSize: 606696
+NarHash: sha256:1fqyargz0cwizhxr92wcc2na6rwyv8mnl65xyaxql24bpg8n8vl5
+NarSize: 2935752
+References: 3j5hf2xlkj9mfbhxnm8fzpgqdwli1r3m-mautrix-0.21.1
+Deriver: ldhxgp2vifl8sn2qdjmlyi66xgglp8j1-mautrix-0.21.1.drv
+Sig: i9-kernel-cache:46Y+Mpuj8QHoDSjui57YjIk29RfVa4rRm6hddg5a3S5Sa9LAlc5kjzbo/kCwlDzCLRfnvaD8RmtYwp7SkXJhAQ==

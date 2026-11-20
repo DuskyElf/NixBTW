@@ -1,0 +1,10 @@
+StorePath: /nix/store/rgdqwpdy1g6i5fq5mw0ppc3hkfqj861y-vercel-0.12.0
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/0cfxh843gy58bb5lw83d802w8gyblfsq8499gapa05g626bk86jz.nar.xz
+Compression: xz
+FileHash: sha256:0cfxh843gy58bb5lw83d802w8gyblfsq8499gapa05g626bk86jz
+FileSize: 56872
+NarHash: sha256:1vq6jh2h4nlaq1mzvh3g334il62zz63qlwa4rlljnqvf6439n5z4
+NarSize: 297896
+References: rgdqwpdy1g6i5fq5mw0ppc3hkfqj861y-vercel-0.12.0 xahxrjs30p3mw0a42bqg9ikgkikskw8m-python3-3.14.8
+Deriver: 0630pzzwmrjr0xnffw7b8w4p6n345an5-vercel-0.12.0.drv
+Sig: i9-kernel-cache:EMB4Mep+Ao+qOPrQ+/VUEJut/t+GlV0zWF4Ybq82vh3gacPnCk+5IiKEjT75yCIOunfhZ33hli29sWUeSeNUAA==

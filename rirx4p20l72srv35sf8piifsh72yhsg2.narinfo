@@ -1,0 +1,10 @@
+StorePath: /nix/store/rirx4p20l72srv35sf8piifsh72yhsg2-requests-2.34.2
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/1s6x3hpma6kgbqpsis193hqqgz44iy1ndld55mkj8b8gfyinfzwj.nar.xz
+Compression: xz
+FileHash: sha256:1s6x3hpma6kgbqpsis193hqqgz44iy1ndld55mkj8b8gfyinfzwj
+FileSize: 131552
+NarHash: sha256:1h27wcgw3rj44vkc4xvw2hfbx8v0pz3ja3ijwxnl5qppkzck9318
+NarSize: 527640
+References: rirx4p20l72srv35sf8piifsh72yhsg2-requests-2.34.2
+Deriver: kc4pbch9pp2gdirgvknz6126yvyyydpz-requests-2.34.2.drv
+Sig: i9-kernel-cache:OUE4PH7o3/7tv3DcBX4tElIcDvbzWLctGBtjpX2VM3aBPukgEvM5uJ2NTyg6T4wdN+4mWP5RWeNG/21vStD8BA==

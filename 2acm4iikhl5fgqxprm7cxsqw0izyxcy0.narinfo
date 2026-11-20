@@ -1,0 +1,10 @@
+StorePath: /nix/store/2acm4iikhl5fgqxprm7cxsqw0izyxcy0-defusedxml-0.7.1
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/1w4i02w6067cgs6qwd861adz40j3ikfjd9ki91zfqmq24h3ig0pi.nar.xz
+Compression: xz
+FileHash: sha256:1w4i02w6067cgs6qwd861adz40j3ikfjd9ki91zfqmq24h3ig0pi
+FileSize: 30032
+NarHash: sha256:0f8b6xnyp74gmmf2f7gqpprc2i0fjnf4vhg1zji0ds9ya8jv8lsb
+NarSize: 117520
+References: 2acm4iikhl5fgqxprm7cxsqw0izyxcy0-defusedxml-0.7.1
+Deriver: 8pj7g2w6xakmg80n89vfcvady3gyas9f-defusedxml-0.7.1.drv
+Sig: i9-kernel-cache:FoiJDSY22xlt6WutWFHT4RIVh5pvTQY6r1TgMXz6ozmCPqBGn6zAI/krNKhEWmtWDudTG+db2fPt/eo8Cgz2Dw==

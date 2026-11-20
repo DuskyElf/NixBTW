@@ -1,0 +1,10 @@
+StorePath: /nix/store/2yj4ch07ngbkmv56pv3vrwhqq95qyaps-sounddevice-0.5.6
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/0v8dg1l4hl1yzig6mr84ifnap7477jqcy2kb3sxgwfdgwmjniaj3.nar.xz
+Compression: xz
+FileHash: sha256:0v8dg1l4hl1yzig6mr84ifnap7477jqcy2kb3sxgwfdgwmjniaj3
+FileSize: 57280
+NarHash: sha256:1md43hx38xsphrfqv54k4nj61bskf1q9kfmsmsmn0z3wq4zz8z6k
+NarSize: 262632
+References: 2yj4ch07ngbkmv56pv3vrwhqq95qyaps-sounddevice-0.5.6
+Deriver: cnrx56is439v9cvpzshxb94sgk5chr3d-sounddevice-0.5.6.drv
+Sig: i9-kernel-cache:l/7iQQUU0QKLctlRS6t9F0qVIf6RXSA96WPr6zTW0xcSqA7ipeNBIIBp8+XtFGL0tNZWMJVWSdb6CAxz4tgzBw==

@@ -1,0 +1,10 @@
+StorePath: /nix/store/c3n7wbhgdin0lf7lhsnd0ks055jbhf48-fire-0.7.1
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/0gkr7pn92ml901m5l8f9v2gdrzqf0pljh3lqppsjjz25i8gqsiq2.nar.xz
+Compression: xz
+FileHash: sha256:0gkr7pn92ml901m5l8f9v2gdrzqf0pljh3lqppsjjz25i8gqsiq2
+FileSize: 187272
+NarHash: sha256:15bhnmci6qmaxrasi34np67ib58130jl7dlpdrnwzaggy5dc1djp
+NarSize: 900688
+References: c3n7wbhgdin0lf7lhsnd0ks055jbhf48-fire-0.7.1
+Deriver: kxv7vgappfqbpq60s40fak1f40lkk17c-fire-0.7.1.drv
+Sig: i9-kernel-cache:fG4DeTCXPwxOsDqfuNz3atQZ88kRzrgnRQIpm8OJBcLBYjPOn7vxS0iXJzvvqyIvGIpJUIZf0GyS47O1Lvl5CQ==

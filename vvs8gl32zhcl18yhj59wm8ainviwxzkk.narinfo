@@ -1,0 +1,10 @@
+StorePath: /nix/store/vvs8gl32zhcl18yhj59wm8ainviwxzkk-qrcode-7.4.2
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/1d52zwxycfbwkxb3rbpr6fskfikwhgvf9qpj2m3wi3grw9haqq65.nar.xz
+Compression: xz
+FileHash: sha256:1d52zwxycfbwkxb3rbpr6fskfikwhgvf9qpj2m3wi3grw9haqq65
+FileSize: 88704
+NarHash: sha256:140bd6zf0v6xpf7l9c90mrrxdwxc3bd7dvmqxgyp5bxvlhvzjgd7
+NarSize: 370304
+References: vvs8gl32zhcl18yhj59wm8ainviwxzkk-qrcode-7.4.2 xahxrjs30p3mw0a42bqg9ikgkikskw8m-python3-3.14.8
+Deriver: za01jhh1iy9f8d813ib3kmdj9yw91fbw-qrcode-7.4.2.drv
+Sig: i9-kernel-cache:wgrs39VvoasD0WgZy+Jv3dDZhedoZyV8gG4+3a6SXLjvL1MYqOEgy8GDbFKlGhWYUncN/iMH626PGyYZEA06BA==

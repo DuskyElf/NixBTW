@@ -1,0 +1,10 @@
+StorePath: /nix/store/zykvvxa1r0v21mq30qjm23hhq1qamhiv-cryptography-50.0.2
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/059ccr6hl39dqcshz97i2xd0ch1735raxmdlbap37w22aa82n3xm.nar.xz
+Compression: xz
+FileHash: sha256:059ccr6hl39dqcshz97i2xd0ch1735raxmdlbap37w22aa82n3xm
+FileSize: 3598780
+NarHash: sha256:1n3n095xac8km14sli5gx7fqbf5l4sdc9zn7zy67lybym94p90f1
+NarSize: 15694776
+References: 3sj8msrsym648f35mk3gb3pp385hhk8r-gcc-16.2.0-libgcc zykvvxa1r0v21mq30qjm23hhq1qamhiv-cryptography-50.0.2
+Deriver: imcw22006fmbakinp6phjxbfp6g80m7f-cryptography-50.0.2.drv
+Sig: i9-kernel-cache:t+ELp9zVy+tiEQXjgeqUghcZVltq2yjVKOIBIxRpQrR4OjTrMrHHxTtc/GJwhaqOtROWpf9ZSs8qPj1V34xBCQ==

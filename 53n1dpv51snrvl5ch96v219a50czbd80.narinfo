@@ -1,0 +1,10 @@
+StorePath: /nix/store/53n1dpv51snrvl5ch96v219a50czbd80-vercel-workflow-0.11.2
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/04sn4j18505rv2ql96xczkqk867d9bjgq5a08irvp6wmqw7s0m38.nar.xz
+Compression: xz
+FileHash: sha256:04sn4j18505rv2ql96xczkqk867d9bjgq5a08irvp6wmqw7s0m38
+FileSize: 302120
+NarHash: sha256:1s2n6ga11k2scldjcr2x20jman7820g82z21h9b9dzpk8571lrva
+NarSize: 1231824
+References: 53n1dpv51snrvl5ch96v219a50czbd80-vercel-workflow-0.11.2
+Deriver: qyg3bjrdn15mwm344d4h9l78llfg4yn0-vercel-workflow-0.11.2.drv
+Sig: i9-kernel-cache:nm58cIkYwoWpTnlFpa4Yt1QtQtSVbEBjmCMW8+bfr439iuUMch+Ypp3P71GBv73+vEBdjrHnO57+1RgjKLzSDg==

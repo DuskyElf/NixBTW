@@ -1,0 +1,10 @@
+StorePath: /nix/store/h2wxkzh57h8jyq2wkmsd35ikd1d6cgxm-aiosqlite-0.22.1
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/1n8jy9q3virzyjvc9qc41rd1zq6f184787g7avanjfq2nbrkz6lw.nar.xz
+Compression: xz
+FileHash: sha256:1n8jy9q3virzyjvc9qc41rd1zq6f184787g7avanjfq2nbrkz6lw
+FileSize: 42696
+NarHash: sha256:09wxz3czpmvrgw9wxmd7bv64xiw6ck40s9y4rpdsjzbpa6g9b543
+NarSize: 173080
+References: h2wxkzh57h8jyq2wkmsd35ikd1d6cgxm-aiosqlite-0.22.1
+Deriver: blcl7m2cnvkl6d0yaimgpp1sh5xm1177-aiosqlite-0.22.1.drv
+Sig: i9-kernel-cache:FP31dTiyboA+ktyiYyybhjaayMQzXvZ6zk7sVJd6+Fbo3ladNmUm1tc3yqwNLG3+N8kpERnW/P0SsHZpwrRZCw==

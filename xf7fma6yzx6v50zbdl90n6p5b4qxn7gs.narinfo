@@ -1,0 +1,10 @@
+StorePath: /nix/store/xf7fma6yzx6v50zbdl90n6p5b4qxn7gs-bidict-0.24.1
+URL: https://github.com/DuskyElf/NixBTW/releases/download/hermes-kvbjmds7vpqlfs2anjxxvdh5xp7jbr11/11xnzl72wh5i8bpbbqf0s0k08ismh0326s534ir7h298g8sd2mi5.nar.xz
+Compression: xz
+FileHash: sha256:11xnzl72wh5i8bpbbqf0s0k08ismh0326s534ir7h298g8sd2mi5
+FileSize: 48676
+NarHash: sha256:1rsh5w9n51xdfgqaw9j14l2g1y834645r559c5gl32r7whq9bf7m
+NarSize: 197624
+References: xf7fma6yzx6v50zbdl90n6p5b4qxn7gs-bidict-0.24.1
+Deriver: fi4lp6cmfp65vlwcq599mqbpzdz967xi-bidict-0.24.1.drv
+Sig: i9-kernel-cache:YAiFRmOZuo0Gl44zixJnBvzG3Vt94JqpK7Q2qpcZ3i1PqbSFzV+7kEapg5J5LT6uFczkWRRuD2EQxpr5XF3LDA==
