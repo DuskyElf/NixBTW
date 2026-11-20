@@ -88,9 +88,9 @@ let
 
       # What the daily update does on this machine. apps/daily-update/ turns each
       # field into either a flag on the run or a unit, so the host only states
-      # which steps it has. A laptop pins the T3 Code stable release, keeps the
-      # listed devshells alive and optimises the store; a headless box updates
-      # nixpkgs alone and still collects.
+      # which steps it has. A laptop pins the T3 Code stable release and keeps
+      # the listed devshells alive; a headless box updates nixpkgs alone and
+      # still collects.
       dailyUpdate = {
         t3 = mkOption {
           type = types.bool;
@@ -106,11 +106,6 @@ let
           type = types.bool;
           default = true;
           description = "Run the user store collection and ask the system path unit for root's.";
-        };
-        optimise = mkOption {
-          type = types.bool;
-          default = false;
-          description = "Enable nix.optimise on a monthly timer. The optimiser rewrites the whole store, so not every host wants it.";
         };
         graphicalSession = mkOption {
           type = types.bool;

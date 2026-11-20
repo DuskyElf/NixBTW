@@ -1,14 +1,11 @@
-# The system half of the daily update: the root helper the user timer calls, the
-# root store collection it asks for with a marker file, and the optimiser that
-# rides the same schedule. A host opts in by listing the `daily-update` app, and
-# lib/host.nix `dailyUpdate` decides which of these it gets: the helper is always
-# installed, the optimiser only when `optimise` is set.
+# The system half of the daily update: the root helper the user timer calls and
+# the root store collection it asks for with a marker file. A host opts in by
+# listing the `daily-update` app; lib/host.nix `dailyUpdate` shapes the run.
 #
 # The user half is apps/daily-update/home.nix; the run itself is
 # apps/daily-update/daily-update.sh.
 {
   config,
-  lib,
   pkgs,
   hostConfig,
   ...
@@ -85,20 +82,6 @@ in
     # adds is the ability to run today's collection a few hours early, on
     # generations the account cannot touch itself.
     pathConfig.PathChanged = hostConfig.gcRequest;
-  };
-
-  # The optimiser rewrites the whole store, so where it runs it moves from weekly
-  # to monthly instead of joining the daily run: 1.6M files and 63.7 GiB at the
-  # last count on the laptop. Its measured gain there is nil right now (a walk of
-  # the store found zero files with a second link, and the GC reports hard
-  # linking saving nothing), so it is a cheap safety net for the day a closure
-  # with duplicated outputs lands, not a space saver. The module's timer is
-  # persistent, so a month start spent asleep catches up on wake, but it also
-  # sets ConditionACPower, so a start spent on battery is skipped and waits for
-  # the next month.
-  nix.optimise = lib.mkIf daily.optimise {
-    automatic = true;
-    dates = [ "monthly" ];
   };
 
   system.activationScripts.systemSwitchHelper = ''

@@ -175,16 +175,15 @@ T3 Code pin (laptop only), rebuilds the system through the `nixos-switch.sh`
 helper, switches home-manager, commits the wrapper lock, pins the listed
 devshells (laptop only), and collects the user store. It then wakes a system
 path unit that collects root's profiles, so both sides keep two days of
-generations. The monthly store optimiser is the only other store unit on the
-laptop. The wallpaper fetch, rotate, resume, and startup units come from the
-`wallpaper-guardian` home-manager module enabled in `apps/wallpaper.nix`, next
-to `awww-daemon`. `quickshell`, `wl-gammarelay`, and `break-timer` are
+generations. The wallpaper fetch, rotate, resume, and startup units come from
+the `wallpaper-guardian` home-manager module enabled in `apps/wallpaper.nix`,
+next to `awww-daemon`. `quickshell`, `wl-gammarelay`, and `break-timer` are
 `apps/quickshell.nix`, `apps/gammarelay.nix`, and `apps/idle.nix`.
 `battery-threshold-control` and `screenpad-off` are one-shot system services.
 `llm-lab` starts ollama and Open WebUI only when you ask.
 
 Which of those steps a machine runs is host data, not a branch in the script:
-`lib/host.nix` `dailyUpdate` sets `t3`, `devshells`, `collect`, `optimise`,
+`lib/host.nix` `dailyUpdate` sets `t3`, `devshells`, `collect`,
 `graphicalSession`, `linger`, `cores` and `wrapperInputs`, and
 `apps/daily-update/home.nix` turns them into the unit's flags. The laptop takes
 all of them and ties the timer to the graphical session; the homelab takes only

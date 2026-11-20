@@ -33,13 +33,12 @@
 
   cacheRoot = "/mnt/agent-worktrees/caches";
 
-  # The laptop runs the whole daily update: the T3 Code pin, the devshell pin,
-  # the store collection and the monthly optimiser, tied to the desktop session.
-  # Its wrapper declares the inputs below, so the run moves all of them.
+  # The laptop runs the whole daily update: the T3 Code pin, the devshell pin
+  # and the store collection, tied to the desktop session. Its wrapper declares
+  # the inputs below, so the run moves all of them.
   dailyUpdate = {
     t3 = true;
     devshells = true;
-    optimise = true;
     graphicalSession = true;
     cores = 16;
     wrapperInputs = [
