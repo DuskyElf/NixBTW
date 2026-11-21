@@ -1,0 +1,97 @@
+# The headless half of T3 Code: the package the laptop installs, a user service
+# that keeps the server running, and the browser it needs for previews. This
+# host has no display, so the desktop launcher in the package is never run.
+#
+# The service is declared rather than installed with `t3 service install`:
+# that command downloads versions into ~/.t3 and self-updates, while this host's
+# T3 comes from the nix store and moves with the daily update. `t3 update`
+# and `t3 service` are therefore not part of this host's workflow.
+#
+# Clients reach it over Tailscale Serve, the same way the laptop publishes its
+# own server. That needs tailscaled and this user as its operator
+# (hostConfig.tailscale.operator), and it serves HTTPS with a valid certificate
+# from the tailnet, which a browser needs before it will hand the app its
+# clipboard or crypto APIs. The route is set by the server itself on startup
+# and repaired while it runs. A start before tailscaled answers leaves the
+# route off until the next restart; ExecStartPre keeps that from happening at
+# boot.
+{
+  config,
+  hostConfig,
+  lib,
+  pkgs,
+  pkgs-unstable-small,
+  ...
+}:
+let
+  # Same source and hash pin as the desktop app, so one tag moves both.
+  t3code = import ../../pkgs/t3code {
+    inherit pkgs;
+    recipeSrc = pkgs-unstable-small.path;
+    codex = pkgs-unstable-small.codex;
+  };
+
+  # PAM already puts the profile on the user manager's PATH; it is stated here
+  # so the service does not depend on that policy, and so the providers T3
+  # spawns resolve pi, npm, and git to the ones this configuration installs.
+  searchPath = [
+    "${config.home.homeDirectory}/.nix-profile/bin"
+    "/run/current-system/sw/bin"
+  ];
+in
+{
+  # A host that imports this module serves the port below over the tailnet, and
+  # without the operator the server runs but no client can reach it.
+  assertions = [
+    {
+      assertion = hostConfig.tailscale.operator;
+      message = "apps/t3code/server.nix publishes with tailscale serve; set tailscale.operator for this host's user";
+    }
+  ];
+
+  home.packages = [
+    t3code
+    # T3 installs its ACP agent adapters with npm from PATH, and pi is spawned
+    # through one of them. Installing node here keeps that dependency owned by
+    # this module instead of borrowed from a dev module a server might not have.
+    pkgs.nodejs
+    # T3's html_render and browser tools spawn their own Chrome for Testing
+    # download, which wants a glibc loader NixOS does not have. chrome-shim.sh
+    # points each download at this browser instead.
+    pkgs.chromium
+  ];
+
+  # Anchored to the package install so the Chromium the shim points at exists
+  # on a first switch.
+  home.activation.t3HeadlessChromeShim = config.lib.dag.entryAfter [
+    "installPackages"
+  ] "run ${./chrome-shim.sh}";
+
+  systemd.user.services.t3code = {
+    Unit = {
+      Description = "T3 Code server";
+      # A boot where tailscaled is slower than the user manager must keep
+      # retrying rather than give up at systemd's five starts per 300 s.
+      StartLimitIntervalSec = 0;
+    };
+    Service = {
+      Type = "simple";
+      WorkingDirectory = "%h";
+      Environment = [ "PATH=${lib.concatStringsSep ":" searchPath}" ];
+      # tailscaled is a system service with no ordering edge into the user
+      # manager, so gate on it being answerable.
+      ExecStartPre = "${pkgs.tailscale}/bin/tailscale status";
+      ExecStart = "${t3code}/bin/t3 serve --mode web --host 127.0.0.1 --no-browser --port 3773 --tailscale-serve";
+      Restart = "always";
+      RestartSec = 5;
+      # As in upstream's own unit: the server gets SIGTERM, anything it left
+      # behind gets SIGKILL, so a provider cannot hold the stop open. Agents T3
+      # puts in its own slice are outside this cgroup and unaffected.
+      KillMode = "mixed";
+      # An OOM kill of a browser or helper in this cgroup must not take the
+      # server and every session with it, which is systemd's default.
+      OOMPolicy = "continue";
+    };
+    Install.WantedBy = [ "default.target" ];
+  };
+}

@@ -37,6 +37,7 @@
     ../../apps/languages.nix
     ../../apps/local-llm.nix
     ../../apps/opencode.nix
+    ../../apps/t3code/home.nix
     ../../apps/kitty.nix
     ../../apps/zen-browser.nix
     ../../apps/chromium.nix

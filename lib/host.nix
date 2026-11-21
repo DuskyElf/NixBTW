@@ -101,8 +101,9 @@ let
           as exit node and routes, and serve and funnel targets, which is enough
           to publish any local port to the tailnet or the public internet. The
           laptop needs it because the t3code app publishes its server with
-          `tailscale serve`; a host that publishes nothing over the tailnet
-          leaves it off.
+          `tailscale serve`, and so does a headless host that runs that server
+          (apps/t3code/server.nix); a host that publishes nothing over the
+          tailnet leaves it off.
         '';
       };
 

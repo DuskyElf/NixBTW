@@ -259,7 +259,7 @@ it, and the timer calling that path itself.
 | Thing | Where | Why |
 | --- | --- | --- |
 | kernel nixpkgs | `flake.nix` | CI builds the same kernel derivations as both machines, so the signed cache hits |
-| T3 Code stable | `pkgs/t3code/lock.nix` | upstream stable tag plus the three vendor hashes, moved by the daily timer |
+| T3 Code stable | `pkgs/t3code/lock.nix` | upstream stable tag plus the three vendor hashes; the laptop's daily timer moves it, and both hosts build it |
 | `setup_var.efi` | `hosts/asus/system.nix` | BIOS unlock entry, by version and hash |
 | NVIDIA driver | `hosts/asus/system.nix` | must match the custom kernel, and this closure is in no public cache |
 
@@ -384,13 +384,61 @@ the kernel is neither in the cache nor in its store and skips the switch instead
 of starting a night of compiling on two cores, leaving the pull, the pins and
 the collection done.
 
+## T3 Code server
+
+The homelab runs T3 Code from the same pin as the laptop. `apps/t3code/server.nix`
+installs it with a user service, `t3code`, that runs `t3 serve` on port 3773; the
+host has no display, so the desktop launcher in the package is never run. The
+server publishes itself with `tailscale serve`, the same route shape the laptop's
+app uses, so a client opens `https://homelab.<tailnet>.ts.net`.
+`tailscale.operator` is on in `hosts/homelab/config.nix` because that is what
+lets the service manage the route without sudo.
+
+The unit is declared, not installed with `t3 service install`: that command
+downloads its own versions and self-updates, while this host takes T3 from the
+store and lets the daily update move it. `t3 update`, `t3 install`, and
+`t3 service` are therefore not part of this host's workflow. A switch that
+moves the pin activates the new server on its own.
+
+One-time setup after the first switch:
+
+```sh
+ssh homelab pi auth login <provider>   # credentials land in ~/.pi; add --no-browser over ssh if needed
+ssh homelab t3 pair --tailscale        # prints a tailnet pairing URL and an app link
+```
+
+Open the pairing link on the laptop, then enable the Pi provider in T3's
+settings. T3 downloads the `pi-acp` adapter from the ACP registry with npm on
+first use and runs `pi` from the server's PATH. The package's wrapper also puts
+codex and gh on that PATH; there is no opencode or Claude CLI on the host, so Pi
+is the one to configure.
+
+The homelab consumes the T3 Code tag but not the daily `nixpkgs-unstable-small`
+bump, because that input is not in its `wrapperInputs`. A bump usually only
+relinks the wrapper and substitutes pi and codex; it forces a monorepo rebuild
+only when the recipe's evaluated inputs change. Update the input by hand when a
+tag needs a newer recipe, or when T3's Pi health check or `pi --version` shows a
+pi below what the registry's adapter requires. The same frozen input supplies
+the wrapper's codex, which a later T3 can mark too old without failing the
+build. The tag itself arrives the same way every other change does: after a
+push, on the next daily pull.
+
+Because nothing substitutes `t3code`, a tag move whose recipe inputs changed
+means the homelab compiles the T3 monorepo on two cores before that switch
+finishes. Copying the laptop's `t3code-unwrapped` output over (`nix copy --to
+ssh://homelab <path>`) skips that, and the wrapper relinks locally. The two
+hosts must share the recipe pin for that path to match, which the manual bump
+above is what aligns.
+
 ## Checks
 
-Evaluate both configurations before switching:
+Evaluate each configuration before switching:
 
 ```sh
 nix eval --raw --no-write-lock-file .#nixosConfigurations.asus.config.system.build.toplevel.drvPath
 nix eval --raw --no-write-lock-file '.#homeConfigurations."duskyelf@asus".config.home.activationPackage.drvPath'
+nix eval --raw --no-write-lock-file .#nixosConfigurations.homelab.config.system.build.toplevel.drvPath
+nix eval --raw --no-write-lock-file '.#homeConfigurations."duskyelf@homelab".config.home.activationPackage.drvPath'
 ```
 
 These read tracked files only, so `git add` a new Nix file before evaluating.
@@ -410,6 +458,7 @@ Check the parts that have tests or a single answer:
 ```sh
 nix eval --raw --no-write-lock-file .#kernelVersion   # the series the selector picked
 pkgs/t3code/test-update.sh        # t3code stable pin, against fakes
+apps/t3code/test-chrome-shim.sh   # the T3 browser shim, against a fake HOME
 apps/home-switch/test-hm-switch.sh # hm-switch cache, against a fake nix
 apps/daily-update/test-daily-update.sh # the daily run, against fakes
 nix fmt                          # nixfmt-tree over the repo

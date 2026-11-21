@@ -38,6 +38,14 @@
   # interface either way.
   ssh.openLanPort = true;
 
+  # The T3 Code server here publishes itself with `tailscale serve`, the same
+  # way the laptop's app does, so this user has to be tailscaled's operator.
+  # Without it the server still runs, but only on loopback, with no client able
+  # to reach it. The grant is the daemon's writable API, so it also covers
+  # routes and funnel targets this host does not use, and every agent T3 spawns
+  # as this user inherits it.
+  tailscale.operator = true;
+
   # The box updates itself once a day like the laptop, but only the stable
   # track: nixpkgs, and the two submodule inputs the wrapper pins. No T3 Code
   # pin and no devshell pin. It has no graphical session, so the timer needs
