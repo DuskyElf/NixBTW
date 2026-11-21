@@ -2,7 +2,10 @@
 # apps/daily-update/daily-update.sh as the login account. This module states the
 # schedule; which steps the run takes is host data (lib/host.nix `dailyUpdate`)
 # passed to the script as flags, and the same group decides the unit's shape
-# (PartOf on a desktop, linger on a headless box).
+# (PartOf on a desktop, linger on a headless box). The laptop takes every step
+# and ties the timer to its graphical session; the homelab turns off t3 and
+# devshells, and takes the collection with no session and linger so its user
+# manager starts at boot.
 #
 # The system half is apps/daily-update/system.nix.
 {
@@ -31,6 +34,8 @@ let
     (flag daily.t3 "t3")
     (flag daily.devshells "devshells")
     (flag daily.collect "collect")
+    # The host's dailyUpdate.wrapperInputs, set in hosts/<name>/config.nix:
+    # only inputs the wrapper declares can be named here.
     "--wrapper-inputs"
     (lib.concatStringsSep " " daily.wrapperInputs)
   ]

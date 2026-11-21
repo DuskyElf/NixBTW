@@ -7,6 +7,11 @@
   description = "Local deploy wrapper for @ROOT@";
 
   inputs = {
+    # A git flake, so what it pins is a commit: untracked files do not exist for
+    # it, the checkout's own gitignored flake.lock included. Every switch
+    # overrides this input with path:<checkout> so the live tree wins, which is
+    # what lets an uncommitted edit and the lock the daily run writes be part of
+    # the build.
     my-dotfiles.url = "git+file://@ROOT@?shallow=1";
 
     nixpkgs.url = "nixpkgs/nixos-26.05";

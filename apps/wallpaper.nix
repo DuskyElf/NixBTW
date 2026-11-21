@@ -1,5 +1,6 @@
-# The wallpaper stack: Guardian rotates the pool, awww draws it. The quickshell
-# overlay sits on top of it and is a separate app.
+# The wallpaper stack: Guardian fetches the pool and rotates it from its timers,
+# and moves to a new photo when the session starts; awww draws it. The
+# quickshell overlay sits on top of it and is a separate app.
 {
   inputs,
   hostConfig,

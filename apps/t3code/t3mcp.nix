@@ -8,7 +8,13 @@
 # environment, so `--server` selects between (for example) this machine and the
 # laptop. Tokens are bearer sessions from the MCP OAuth flow and last 30 days;
 # `t3mcp pair` mints a new one from a code printed by `t3 auth pairing create`
-# on the server being paired.
+# on the server being paired. Mint the code with `t3 auth pairing create --json
+# --label t3mcp --ttl 15m`, then consume it here with `t3mcp pair asus --url
+# https://asus.<tailnet>.ts.net --code <credential>`. To pair this host's own
+# server, mint the code here and pass its ts.net name the same way.
+#
+# The wrapper is built from t3mcp.py at evaluation time, not linked into place
+# like the live config directories, so an edit to the script needs a switch.
 #
 # Jailed to the network and its own config: it reads nothing else, and
 # `network` is what also binds /etc/ssl and the resolver that the TLS MCP

@@ -5,11 +5,12 @@
 #   hm-switch.sh --force   activate even if that generation is already active
 #
 # `home-manager switch` evaluates the configuration twice (the generation, then
-# its news feed) and repeats the whole evaluation on every run even when
-# nothing changed. Evaluation is ~20s of single-core work and is the entire
-# cost of a rebuild. This script keys each generation by the content of the
-# tree, so a tree it has already built costs a directory hash and one file
-# read, with no nix invocation at all.
+# its news feed), repeats the whole evaluation on every run even when nothing
+# changed, and prints the news count plus the overridden-lock notice that this
+# script drops. Evaluation is ~20s of single-core work and is the entire cost
+# of a rebuild. This script keys each generation by the content of the tree, so
+# a tree it has already built costs a directory hash and one file read, with no
+# nix invocation at all, and returns in about a second.
 #
 # The key covers every entry under the repo (mode, symlink target and file
 # bytes) except .git, .tmp and result links, deploy-system/flake.lock included.
@@ -28,6 +29,23 @@
 # new module works before `git add`. `path:` copies the whole repo into the
 # store, .git included, which is why this hashes the tree itself instead of
 # relying on the flake's fingerprint.
+#
+# The plain `home-manager` CLI still works and is what runs `home-manager
+# news`, `generations`, and `switch --rollback`; this script wraps only the
+# switch itself:
+#
+#   home-manager switch \
+#     --flake "$HOME/dotfiles/deploy-system" \
+#     --override-input my-dotfiles "path:$HOME/dotfiles" \
+#     --cores <dailyUpdate.cores>
+#
+# The count is the host's dailyUpdate.cores from lib/host.nix, the same value
+# the system helper bakes in. The daily run does not use this form: it hands
+# this script NIX_CONFIG='cores = 2', so a rebuild after a lock bump stays
+# polite while the machine is in use.
+#
+# `home-manager build` with the same flags builds the generation without
+# activating it, which is how to inspect a change before it lands.
 #
 # State is ~/.local/state/hm-switch (drv-cache, activated, generation, lock):
 # that is where to look when a change seems not to apply, and a second run
@@ -55,7 +73,7 @@ if [ -d "$state/nix/profiles" ]; then
 elif [ -d "/nix/var/nix/profiles/per-user/$(id -un)" ]; then
   profile=/nix/var/nix/profiles/per-user/$(id -un)/home-manager
 else
-  echo "${0##*/}: no profile directory; use the home-manager command in README.md" >&2
+  echo "${0##*/}: no profile directory; run the plain home-manager switch for this tree" >&2
   exit 1
 fi
 
@@ -165,7 +183,7 @@ fi
 # A legacy activation script updates the profile itself, which is not what the
 # three lines at the bottom do.
 if [ ! -e "$generation/gen-version" ]; then
-  echo "${0##*/}: ${generation##*/} has no gen-version; use the home-manager command in README.md" >&2
+  echo "${0##*/}: ${generation##*/} has no gen-version; run the plain home-manager switch for this tree" >&2
   exit 1
 fi
 

@@ -11,6 +11,19 @@
 # two leave.
 #
 # Disk mode only. The disko imageSize default is unused here.
+#
+# nixos-anywhere formats this layout from a live ISO, kexecing into the target,
+# so the ISO's kernel has to support kexec. Alpine's does not: it lacks
+# kexec_file_load and its kernel.kexec_load_disabled is set, so a box booted
+# from that ISO is installed the long way instead. Alpine also runs mdev, so
+# /dev/disk/by-partlabel never appears and disko's formatScript cannot find the
+# labels. That path is `apk add nix bash util-linux`, generate
+# hosts/homelab/hardware.nix with `nixos-generate-config` from the tools
+# closure, build the system on the laptop, export the closure and
+# `nix-store --import` it as root (the installed daemon rejects unsigned pushes
+# from an untrusted user), link the partlabels by hand after `mdev -s`, run the
+# formatScript and then the mountScript, and finish with
+# `nixos-install --root /mnt --system <path> --no-root-passwd`.
 let
   disk = import ./disk.nix;
 in

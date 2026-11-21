@@ -5,9 +5,11 @@
 # stay app-owned; `pi auth login` is where that lives.
 #
 # unstable-small rather than stable: pi-acp requires pi 0.81 or newer, and
-# stable 26.05 carries 0.75.4. That input is not in this host's daily update,
-# so bump it in deploy-system by hand when a newer pi is wanted. The assertion
-# is a floor, not a live check: T3 fetches the adapter from the ACP registry at
+# stable 26.05 carries 0.75.4. On this host that input supplies nothing but pi,
+# and it is not in `wrapperInputs` (hosts/homelab/config.nix), so the daily
+# update leaves it alone: bump it in deploy-system by hand when T3's Pi health
+# check or `pi --version` shows a pi below the adapter's floor. The assertion is
+# a floor, not a live check: T3 fetches the adapter from the ACP registry at
 # runtime, so an adapter that moves past this host's frozen pi shows up as a
 # failed Pi provider health check, not here.
 {

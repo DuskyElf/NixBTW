@@ -2,9 +2,9 @@ name: "Compile Optimized Kernel"
 
 # Builds the tuned kernels this repo ships on a standard runner and serves them
 # as one signed Nix binary cache, so nixos-rebuild substitutes instead of
-# compiling. Two hosts, one job each, one site. The deploy itself lives in
-# publish-cache.yml; the `cache-publish` group on this workflow's publish job
-# is the gh-pages lock:
+# compiling. Two hosts, one job each, built in parallel, one site. The deploy
+# itself lives in publish-cache.yml; the `cache-publish` group on this
+# workflow's publish job is the gh-pages lock:
 #
 #   asus     the laptop's kernel (hosts/asus/system.nix), tagged kernel-<ver>
 #   homelab  the server's kernel (hosts/homelab/kernel.nix), tagged

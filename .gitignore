@@ -1,6 +1,6 @@
 **/*.swp
 # The deploy wrapper owns the lock. Keeping it out of the public repo keeps the
-# exact nixpkgs/stylix/niri revisions private; see README.md.
+# exact nixpkgs/stylix/niri revisions private; see lib/deploy/.
 flake.lock
 .tmp/
 # Private deploy wrapper (lock source of truth, pushed to NixBTW-deploy, never to this repo)

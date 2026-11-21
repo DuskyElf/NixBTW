@@ -1,5 +1,8 @@
 # T3 Code built from upstream's latest stable release tag.
 #
+# pkgs/ holds the packages this repo builds itself; this is the only one, and
+# its update script lives beside it.
+#
 # Two nixpkgs instances meet here on purpose. The recipe is read from the
 # nixpkgs tree passed as `recipeSrc`, because stable 26.05 still ships a t3code
 # recipe for a 0.0.x tag (bun, electron_40) and 0.1.x needs the newer layout
@@ -8,9 +11,10 @@
 #
 # The recipe's `enableCodex` defaults on and wires the codex CLI into T3's
 # PATH, where it only exists for the Codex provider. This repo never uses that
-# provider, so it is turned off: the wrapper carries no second agent, and
-# codex's version stops constraining the pin. The recipe still takes a codex
-# argument, so it gets null.
+# provider on either host, so it is turned off: the wrapper carries no second
+# agent, and codex's version stops constraining the pin. The recipe still takes
+# a codex argument, so it gets null; with codex off T3's PATH, that provider's
+# health check fails on both hosts, which is the expected state.
 #
 # That split is what keeps the daily build cheap: cache.nixos.org carries
 # electron for the stable channel, while nixos-unstable-small does not build

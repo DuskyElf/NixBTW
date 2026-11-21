@@ -1,7 +1,9 @@
 # The desktop policy: everything here assumes a monitor, a keyboard, a battery,
 # and a person sitting in front of it. It is a module a host opts into, so a
 # headless box does not get NetworkManager, bluetooth, or the desktop packages.
-# base/core.nix is the half every machine gets.
+# base/core.nix is the half every machine gets. Machine policy and a bare
+# `programs.<app>.enable` belong in these two files; the one exception is
+# programs.niri.enable, which sits with its config in apps/niri/system.nix.
 #
 # The root helpers (power.sh and the daily update's nixos-switch.sh), the
 # NOPASSWD rules, and the store-collection units moved to apps/power.nix and

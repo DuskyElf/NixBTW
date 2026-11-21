@@ -27,14 +27,15 @@ in
   # This box builds its own kernel (hosts/homelab/kernel.nix) from the same
   # rev-pinned nixpkgs input the laptop's comes from, and CI publishes it to
   # the same signed cache. The key name is the signer's, not a claim about the
-  # hardware: nix matches the name and verifies the key bytes. Other hosts do
-  # not trust this cache, which is why it is appended here and not in base/.
+  # hardware: nix matches the name and verifies the key bytes. Both hosts trust
+  # this cache; it is declared per host rather than in base/ so a machine that
+  # does not use it carries nothing.
   #
-  # The generation that would trust it is the one being installed, so the first
-  # switch onto a CI-built kernel runs by hand with the kernel already local, or
-  # with --option substituters and --option trusted-public-keys passed to that
-  # rebuild. From the second switch on this file carries it. The same holds for
-  # any host added later.
+  # A kernel CI has not published yet cannot be substituted: the daily run
+  # notices it is neither in the cache nor in this store and skips the switch
+  # (dailyUpdate.kernelCache), leaving the pull, the pins and the collection
+  # done. A rebuild whose running generation predates this trust needs the same
+  # substituter and key passed as --option.
   nix.settings.substituters = lib.mkAfter [ "https://duskyelf.github.io/NixBTW" ];
   nix.settings.trusted-public-keys = lib.mkAfter [
     "i9-kernel-cache:4R0pqOZkrRj4utTbF4zP05Y58QSgShLqQ77KUPzFjwk="

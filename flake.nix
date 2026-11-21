@@ -1,3 +1,10 @@
+# The source tree for the laptop and the homelab, not the deploy unit.
+# `deploy-system/` is a private wrapper flake that pins every input and holds
+# the lock the machines switch with; it stays private so the exact nixpkgs,
+# stylix, niri and zen-browser revisions are not published. A fresh clone can
+# evaluate once its submodules are checked out and Nix resolves the floating
+# inputs, but the machine's exact closure comes from that wrapper. The recipe
+# and bootstrap are in lib/deploy/.
 {
   description = "DuskyElf's dotfiles";
 
@@ -10,8 +17,10 @@
     # fix: each one follows the nixpkgs its packages are built against.
 
     # Pinned by rev (not branch) so GitHub Actions builds the exact same
-    # kernel closure as this laptop. CI has no lock file for this flake, so a
-    # floating ref would drift and every cache lookup would miss.
+    # kernel closures as both machines. CI has no lock file for this flake, so a
+    # floating ref would drift and every signed-cache lookup would miss. One pin
+    # covers both kernels: the laptop's series and the homelab's LTS both come
+    # out of this rev. The CI check compares it with release-26.05.
     # The rev carries whatever hosts/asus/stable-kernel.nix picks (the newest
     # series with a stable patch release). The daily check-kernel-update workflow
     # moves this pin to the channel tip once the channel is not behind, and
@@ -116,6 +125,7 @@
         }) hosts
       );
 
+      # `nix fmt` runs nixfmt-tree over the repo.
       formatter.${dotfiles.pkgs.system} = dotfiles.pkgs.stable.nixfmt-tree;
     };
 }

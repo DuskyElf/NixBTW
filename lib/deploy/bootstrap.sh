@@ -3,6 +3,18 @@
 # channel tips. The real wrapper is private; lib/deploy/deploy-system.nix is its
 # public recipe.
 #
+# A clone has neither deploy-system/ nor its lock, both gitignored: on the
+# laptop the directory is restored from the private repo, and this script is how
+# a public-only checkout gets an equivalent. The wrapper is what the machines
+# switch with, so nothing rebuilds until one exists.
+#
+# Take the tree with its submodules. The flake reads apps/nvim/neovimBTW and
+# apps/wallpaper/wallpaper-guardian as path inputs, so clone
+# https://github.com/DuskyElf/NixBTW with --recurse-submodules. A checkout that
+# predates their move under apps/ needs `git submodule sync --recursive` and
+# then `git submodule update --init` after pulling, or those inputs are empty
+# directories and the lock fails.
+#
 # Usage: lib/deploy/bootstrap.sh
 set -euo pipefail
 
@@ -38,7 +50,7 @@ echo
 echo "deploy lock written to $deploy/flake.lock"
 echo "rebuild with:"
 echo "  $root/apps/home-switch/hm-switch.sh"
-echo "  sudo nixos-rebuild switch --flake $deploy#<host> --override-input my-dotfiles path:$root --cores <cores>"
+echo "  sudo nixos-rebuild switch --no-write-lock-file --flake $deploy#<host> --override-input my-dotfiles path:$root --cores <cores>"
 echo "    (<host> is the hosts/ directory name and <cores> is that host's"
 echo "     dailyUpdate.cores: 16 on the laptop, 2 on the homelab. The raw form is"
 echo "     for the first switch; after it, sudo /usr/local/sbin/nixos-switch.sh is"

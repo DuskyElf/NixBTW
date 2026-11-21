@@ -6,9 +6,19 @@ browser: register a client, pass a one-time pairing code to the approval
 endpoint, exchange the returned code for a session token, then speak MCP over
 the server's /mcp endpoint. Tokens last 30 days; pair again when one expires.
 
+`pair --access` picks what the paired agent may do on that server: read-only,
+approval-required (the default), auto-accept-edits, auto, or full-access.
+
 Config lives in $XDG_CONFIG_HOME/t3mcp/config.json (the installed wrapper
 always sets it to ~/.config) with one entry per paired server, so a tool call
-can target this machine or another one by name.
+can target this machine or another one by name. `servers` lists them with a *
+on the default, `tools --server NAME` prints each tool's name, description and
+input schema, `call TOOL ARGS` runs one, and `default NAME` chooses what a call
+without --server uses. That argument falls back to $T3MCP_SERVER, then the
+default, then the only paired server.
+
+Arguments are a JSON object, or - for stdin. Most thread tools need a threadId,
+and this client runs outside a thread, so list threads first and pass one.
 
 Exit status is 0 on success, 1 when the CLI or the tool failed (a tool error
 body still goes to stdout), and 2 for a usage mistake.
@@ -171,7 +181,8 @@ def pair(origin: str, access: str, code: str, name: str) -> dict:
     registered = post(
         origin,
         "/oauth/mcp/register",
-        # The name is the label the server shows under Authorized clients.
+        # The name is what the server lists under Sharing & access, as
+        # t3mcp:<name>.
         {"client_name": f"t3mcp:{name}", "redirect_uris": [REDIRECT_URI]},
     )
     verifier = secrets.token_urlsafe(32)

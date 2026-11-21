@@ -1,3 +1,10 @@
+# The idle chain: hypridle dims a screen that is already locked after a minute,
+# dims an idle one after two, and locks at three. break-timer is a 20 minute
+# nudge that warns, pauses media, and locks ten seconds later unless Mod+B skips
+# it; a skip or a wake from a dimmed screen restarts the timer, so the next
+# nudge is 20 minutes out.
+#
+# swaylock is what every path locks with, so its config lives here too.
 {
   pkgs,
   brightness,

@@ -6,17 +6,31 @@
 #
 # The service is declared rather than installed with `t3 service install`:
 # that command downloads versions into ~/.t3 and self-updates, while this host's
-# T3 comes from the nix store and moves when the server pin moves. `t3 update`
-# and `t3 service` are therefore not part of this host's workflow.
+# T3 comes from the nix store and moves when the server pin moves. `t3 update`,
+# `t3 install` and `t3 service` are therefore not part of this host's workflow.
+# A switch that moves the pin changes the unit's ExecStart, so systemd restarts
+# the service with the new server and nothing has to be restarted by hand.
 #
 # Clients reach it over Tailscale Serve, the same way the laptop publishes its
-# own server. That needs tailscaled and this user as its operator
+# own server, so a client opens `https://homelab.<tailnet>.ts.net`, this node's
+# name under the tailnet's DNS name, with no port in the URL. The server binds
+# 127.0.0.1 (`--host` below), so that name is the way in from another machine,
+# including t3mcp. That needs tailscaled and this user as its operator
 # (hostConfig.tailscale.operator), and it serves HTTPS with a valid certificate
 # from the tailnet, which a browser needs before it will hand the app its
 # clipboard or crypto APIs. The route is set by the server itself on startup
 # and repaired while it runs. A start before tailscaled answers leaves the
 # route off until the next restart; ExecStartPre keeps that from happening at
 # boot.
+#
+# One-time setup after the first switch: `ssh homelab pi auth login <provider>`
+# writes the model credentials to ~/.pi, with `--no-browser` when the login has
+# to run over ssh, and `ssh homelab t3 pair --tailscale` prints a pairing URL
+# and an app link. Open the link on the laptop, then enable the Pi provider in
+# T3's settings; pi is the agent this host configures. T3 fetches the pi-acp
+# adapter from the ACP registry with npm on its first use and runs `pi` from the
+# service PATH below, which is the login profile plus the system profile: git,
+# gh and node are there, and neither opencode nor the Claude CLI is.
 {
   config,
   hostConfig,

@@ -7,8 +7,10 @@
 # The kernel comes from the rev-pinned `nixpkgs-fast-release` input, not the
 # floating stable channel: CI builds this derivation and the box substitutes it
 # (.github/workflows/compile-kernel.yml), and only a rev-pinned input makes both
-# evaluate to the same store path. The series stays the LTS one on purpose; what
-# moves is the patch level, with the pin in flake.nix.
+# evaluate to the same store path. The laptop's kernel comes out of that same
+# input, so one rev covers both kernels and CI builds both from it. The series
+# stays the LTS one on purpose; what moves is the patch level, with the pin in
+# flake.nix.
 #
 # Everything set here is either something nixpkgs would otherwise get wrong for
 # this machine, or something whose silent loss would cost a build. CI greps the

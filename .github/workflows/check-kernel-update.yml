@@ -9,11 +9,12 @@ name: "Check Kernel Update"
 # series names is what turns a new series (7.3.1, later 7.4.1) into an
 # ordinary pin bump instead of an edit to the kernel selection.
 #
-# Nothing lands on main by itself: merging the PR is the manual gate.
-# The merge triggers compile-kernel (path filter), which deploys the signed
-# binary to gh-pages; the next daily run pulls the merge and its system switch
-# substitutes the binary instead of compiling for two hours. Nothing reboots,
-# so the new kernel runs from the next reboot.
+# Nothing lands on main by itself: merging the PR is the only manual gate.
+# The merge triggers compile-kernel (path filter), which uploads the nars to a
+# GitHub release and deploys the narinfos to gh-pages; the next daily run pulls
+# the merge and its system switch substitutes the binary instead of compiling
+# for two hours. Nothing reboots, so the new kernel is the boot default after
+# that switch and runs from the next reboot.
 
 on:
   schedule:
@@ -136,11 +137,12 @@ jobs:
           BODY="${CHANNEL} moved the stable kernel ${OLD_VER} -> ${NEW_VER}.
 
           Merging this PR triggers the compile-kernel build for both machines;
-          once CI deploys the binaries to gh-pages, the next daily run's system
-          switch substitutes them (cache hit, no 2h compile). A host whose
-          kernel is not published yet skips its switch instead of building, so
-          a failed run costs a day, not a night. Nothing reboots, so boot it
-          when you next reboot."
+          once CI uploads the nars to the release and publishes the narinfos,
+          the next daily run's system switch substitutes them (cache hit, no 2h
+          compile). A kernel that is not published yet is the exception: the
+          laptop compiles it, and the homelab skips its switch instead of
+          building, so a failed run costs a day, not a night. Nothing reboots,
+          so boot it when you next reboot."
           # Only an OPEN PR may be edited. gh resolves a head branch whatever its
           # state, so the merged PR from an earlier bump still answers to
           # kernel-bump; editing it renames a dead PR and leaves this bump with

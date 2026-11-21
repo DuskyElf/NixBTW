@@ -29,10 +29,15 @@ in
 {
   networking.useDHCP = lib.mkDefault true;
 
-  # This machine's own binary cache: CI builds the tuned kernel and publishes
-  # it here. The key name must match the NIX_SECRET_KEY signer exactly or
-  # lookups miss silently and the kernel builds here instead. Other hosts do
-  # not trust it, which is why it is appended here and not in base/.
+  # The binary cache CI publishes the tuned kernel to. The key name must match
+  # the NIX_SECRET_KEY signer exactly or lookups miss silently and the kernel
+  # builds here instead. Both hosts run a CI kernel and both trust this cache;
+  # it is declared per host rather than in base/ so a machine that does not use
+  # it carries nothing.
+  # A kernel CI has not published yet is one miss: that switch compiles here
+  # for roughly two hours, and the next daily run picks the build up. A rebuild
+  # whose running generation predates this trust is the other, and that one
+  # takes the substituter and key as --option.
   nix.settings.substituters = lib.mkAfter [ "https://duskyelf.github.io/NixBTW" ];
   nix.settings.trusted-public-keys = lib.mkAfter [
     "i9-kernel-cache:4R0pqOZkrRj4utTbF4zP05Y58QSgShLqQ77KUPzFjwk="

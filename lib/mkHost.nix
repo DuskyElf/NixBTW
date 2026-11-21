@@ -13,6 +13,16 @@
 # sit in the matching list. checkHalf fails eval on the mistake that would
 # otherwise apply quietly: an import that works in either configuration, like the
 # daily update's timer, landing in the wrong one.
+#
+# Evaluate a change before switching it:
+#
+#   nix eval --raw --no-write-lock-file .#nixosConfigurations.asus.config.system.build.toplevel.drvPath
+#   nix eval --raw --no-write-lock-file '.#homeConfigurations."duskyelf@asus".config.home.activationPackage.drvPath'
+#   nix eval --raw --no-write-lock-file .#nixosConfigurations.homelab.config.system.build.toplevel.drvPath
+#   nix eval --raw --no-write-lock-file '.#homeConfigurations."duskyelf@homelab".config.home.activationPackage.drvPath'
+#
+# These read tracked files only, so git add a new Nix file before evaluating.
+# The rebuild helpers read the live tree, untracked edits included.
 {
   inputs,
   pkgs,

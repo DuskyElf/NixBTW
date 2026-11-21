@@ -12,8 +12,10 @@
 #                   hostConfig.systemSwitchPath so both halves of each pair read
 #                   one value; the fallbacks only keep a hand run working.
 #
-#   --t3 / --no-t3                   move the T3 Code stable pin (default: on)
-#   --devshells / --no-devshells     pin the project devshells (default: on)
+#   --t3 / --no-t3                   move the T3 Code stable pin (default: on;
+#                                    the laptop is the only host that sets it)
+#   --devshells / --no-devshells     pin the project devshells (default: on;
+#                                    the laptop is the only host that sets it)
 #   --collect / --no-collect         collect this user's store and ask the system
 #                                    unit for root's (default: on)
 #   --home-switch <path>             home switch to run after the system one
@@ -36,14 +38,18 @@
 #
 # The system is rebuilt before home-manager. Both configurations read this
 # tree, and a change that spans them (a power.sh argument and its niri caller)
-# needs the new store copy installed before the home activation calls it.
+# needs the new store copy installed before the home activation calls it: niri
+# calls /usr/local/sbin/power.sh, so a home-only switch would run the old store
+# copy with the new arguments.
 #
 # The user half of the collection cannot prune generations under
 # /nix/var/nix/profiles or /root, so the script writes a marker when it is
 # done and a system path unit (apps/daily-update/system.nix) collects root's
 # profiles. The marker is written on exit, including an interrupted one: a
 # system switch can restart the display manager and take this unit's cgroup with
-# it, and the collection must not depend on the update finishing.
+# it, and the collection must not depend on the update finishing. A run killed
+# with SIGTERM skips the user half and still writes the marker, so root's
+# collection happens that day even though the user store was never touched.
 #
 # The collection runs even when the update did not: generations age whether or
 # not a lock moved, so the day's collection must not depend on the network or
@@ -71,7 +77,11 @@ devshells=1
 collect=1
 home_switch=
 # The laptop's list, which is what the old hardcoded call moved. The unit always
-# passes this host's list, so production never reads this default.
+# passes this host's list from lib/host.nix dailyUpdate.wrapperInputs, so
+# production never reads this default. Three of the five float from the network
+# (nixpkgs, nixpkgs-unstable-small, zen-browser) and the two submodule inputs are
+# re-locked from their checkouts. The homelab lists nixpkgs, neovimBTW and
+# wallpaper-guardian only.
 wrapper_inputs="nixpkgs nixpkgs-unstable-small zen-browser neovimBTW wallpaper-guardian"
 marker=
 kernel_cache=
@@ -313,7 +323,8 @@ log "daily update starting"
 status=0
 # Cleared when the checkout is not in a state a rebuild may read: a conflict, an
 # unfinished operation, or a lock that would not settle. The update half is then
-# skipped whole, and the day still pins and collects.
+# skipped whole, the checkout is left for a person to finish, and the day still
+# pins and collects.
 tree_ok=1
 # Set when this host's own kernel is not in its substituter yet: the switch is
 # skipped, home-manager with it, and the day still pins and collects.
@@ -389,7 +400,11 @@ else
   esac
 
   # A merged submodule bump moves the gitlink only, so the checkout has to
-  # follow before anything evaluates it or the wrapper pins it.
+  # follow before anything evaluates it or the wrapper pins it. The
+  # `nix flake update` below then re-locks neovimBTW and wallpaper-guardian from
+  # these checkouts rather than from the network, which is what lets a merged
+  # bump reach the switch. A hand bump does the same two steps: `nix flake
+  # update <name>` inside deploy-system/, then a switch.
   if [ "$tree_ok" -eq 1 ] &&
     ! git -C "$dots" submodule update --init --recursive --quiet; then
     log "the submodule checkouts did not follow the pull"

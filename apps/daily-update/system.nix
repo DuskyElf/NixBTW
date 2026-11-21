@@ -25,11 +25,45 @@ let
   # path exists here at all. It is the second one, after apps/power/power.sh;
   # do not add a third without the same reasoning written beside it.
   #
+  # This path is both the timer's own command and the hand-run command: a hand
+  # run and the timer's run go through the same body and the same lock. A host
+  # that has no helper yet runs that body by hand, with the password in front:
+  #
+  #   sudo nixos-rebuild switch \
+  #     --no-write-lock-file \
+  #     --flake "$HOME/dotfiles/deploy-system" \
+  #     --override-input my-dotfiles "path:$HOME/dotfiles" \
+  #     --cores <dailyUpdate.cores>
+  #
+  # The count is the host's dailyUpdate.cores: 16 on the laptop, 2 on the
+  # homelab.
+  #
+  # A --target-host run reaches the target's switch-to-configuration directly
+  # and cannot take that host's lock, so it still collides with the host's own
+  # daily run: ssh in and run this helper there instead.
+  #
+  # The homelab rebuilds on the box, in its own checkout, because that switches
+  # the pins that box's wrapper locked:
+  #
+  #   ssh homelab
+  #   cd "$HOME/dotfiles" && git pull --rebase --autostash
+  #   sudo /usr/local/sbin/nixos-switch.sh
+  #   "$HOME/dotfiles/apps/home-switch/hm-switch.sh"
+  #
+  # Building the attribute on the laptop first catches an evaluation error
+  # against the laptop's pin rather than after the pull:
+  #
+  #   nix build --no-link \
+  #     "path:$dots/deploy-system#nixosConfigurations.homelab.config.system.build.toplevel" \
+  #     --override-input my-dotfiles "path:$dots"
+  #
+  # with dots=$HOME/dotfiles.
+  #
   # /run/current-system/sw/bin/nixos-rebuild is the copy PATH resolves for a
   # hand run, and the running generation's copy is the one that exists while the
   # next one is being built. --no-write-lock-file keeps root from writing a
-  # lock file it cannot own: apps/daily-update/daily-update.sh locks as the
-  # login user before this runs.
+  # lock file the login account cannot write: apps/daily-update/daily-update.sh
+  # locks as the login user before this runs.
   systemSwitch = pkgs.writeShellScript "nixos-switch.sh" ''
     set -euo pipefail
     # sudo keeps the caller's PATH on this system (no secure_path), and the
@@ -62,6 +96,10 @@ let
         exit 1
       }
     fi
+    # The live-tree override is what applies uncommitted edits and the pull's
+    # work. Without it the wrapper evaluates its pinned my-dotfiles rev, which
+    # can be older than this checkout and can point at a different
+    # nixpkgs-fast-release, so the kernel build misses the signed cache.
     exec /run/current-system/sw/bin/nixos-rebuild switch \
       --no-write-lock-file \
       --flake ${hostConfig.dotsDir}/deploy-system \

@@ -5,6 +5,11 @@
 # config.nix holds the values modules read (user, panels, battery); system.nix
 # holds the driver, kernel, and firmware work that only this machine needs.
 #
+# This is not a template: the disk devices and labels, the BIOS offsets and
+# undervolt values, the screenpad quirk, and the kernel tuning describe one
+# UX581GV. A second machine gets its own hosts/<name> and a real hardware
+# config, not a copy of this directory.
+#
 # This is the opt-in: this file imports the desktop base modules and the app
 # modules the laptop runs. An app that spans both rebuilds gets one import in
 # each list.
