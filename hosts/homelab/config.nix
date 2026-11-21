@@ -38,15 +38,6 @@
   # interface either way.
   ssh.openLanPort = true;
 
-  # The agent's dashboard is published on the tailnet, so a browser on the
-  # laptop or a phone reaches it without an ssh tunnel. The origin is stated
-  # once, here: it is the name this node has on the tailnet, and the app keeps
-  # its password gate on because that host is not loopback. The app itself
-  # binds loopback and the LAN has no port for it. The credentials stay in
-  # ~/.config/hermes/env. Leave the value null on a host that publishes
-  # nothing.
-  hermes.dashboard.publicUrl = "https://homelab.tail5dc115.ts.net";
-
   # The box updates itself once a day like the laptop, but only the stable
   # track: nixpkgs, and the two submodule inputs the wrapper pins. No T3 Code
   # pin and no devshell pin. It has no graphical session, so the timer needs

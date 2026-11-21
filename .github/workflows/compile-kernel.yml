@@ -2,10 +2,9 @@ name: "Compile Optimized Kernel"
 
 # Builds the tuned kernels this repo ships on a standard runner and serves them
 # as one signed Nix binary cache, so nixos-rebuild substitutes instead of
-# compiling. Two hosts, one job each, one site. The site is not exclusively
-# the kernels': compile-hermes.yml publishes the Hermes agent's closure to the
-# same URL, which is why the deploy lives in publish-cache.yml and both
-# workflows hold the same deploy lock:
+# compiling. Two hosts, one job each, one site. The deploy itself lives in
+# publish-cache.yml; the `cache-publish` group on this workflow's publish job
+# is the gh-pages lock:
 #
 #   asus     the laptop's kernel (hosts/asus/system.nix), tagged kernel-<ver>
 #   homelab  the server's kernel (hosts/homelab/kernel.nix), tagged
@@ -120,8 +119,7 @@ permissions:
 # quick commits only ever build the newer kernel of *that* host, and a homelab
 # push cannot cancel an asus build an hour in (a workflow-level group would).
 # The publish job gets its own group because there is one gh-pages branch, and
-# that group is `cache-publish`: compile-hermes.yml deploys the same branch and
-# waits on the same lock.
+# that group is `cache-publish`, the gh-pages deploy lock.
 
 jobs:
   build:
@@ -340,16 +338,12 @@ jobs:
   # the whole site. Runs even when a leg failed: a release that finished
   # uploading must still become servable, or that host's next switch compiles.
   #
-  # The steps themselves live in publish-cache.yml, because compile-hermes.yml
-  # publishes the Hermes agent's closure to the same site and the site has to be
-  # written by one deploy at a time. The group below is that lock, and it is
-  # shared with that workflow rather than private to this one: two deploys
-  # racing would leave the site missing whichever narinfos lost. The prune stays
-  # in the build legs above, where the per-host budgets and the leg's own tag
-  # already live. That leaves one window a shared prune would not: a leg's prune
-  # can delete a release while the other workflow's deploy is reading it, which
-  # fails that deploy's verification. Moving the prune into the shared job would
-  # close it, at the price of reordering this pipeline, so it is not done here.
+  # The steps themselves live in publish-cache.yml, and the group below is the
+  # gh-pages lock. The prune stays in the build legs above, where the per-host
+  # budgets and the leg's own tag already live, so a later run's leg can prune a
+  # release while an earlier run's deploy is reading it and fail that deploy's
+  # verification. Moving the prune here would close that window, at the price of
+  # reordering this pipeline, so it is not done.
   publish:
     needs: build
     # The called workflow cannot widen its token, so the write permission for

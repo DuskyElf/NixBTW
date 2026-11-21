@@ -21,8 +21,6 @@
     ../../apps/openssh/system.nix
     ../../apps/tailscale.nix
     ../../apps/daily-update/system.nix
-    # The tailnet side of the agent's dashboard (config.nix states its origin).
-    ../../apps/hermes/system.nix
   ];
   home = [
     ./home.nix
@@ -33,11 +31,6 @@
     ../../apps/daily-update/home.nix
     ../../apps/nvim.nix
     ../../apps/languages.nix
-
-    # The always-on agent. Home half here; the system half above publishes its
-    # loopback dashboard on the tailnet. It runs as duskyelf through the linger
-    # this box already sets.
-    ../../apps/hermes/home.nix
   ];
 
   # Only the installer reads this; it is what nixos-anywhere formats with.

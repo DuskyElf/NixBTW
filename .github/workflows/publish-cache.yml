@@ -1,119 +1,65 @@
 name: "Publish The Signed Cache"
 
 # The deploy half of the substituter at CACHE_URL. Called by
-# compile-kernel.yml and compile-hermes.yml, which publish to the same site
-# from the same gh-pages branch.
+# compile-kernel.yml, which publishes the kernels to the same site from the
+# same gh-pages branch.
 #
-# It is one reusable workflow rather than a copy in each caller because
+# It is a reusable workflow rather than steps inlined in the caller so a second
+# publisher can share the deploy instead of copying it. That matters because
 # gh-pages is one branch and the deploy uses keep_files: false: two jobs
 # deploying at once would race, and the loser's site would be missing the
-# winner's narinfos until something else deployed. Callers therefore share one
-# concurrency group, and each one declares it on the calling job, not here:
-# declaring the same group inside the called workflow as well would make this
-# job queue behind the caller that is waiting for it, which is a deadlock that
-# ends in a timeout rather than an error.
+# winner's narinfos until something else deployed. The caller declares the
+# concurrency group on its own job, not here: declaring the same group inside
+# the called workflow as well would make this job queue behind the caller that
+# is waiting for it, which is a deadlock that ends in a timeout rather than an
+# error.
 #
 # A deploy that gets replaced in the queue while pending costs a red job, not
-# the site: every deploy writes the union of every release, so whichever one
-# finally runs serves both pipelines' work. That is the reason the gather below
-# filters on both tag prefixes instead of on its caller's.
+# the site: every deploy writes the union of every surviving release, so
+# whichever one finally runs serves every kernel the prune kept.
 #
 # A reusable workflow does not inherit the caller's env, and `env` is not a
 # context a caller may pass in `with:`, so the three constants below are copies
-# of the env blocks in the callers. Keep them identical: a mismatch would
+# of the caller's env block. Keep them identical: a mismatch would
 # deploy narinfos signed under one name while the verify step looks for
 # another.
 #
-# Callers must grant `contents: write`, which both do for their own release
-# uploads. A called workflow cannot widen its token's permissions, and a calling
-# job that declares none hands this one the repository default, which is
-# read-only: the deploy below then pushes gh-pages with a token that cannot
+# The caller must grant `contents: write`, which it does for its own release
+# uploads. A called workflow cannot widen its token's permissions, and
+# a calling job that declares none hands this one the repository default, which
+# is read-only: the deploy below then pushes gh-pages with a token that cannot
 # write and the site stops moving. Every step here uses `github.token` rather
 # than `secrets.GITHUB_TOKEN` because a called workflow is granted that token
-# automatically, so the deploy does not depend on which workflow called it or on
-# a `secrets: inherit` doing what it says.
+# automatically, so the deploy does not depend on a `secrets: inherit` doing
+# what it says.
 
 env:
   CACHE_URL: https://duskyelf.github.io/NixBTW
   RELEASE_REPO: DuskyElf/NixBTW
-  # The signer name. The hosts trust i9-kernel-cache:<pubkey>, so the kernels
-  # and the agent are signed by one key: nix matches the name and verifies the
+  # The signer name. The hosts trust i9-kernel-cache:<pubkey>, and both
+  # kernels' narinfos are signed with it: nix matches the name and verifies the
   # key bytes, and a second name would need a second entry on every machine.
   CACHE_KEY_NAME: i9-kernel-cache
 
 on:
   workflow_call:
-    inputs:
-      # The tag prefix this caller's own releases carry. Empty means the caller
-      # prunes its own releases, as the kernel pipeline does per host, and no
-      # pruning happens here.
-      prune_prefix:
-        description: "Tag prefix to keep bounded, e.g. hermes-"
-        type: string
-        default: ""
-      prune_keep:
-        description: "How many releases carrying prune_prefix to keep"
-        type: number
-        default: 0
-      protect_tag:
-        description: "Release this run published, never pruned"
-        type: string
-        default: ""
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      # Bounded storage, and before the gather on purpose: a narinfo served for
-      # a path whose nar was pruned makes nix error instead of falling back to
-      # a local build, so the deploy that follows reads only the releases that
-      # survived it. The kernel pipeline prunes inside its own build legs (per
-      # host, protecting the leg's own tag); this step is for callers whose
-      # retention is not per host, and does nothing when no prefix is passed.
-      #
-      # It also does nothing when the caller named no release to protect. A
-      # build that failed leaves protect_tag empty, and a republish under an
-      # existing tag keeps that tag's old creation time, so pruning then could
-      # delete the release the run is in the middle of rewriting. Storage grows
-      # by one release in that case, which the next successful run collects.
-      - name: Prune Old Releases
-        if: ${{ inputs.prune_prefix != '' && inputs.prune_keep > 0 && inputs.protect_tag != '' }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          # Newest by creation time, because a tag can be a store hash, and
-          # version order says nothing at all about the age of a hash.
-          gh release list --repo "$RELEASE_REPO" --limit 100 --json tagName,createdAt \
-            | jq -r --arg prefix "${{ inputs.prune_prefix }}" \
-                '.[] | select(.tagName | startswith($prefix)) | "\(.createdAt) \(.tagName)"' \
-            | sort -r | awk '{print $2}' | tail -n "+$(( ${{ inputs.prune_keep }} + 1 ))" \
-            > ./prune-list
-          while read -r old; do
-            [ -n "$old" ] || continue
-            # Never prune what this run just published, even when a republish
-            # leaves it older than the releases the budget would keep.
-            [ "$old" = "${{ inputs.protect_tag }}" ] && continue
-            echo "pruning $old"
-            gh release delete "$old" --repo "$RELEASE_REPO" --yes --cleanup-tag
-          done < ./prune-list
-          # gh's own -q takes no jq arguments, so the prefix travels through a
-          # pipe instead.
-          echo "kept: $(gh release list --repo "$RELEASE_REPO" --limit 100 --json tagName \
-            | jq -r --arg prefix "${{ inputs.prune_prefix }}" \
-                '[.[] | select(.tagName | startswith($prefix)) | .tagName] | join(" ")')"
-
       # gh-pages is rebuilt from the surviving releases every run rather than
       # appended to, so on a successful deploy the site mirrors exactly what
-      # survives. A narinfo can still be served for a pruned nar between this
-      # prune and that deploy, and a deploy that fails prolongs that window; the
-      # next successful deploy is what closes it, which is why the verify below
-      # is strict and why a skipped release is reported as a failure.
+      # the build legs left behind. A narinfo can still be served for a pruned
+      # nar between that prune and this deploy, and a deploy that fails
+      # prolongs that window; the next successful deploy is what closes it,
+      # which is why the verify below is strict and why a skipped release is
+      # reported as a failure.
       #
       # Each release is read through its PACKAGED manifest rather than its asset
       # list, so only the paths that release actually publishes are served. Both
-      # publishers land here: the kernels use kernel- and kernel-homelab-, the
-      # agent uses hermes-, and this is the one place that knows the site is the
+      # hosts land here: the laptop's releases are kernel-, the server's
+      # kernel-homelab-, and this is the one place that knows the site is the
       # union of them.
       - name: Gather Narinfos From Every Cache Release
         env:
@@ -124,7 +70,7 @@ jobs:
           : > ./skipped-releases
           contributed=0
           gh release list --repo "$RELEASE_REPO" --limit 100 --json tagName \
-            -q '.[] | select(.tagName | test("^(kernel|hermes)-")) | .tagName' \
+            -q '.[] | select(.tagName | test("^kernel-")) | .tagName' \
             | sort -V > ./kept-releases
           while read -r tag; do
             [ -n "$tag" ] || continue
@@ -173,7 +119,7 @@ jobs:
           # wipes it every deploy, so it is written here rather than uploaded
           # once. Priority 50 sits below cache.nixos.org (40) on purpose: for
           # any path an upstream cache also has, upstream wins, so only what
-          # nobody else serves (these kernels, this agent) comes from us.
+          # nobody else serves (these kernels) comes from us.
           printf 'StoreDir: /nix/store\nWantMassQuery: 1\nPriority: 50\n' > ./narinfos/nix-cache-info
           echo "$COUNT narinfos from $contributed release(s), $(wc -l < ./skipped-releases) skipped"
 
@@ -233,11 +179,10 @@ jobs:
             sleep 10
           done
 
-          # The agent's closure is a few hundred paths, so a site that is
-          # broken for all of them must fail here in minutes, not grind through
-          # ten minutes of retries per path until the job times out. Three
-          # paths that never became servable is a broken deploy or a broken
-          # site, not a file that lagged behind Pages.
+          # A broken site must fail here instead of burning ten minutes of
+          # retries per path. The site serves only the pruned kernel releases,
+          # so a handful of paths: three that never became servable is a broken
+          # deploy or a broken site, not a file that lagged behind Pages.
           misses=0
 
           mapfile -t PATHS < <(sed -n 's/^StorePath: //p' ./narinfos/*.narinfo | sort -u)

@@ -236,18 +236,11 @@ What needs which rebuild:
 | `base/home.nix`, `base/home-workstation.nix`, the home imports in a host's `default.nix`, and a `hosts/` value only the home half reads such as `ssh.aliases` | `hm-switch.sh` |
 | `base/core.nix`, `base/workstation.nix`, the system imports in a host's `default.nix`, `hosts/` | `sudo /usr/local/sbin/nixos-switch.sh` |
 | `apps/niri/system.nix` | `sudo /usr/local/sbin/nixos-switch.sh`; the rest of `apps/niri/` is a home module |
-| `apps/hermes/system.nix` | `sudo /usr/local/sbin/nixos-switch.sh`; it publishes the loopback dashboard on the tailnet, and the rest of `apps/hermes/` is a home module |
 | `apps/tailscale.nix` | `sudo /usr/local/sbin/nixos-switch.sh`; the tailnet service on both hosts |
 | `flake.nix`, `lib/` | both, the wiring reaches both configurations |
 | `apps/wallpaper/wallpaper-guardian/` | `hm-switch.sh`; a submodule bump also needs `nix flake update wallpaper-guardian` in `deploy-system/` |
 | `apps/quickshell/`, `apps/tmux/tmux.conf`, `apps/daily-update/active-projects` | nothing, they are linked live or read at run time; tmux.conf is reached at `~/.config/tmux/hotreloaded.conf` |
 | `apps/power/power.sh` | `sudo /usr/local/sbin/nixos-switch.sh` (it lands in `/usr/local/sbin`) |
-
-Two values in `hosts/` need both switches. `hermes.dashboard.publicUrl` is read
-by the system unit that publishes it and by the home module that trusts the
-origin, so a system switch alone leaves the app answering 400 to every proxied
-request. `hermes.dashboard.port` is the bind in the home half and the proxy
-target in the system unit.
 
 A `neovimBTW` or `wallpaper-guardian` submodule bump also needs
 `nix flake update <name>` inside `deploy-system/`, then a switch; the daily run
@@ -269,7 +262,6 @@ it, and the timer calling that path itself.
 | T3 Code stable | `pkgs/t3code/lock.nix` | upstream stable tag plus the three vendor hashes, moved by the daily timer |
 | `setup_var.efi` | `hosts/asus/system.nix` | BIOS unlock entry, by version and hash |
 | NVIDIA driver | `hosts/asus/system.nix` | must match the custom kernel, and this closure is in no public cache |
-| Hermes Agent | `flake.nix` | its package patches patchelf 0.19.2, so it needs its own nixpkgs; no cache carries its closure |
 
 The other inputs float through the private lock, including system nixpkgs,
 unstable for niri, unstable-small for the agents, home-manager, stylix,
@@ -293,13 +285,7 @@ the `wallpaper-guardian` home-manager module enabled in `apps/wallpaper.nix`,
 next to `awww-daemon`. `quickshell`, `wl-gammarelay`, and `break-timer` are
 `apps/quickshell.nix`, `apps/gammarelay.nix`, and `apps/idle.nix`.
 `battery-threshold-control` and `screenpad-off` are one-shot system services.
-`llm-lab` starts ollama and Open WebUI only when you ask. On the homelab
-`hermes-agent` and `hermes-backend` are user units, the second serving the agent
-dashboard on a loopback port behind the app's own password gate;
-`hermes-dashboard-serve` publishes that port on the tailnet with
-`tailscale serve`, at https://homelab.tail5dc115.ts.net. The laptop installs only
-the desktop application (`apps/hermes/desktop.nix`), and its connection to that
-backend is made once in the app, over the tailnet.
+`llm-lab` starts ollama and Open WebUI only when you ask.
 
 Which of those steps a machine runs is host data, not a branch in the script:
 `lib/host.nix` `dailyUpdate` sets `t3`, `devshells`, `collect`,
@@ -346,11 +332,9 @@ instances on purpose (unstable for niri and zen, unstable-small for the agents,
 fast-release for its tuned kernel). The homelab uses the stable channel and
 `neovimBTW`, and it configures its own kernel too: `hosts/homelab/kernel.nix`
 takes the 6.18 longterm series out of the same rev-pinned `nixpkgs-fast-release`
-input, so both kernels come from one pin and CI can build both from it. Only
-Hermes Agent builds against another nixpkgs: its lock pins the one its patchelf
-fix patch applies to, and nothing else on the box leaves stable. Its kernel is
-either in the signed cache or already in its store, and the daily run refuses to
-switch otherwise (`dailyUpdate.kernelCache`).
+input, so both kernels come from one pin and CI can build both from it. The
+homelab's kernel is either in the signed cache or already in its store, and the
+daily run refuses to switch otherwise (`dailyUpdate.kernelCache`).
 
 A pull that conflicts aborts its own rebase and the run continues on the tree it
 already has, with a notification; a pull that rewrites `daily-update.sh` itself
@@ -388,14 +372,10 @@ substitutes the cached kernel. Merging the PR is the only manual step left; the
 new kernel is the boot default after that switch and runs from the next reboot,
 because nothing here reboots the machine.
 
-That site serves one more thing: `compile-hermes.yml` builds the homelab's agent
-from its rev pin and publishes the paths cache.nixos.org lacks under
-`hermes-<store hash>`, so a home switch downloads them instead of compiling them
-on two cores. The desktop app is not in that cache: the laptop builds it once.
-Both pipelines deploy the site through
-`.github/workflows/publish-cache.yml`, one deploy at a time, because gh-pages is
-a single branch that each deploy replaces whole. A release whose assets are
-incomplete is left out of the site and reported as a failure, never half-served.
+The kernels deploy the site through `.github/workflows/publish-cache.yml`, one
+deploy at a time, because gh-pages is a single branch that each deploy replaces
+whole. A release whose assets are incomplete is left out of the site and
+reported as a failure, never half-served.
 
 The first switch on a host whose kernel CI has not published yet cannot use that
 cache, because the generation that would trust it is the one being installed. On

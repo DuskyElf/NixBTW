@@ -47,10 +47,5 @@
     ../../apps/wallpaper.nix
     ../../apps/quickshell.nix
     ../../apps/gammarelay.nix
-
-    # The desktop application only. Its services stay off: the backend it
-    # attaches to is the homelab's, over the tailnet, and that connection is
-    # made once in the app rather than here.
-    ../../apps/hermes/desktop.nix
   ];
 }
