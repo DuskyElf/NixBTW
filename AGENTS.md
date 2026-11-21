@@ -21,7 +21,7 @@ Two machines carry these: `hosts/asus/` is the laptop, `hosts/homelab/` a headle
 Subrepos own their domains. Read their docs when you work inside them and do not duplicate them here:
 * `apps/nvim/neovimBTW/`
 * `apps/opencode/opencodeBTW/`
-* `apps/wallpaper/wallpaper-guardian/` (Guardian wallpaper pool CLI, Rust, own flake and home-manager module)
+* `apps/wallpaper/wallpaper-guardian/`
 
 This repo is NOT the deploy flake. `deploy-system/` is a private wrapper flake pinning this repo as `my-dotfiles`. It is gitignored with its own nested git repo, pushed to the private `NixBTW-deploy` repository, and its flake.lock is the lock source of truth for the wrapper's own inputs. The checkout keeps an untracked, gitignored `flake.lock` of its own, which a `path:` override reads and a standalone git-flake eval ignores (git flakes read tracked files only); the daily run rewrites it as you so the two stay in agreement. You may read the wrapper and propose edits to it. The user applies them.
 
@@ -32,7 +32,7 @@ All rebuilds go through the wrapper with the live-tree override, so uncommitted 
 
 A host with no helper yet, the plain `home-manager switch` that `news`, `rollback` and `generations` need, and the table of what needs which rebuild are in `README.md` under Rebuild.
 
-Everything on both machines is handled by systemd timers pretty much. One daily user timer, `daily-update`, fires from 08:30 with up to 30 minutes of jitter and runs `apps/daily-update/daily-update.sh`: pull, move the pins that host owns, run the system switch and then the home switch, and collect the user and root profiles. Which of those a machine takes is host data in `lib/host.nix` `dailyUpdate`, not a branch in the script. When the machine disagrees with this repo, suspect that drift first, not a local edit. Do not hand-edit pins the timer owns.
+Everything on both machines is handled by systemd timers pretty much. One daily user timer, `daily-update`, runs `apps/daily-update/daily-update.sh`: pull, move the pins that host owns, run the system switch and then the home switch, and collect the user and root profiles. Which of those a machine takes is host data in `lib/host.nix` `dailyUpdate`, not a branch in the script. When the machine disagrees with this repo, suspect that drift first, not a local edit. Do not hand-edit pins the timer owns.
 
 Submodule bumps (e.g. `neovimBTW`) do not reach a switch through the live-tree override alone. The wrapper pins each submodule as its own flake input, so run `nix flake update <name>` inside `deploy-system/` after the bump, then switch; the daily timer does it for the inputs in `dailyUpdate.wrapperInputs`.
 
@@ -40,5 +40,5 @@ Edits to a live-linked asset go live at once, no rebuild: `apps/quickshell/` is 
 
 Packages are as jailed as possible using `lib/jail.nix`, see each app module to check their perms.
 
-Q. What belongs in this file (AGENTS.md) ?
-Wisdom that a new agent needs about the repo and the machine, the overall context of what's happening. Everything else is a comment beside the code it describes: the reason a kernel option, a pin, a value, or a step is what it is lives next to it, so read that comment before editing the code, and keep it in sync with the change. `README.md` is the human-facing manual. Don't forget to update this file cautiously.
+What belongs in this file (AGENTS.md):
+A line stays only if every task needs it, a new agent would get it wrong without it, and no comment in the code already says it. When you add a line, name the task that breaks without it; when a behavior changes, prune the line that explains it. Everything else is a comment beside the code it describes, kept in sync with the change; install steps and one-off procedures go in `README.md`, the human-facing manual.
