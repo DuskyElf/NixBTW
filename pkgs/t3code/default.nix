@@ -20,7 +20,9 @@
 # stable cannot supply breaks the home configuration's evaluation rather than
 # the tag's hashes, and pkgs/t3code/update.sh reports it as a build
 # failure with the pin in place, not as a bad tag. Revert the pin or vendor the
-# recipe when that happens.
+# recipe when that happens. Do not swap it back to the nixpkgs `t3code`
+# attribute, which is the older 0.0.x recipe, and do not edit the hashes by
+# hand: only the updater can make them follow a tag.
 #
 # The source is upstream's tag, so the three fixed-output hashes in ./lock.nix
 # (repo tarball, pnpm store, cargo vendor) still move with the tag, and

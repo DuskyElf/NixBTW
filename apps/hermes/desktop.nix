@@ -9,6 +9,8 @@
 # server process, which inherits the session PATH, so `hermes` has to be on it.
 # `programs.hermes-agent.enable` is what puts it there; `desktop.enable` alone
 # installs hermes-desktop and leaves the `hermes` binary out of the profile.
+# compile-hermes.yml publishes the agent's closure for the homelab, and that
+# cache does not carry this application, so the laptop builds it once.
 #
 # The upstream module is imported for its option, and only once per machine:
 # it declares both `programs.hermes-agent` and `services.hermes-agent`, so a

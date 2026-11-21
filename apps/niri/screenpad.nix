@@ -1,7 +1,10 @@
 # The screenpad switch: the panel behind asus_screenpad and the niri output that
 # shows on it. power.sh owns the backlight; on this kernel bl_power 4 blanks the
 # panel and 0 lights it (the standard backlight class spelling). The output is
-# configured off, so it stays dark and unmapped until this asks.
+# configured off, so it stays dark and unmapped until this asks. The power
+# helper is the store copy at /usr/local/sbin/power.sh, so a change that spans
+# both halves needs the system switch before the home one; otherwise this calls
+# the old script with the new arguments.
 #
 # This is not a module, it is a factory: binds.nix imports it for Mod+1 and adds
 # it to home.packages so `screenpad-toggle off` works from a terminal too.

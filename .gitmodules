@@ -1,3 +1,8 @@
+# Each git dir lives at .git/modules/<name>. `git mv` of a submodule rewrites
+# this file, the submodule's .git file and core.worktree in one step, so
+# `git submodule sync` plus `git submodule status` is the whole follow-up.
+# flake.nix reads the first and third as inputs; apps/opencode.nix links the
+# second at ~/.config/opencode straight from the checkout.
 [submodule "neovimBTW"]
 	path = apps/nvim/neovimBTW
 	url = https://github.com/DuskyElf/neovimBTW

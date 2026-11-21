@@ -39,7 +39,9 @@
 
   # `ssh homelab` from this laptop, through ~/.ssh/config (apps/openssh/home.nix).
   # The LAN address on purpose: homelab keeps 22 open there so this path works
-  # when its tailnet is the thing that broke.
+  # when its tailnet is the thing that broke. Off the LAN the box is
+  # homelab.tail5dc115.ts.net, and the alias repeats the static address, so a
+  # new address moves here and in hosts/homelab/system.nix.
   ssh.aliases.homelab = "192.168.1.200";
 
   # The laptop runs the whole daily update: the T3 Code pin, the devshell pin

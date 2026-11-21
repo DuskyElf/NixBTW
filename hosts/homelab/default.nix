@@ -2,7 +2,9 @@
 # no desktop here, so it does not list base/workstation.nix. Its home
 # configuration is base/home.nix plus the shared shell, editor, language and
 # daily-update modules; the git identity stays in home.nix, and the desktop-only
-# apps (tmux, zsh, opencode) are left off.
+# apps (tmux, zsh, opencode) are left off. A 2012 AMD A10 laptop: UEFI, one
+# 500 GB HDD, no desktop. The install that produced it is in README.md under
+# Install a host.
 {
   config = [ ./config.nix ];
   system = [

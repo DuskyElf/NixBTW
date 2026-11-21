@@ -29,6 +29,12 @@ in
   # the same signed cache. The key name is the signer's, not a claim about the
   # hardware: nix matches the name and verifies the key bytes. Other hosts do
   # not trust this cache, which is why it is appended here and not in base/.
+  #
+  # The generation that would trust it is the one being installed, so the first
+  # switch onto a CI-built kernel runs by hand with the kernel already local, or
+  # with --option substituters and --option trusted-public-keys passed to that
+  # rebuild. From the second switch on this file carries it. The same holds for
+  # any host added later.
   nix.settings.substituters = lib.mkAfter [ "https://duskyelf.github.io/NixBTW" ];
   nix.settings.trusted-public-keys = lib.mkAfter [
     "i9-kernel-cache:4R0pqOZkrRj4utTbF4zP05Y58QSgShLqQ77KUPzFjwk="

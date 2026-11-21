@@ -4,8 +4,11 @@
 # cannot drift between them.
 #
 # ext4 rather than the laptop's f2fs: this is a spinning disk with no
-# compression story, and noatime is the only tuning it needs. A 100% partition
-# is created last by disko, so root takes whatever the other two leave.
+# compression story, and noatime is the only tuning it needs. Reading the store
+# off it is the slowest routine work this box does: a cold flake evaluation
+# takes 54 s against 14 s warm, and the bay is SATA, so an SSD is the upgrade.
+# A 100% partition is created last by disko, so root takes whatever the other
+# two leave.
 #
 # Disk mode only. The disko imageSize default is unused here.
 let

@@ -474,6 +474,7 @@ in
   # bl_power 4 blanks the panel and 0 lights it (kernel 7.3.4; the driver
   # inverts the ACPI argument, so 4 is the off value, not 0). The unit drives
   # power.sh instead of writing sysfs itself, so the values live in one place.
+  # The pre-start wait is 30 s, longer than this panel has ever taken to appear.
   # It stays active after the first run and ignores unit changes, so a switch
   # does not restart it; an inactive unit (the first run or a failed run) still
   # starts once and blanks the panel. After the first run `systemctl start` is

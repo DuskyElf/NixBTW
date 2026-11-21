@@ -1,6 +1,8 @@
 # Public recipe for the private deploy wrapper. lib/deploy/bootstrap.sh
 # substitutes @ROOT@ with the checkout path and locks it; the generated
-# deploy-system/ stays gitignored, along with its lock.
+# deploy-system/ stays gitignored, along with its lock. It is its own git repo,
+# pushed to the private NixBTW-deploy remote. Each machine's daily run commits
+# the lock it moved in its own checkout; pushing that repo is the user's.
 {
   description = "Local deploy wrapper for @ROOT@";
 

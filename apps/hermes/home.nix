@@ -55,6 +55,11 @@
 # an unexpanded shell command is discarded, and an empty one mints a key per
 # process, which signs every session out on each restart.
 #
+# Make the directory and that file by hand on the box (`mkdir -p
+# ~/.config/hermes`, mode 0600) and never in this tree. The values cannot live in
+# the module's `settings` either: those render into the store, where every user
+# can read them.
+#
 # This file is not copied into ~/.hermes. Hermes loads .env with override, so a
 # copy there would shadow the values above and a rotated password would do
 # nothing. The managed generation copied them in, so delete those three lines

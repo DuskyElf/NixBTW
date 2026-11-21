@@ -28,6 +28,14 @@
 # new module works before `git add`. `path:` copies the whole repo into the
 # store, .git included, which is why this hashes the tree itself instead of
 # relying on the flake's fingerprint.
+#
+# State is ~/.local/state/hm-switch (drv-cache, activated, generation, lock):
+# that is where to look when a change seems not to apply, and a second run
+# waits up to 10 minutes for the run holding the lock. `home-manager switch
+# --rollback` followed by this script re-activates the tree's generation, which
+# undoes the rollback. Rolling back across the ~/.config/scripts move needs
+# `rm -rf ~/.config/scripts` first, because a pre-move generation wants that
+# path as a directory link and cannot replace the file link this tree creates.
 set -euo pipefail
 
 dots=$(cd -- "$(dirname -- "$(readlink -f -- "$0")")/../.." && pwd)
@@ -47,7 +55,7 @@ if [ -d "$state/nix/profiles" ]; then
 elif [ -d "/nix/var/nix/profiles/per-user/$(id -un)" ]; then
   profile=/nix/var/nix/profiles/per-user/$(id -un)/home-manager
 else
-  echo "${0##*/}: no profile directory; use the home-manager command in AGENTS.md" >&2
+  echo "${0##*/}: no profile directory; use the home-manager command in README.md" >&2
   exit 1
 fi
 
@@ -157,7 +165,7 @@ fi
 # A legacy activation script updates the profile itself, which is not what the
 # three lines at the bottom do.
 if [ ! -e "$generation/gen-version" ]; then
-  echo "${0##*/}: ${generation##*/} has no gen-version; use the home-manager command in AGENTS.md" >&2
+  echo "${0##*/}: ${generation##*/} has no gen-version; use the home-manager command in README.md" >&2
   exit 1
 fi
 

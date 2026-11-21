@@ -21,8 +21,9 @@ let
   # rule does not do is make the tree trustworthy, because nixos-rebuild
   # evaluates the login user's checkout: whoever can write a module can install
   # a system generation as root on the next run. That is the same power a hand
-  # rebuild has, only without the password, and the reason the rule lives in
-  # AGENTS.md as a documented exception.
+  # rebuild has, only without the password, and the reason a password-free root
+  # path exists here at all. It is the second one, after apps/power/power.sh;
+  # do not add a third without the same reasoning written beside it.
   #
   # /run/current-system/sw/bin/nixos-rebuild is the copy PATH resolves for a
   # hand run, and the running generation's copy is the one that exists while the
@@ -95,6 +96,13 @@ in
     '';
   };
 
+  # There is no store optimiser on either host, and it should not be added back
+  # without a measurement: the last audit found zero files in the store with a
+  # second hard link and the GC reports hard linking saving nothing, while each
+  # run's .tmp-link-* entries under /nix/store drive the two config watchers
+  # that watch that directory on the laptop (auto-cpufreq's and kitty's
+  # __watch_conf__) to about a core between them. Neither exists on the homelab.
+  #
   # The only trigger for root's collection is the marker the user script writes,
   # so if that ever stops, root's generations stop being pruned.
   systemd.paths.nix-gc-root = {

@@ -14,7 +14,9 @@
 # seventh state exists but the firmware leaves it disabled):
 # SVI2, 6.25 mV per CpuVid step, so +8 steps is -50 mV on every state. It
 # lowers power at the same clocks, which on this board means a cooler package
-# and a slower fan rather than a higher ceiling.
+# and a slower fan rather than a higher ceiling. -50 mV ships: -100 mV survived
+# a 12-round digest soak and -150 mV hung the box, so a deeper offset is an
+# experiment whose way out is the power button.
 #
 # The clock cannot be raised. PStateDef[2] is the top state the governor can
 # ask for (2.3 GHz); writing 2.4 through 2.8 GHz into it reads back unchanged,

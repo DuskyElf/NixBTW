@@ -53,6 +53,10 @@
 # Every tool comes from the login PATH the user manager hands a unit; nix,
 # nix-collect-garbage, git, sudo, curl, systemctl and notify-send all live there. The
 # inline unit this replaces relied on the same PATH for its bare nix and git.
+#
+# When the machine disagrees with this repo, suspect this run's drift first, not
+# a local edit, and do not hand-edit the pins it moves: the next run overwrites
+# them.
 set -euo pipefail
 
 # The handover below re-runs this file, so the arguments have to survive the

@@ -84,9 +84,73 @@ tree), runs `nix flake lock`, and prints the rebuild commands for the checkout's
 path. The generated directory stays gitignored. Run `nix flake update` inside
 it to move the lock later. The rebuilds below assume `/home/duskyelf/dotfiles`.
 
-The homelab needs the same checkout and bootstrap before its home generation is
-activated: its daily timer execs the run from that checkout and switches that
-wrapper, so an unpopulated `~/dotfiles` leaves the run with nothing to do.
+## Install a host
+
+A new machine is a directory under `hosts/`. Install the homelab from the laptop
+with the target booted from a live ISO:
+
+```sh
+nixos-anywhere --flake path:/home/duskyelf/dotfiles#homelab \
+  --generate-hardware-config nixos-generate-config /home/duskyelf/dotfiles/hosts/homelab/hardware.nix \
+  root@<live-iso-address>
+```
+
+The `path:` form reads the live tree, including the regenerated hardware file,
+which is committed afterwards. This needs kexec on the live system. Alpine's ISO
+cannot do it: its kernel has no `kexec_file_load` and sets
+`kernel.kexec_load_disabled` one way, and it runs mdev, so
+`/dev/disk/by-partlabel` never appears for disko. On that ISO the install is the
+long way: `apk add nix bash util-linux`, generate the hardware file with
+`nixos-generate-config` from the tools closure, build the system on the laptop,
+`nix-store --import` it as root (the installed daemon rejects unsigned pushes
+from an untrusted user), format with disko's `formatScript` after `mdev -s` and
+manual partlabel links, mount with `mountScript`, then
+`nixos-install --root /mnt --system ... --no-root-passwd`.
+
+The first system switch on the new box is by hand: the daily timer comes with the
+home generation, which is not installed yet. Put this checkout at
+`/home/duskyelf/dotfiles` there first (`git clone --recurse-submodules`, or copy
+the tree) and run `lib/deploy/bootstrap.sh` once, because the timer later execs
+the run from that checkout and switches that wrapper; an unpopulated checkout
+leaves the run with nothing to do. Then, with nothing else switching that host,
+run the helper, or this explicit form when the installed generation did not
+bring it:
+
+```sh
+sudo nixos-rebuild switch --flake ./deploy-system#homelab \
+  --override-input my-dotfiles path:/home/duskyelf/dotfiles --cores 2
+```
+
+Linger, the sudo rule and the helper come from the system half, so after this
+switch the daily run has everything it calls.
+
+A CI-built kernel needs one more decision on that first switch: the trust for
+the cache lives in the host's `system.nix` (on the homelab,
+`hosts/homelab/system.nix`), and the generation that would use it is the one
+being installed. So the first switch onto that kernel runs by hand with the
+kernel already local (import its closure, then run the helper), or with
+`--option substituters https://duskyelf.github.io/NixBTW --option
+trusted-public-keys i9-kernel-cache:...` on that rebuild. From the second switch
+on, `/etc/nix/nix.conf` carries it.
+
+The home generation is not part of `nixos-install`, and the install runs before
+the first timer, so push the first one by hand after that system switch. `nix
+copy` to the installed box fails: its daemon requires a signature for an
+untrusted push. The export below writes the store as root instead, and the one
+password prompt is the console password. That build is the source flake, so it
+resolves the checkout's own `flake.lock` (the file the daily run locks); the
+wrapper is what the machine runs from then on:
+
+```sh
+gen=$(nix build --no-link --print-out-paths \
+  path:/home/duskyelf/dotfiles#homeConfigurations."duskyelf@homelab".activationPackage)
+nix-store --export $(nix-store -qR "$gen") > .tmp/home.nar
+ssh homelab 'sudo nix-store --import' < .tmp/home.nar
+ssh homelab "$gen/activate"
+```
+
+Both root and `duskyelf` start with the password `nixos`; change both after the
+install. sshd is key-only, so those passwords are for the local console.
 
 ## Rebuild
 
@@ -109,8 +173,13 @@ switch itself:
 home-manager switch \
   --flake /home/duskyelf/dotfiles/deploy-system \
   --override-input my-dotfiles path:/home/duskyelf/dotfiles \
-  --cores 16
+  --cores <dailyUpdate.cores>
 ```
+
+`--cores` is the host's `dailyUpdate.cores` from `lib/host.nix`: 16 on the
+laptop, 2 on the homelab. The CLI evaluates the configuration twice, for the
+generation and its news feed, and prints the news count and the overridden-lock
+notice that the script drops.
 
 System changes:
 
@@ -127,7 +196,7 @@ Its expanded form, for a host that has no helper yet:
 sudo nixos-rebuild switch \
   --flake /home/duskyelf/dotfiles/deploy-system \
   --override-input my-dotfiles path:/home/duskyelf/dotfiles \
-  --cores 16
+  --cores <dailyUpdate.cores>
 ```
 
 A `--target-host` run reaches the target's switch-to-configuration directly and
@@ -138,6 +207,27 @@ The live-tree override is what applies uncommitted edits. Without it the
 wrapper evaluates its pinned `my-dotfiles` rev, which can be older than your
 tree and can point at a different `nixpkgs-fast-release`, so the kernel build
 misses the signed cache.
+
+On the laptop, the system half goes first when a change spans both: the niri
+half calls the store copy at `/usr/local/sbin/power.sh`, so a home-only switch
+runs the old script with the new arguments.
+
+For the homelab, do the rebuild on the box in its own checkout, which switches
+the pins that box's wrapper locked. Building the attribute on the laptop first
+catches an evaluation error against the laptop's pin:
+
+```sh
+nix build --no-link \
+  'path:/home/duskyelf/dotfiles/deploy-system#nixosConfigurations.homelab.config.system.build.toplevel' \
+  --override-input my-dotfiles path:/home/duskyelf/dotfiles
+```
+
+```sh
+ssh homelab
+cd /home/duskyelf/dotfiles && git pull --rebase --autostash
+sudo /usr/local/sbin/nixos-switch.sh
+~/.config/scripts/hm-switch.sh
+```
 
 What needs which rebuild:
 
@@ -150,7 +240,7 @@ What needs which rebuild:
 | `apps/tailscale.nix` | `sudo /usr/local/sbin/nixos-switch.sh`; the tailnet service on both hosts |
 | `flake.nix`, `lib/` | both, the wiring reaches both configurations |
 | `apps/wallpaper/wallpaper-guardian/` | `hm-switch.sh`; a submodule bump also needs `nix flake update wallpaper-guardian` in `deploy-system/` |
-| `apps/quickshell/`, `apps/tmux/tmux.conf`, `apps/daily-update/active-projects` | nothing, they are linked live or read at run time |
+| `apps/quickshell/`, `apps/tmux/tmux.conf`, `apps/daily-update/active-projects` | nothing, they are linked live or read at run time; tmux.conf is reached at `~/.config/tmux/hotreloaded.conf` |
 | `apps/power/power.sh` | `sudo /usr/local/sbin/nixos-switch.sh` (it lands in `/usr/local/sbin`) |
 
 Two values in `hosts/` need both switches. `hermes.dashboard.publicUrl` is read
@@ -369,7 +459,6 @@ own `hosts/<name>` (discovered automatically) and a real hardware config, not a
 copy of `hosts/asus`. Its identity goes in `config.nix`; the drivers, kernel,
 and bootloader go in `system.nix`.
 
-`AGENTS.md` is the operating manual for agents working in this tree. The
-kernel, stylix, screenpad, and power paths each carry the reason they have to
-stay as they are in a comment beside the code, so read that comment before
-editing the code.
+`AGENTS.md` holds the rules an agent needs before every task, plus the map. The
+manual is here, and every other requirement has its reason in a comment beside
+the code that depends on it, so read that comment before editing the code.
