@@ -1,10 +1,12 @@
-# The headless half of T3 Code: the package the laptop installs, a user service
-# that keeps the server running, and the browser it needs for previews. This
-# host has no display, so the desktop launcher in the package is never run.
+# The headless half of T3 Code: upstream's prebuilt server, a user service that
+# keeps it running, and the browser it needs for previews. The tarball is
+# fetched and patched, never compiled, because this host's A10 is not the place
+# to build a pnpm workspace and a Rust monitor; pkgs/t3code/server-lock.nix
+# pins it separately from the laptop's source build.
 #
 # The service is declared rather than installed with `t3 service install`:
 # that command downloads versions into ~/.t3 and self-updates, while this host's
-# T3 comes from the nix store and moves with the daily update. `t3 update`
+# T3 comes from the nix store and moves when the server pin moves. `t3 update`
 # and `t3 service` are therefore not part of this host's workflow.
 #
 # Clients reach it over Tailscale Serve, the same way the laptop publishes its
@@ -20,16 +22,13 @@
   hostConfig,
   lib,
   pkgs,
-  pkgs-unstable-small,
   ...
 }:
 let
-  # Same source and hash pin as the desktop app, so one tag moves both.
-  t3code = import ../../pkgs/t3code {
-    inherit pkgs;
-    recipeSrc = pkgs-unstable-small.path;
-    codex = pkgs-unstable-small.codex;
-  };
+  # Dropping the source wrapper also drops T3CODE_CLOUDFLARED_PATH: T3 Connect
+  # would then fetch cloudflared into ~/.t3. This host publishes over tailscale
+  # serve and never uses T3 Connect.
+  t3code = import ../../pkgs/t3code/server.nix { inherit pkgs; };
 
   # PAM already puts the profile on the user manager's PATH; it is stated here
   # so the service does not depend on that policy, and so the providers T3
@@ -55,6 +54,9 @@ in
     # through one of them. Installing node here keeps that dependency owned by
     # this module instead of borrowed from a dev module a server might not have.
     pkgs.nodejs
+    # The source wrapper used to put gh on T3's PATH for its GitHub provider;
+    # the prebuilt tarball does not, so the profile provides it.
+    pkgs.gh
     # T3's html_render and browser tools spawn their own Chrome for Testing
     # download, which wants a glibc loader NixOS does not have. chrome-shim.sh
     # points each download at this browser instead.

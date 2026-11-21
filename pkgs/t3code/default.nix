@@ -4,11 +4,13 @@
 # nixpkgs tree passed as `recipeSrc`, because stable 26.05 still ships a t3code
 # recipe for a 0.0.x tag (bun, electron_40) and 0.1.x needs the newer layout
 # (pnpm, electron_44, the codex and resource monitor split). Every package the
-# recipe calls for comes from `pkgs`, which callers set to the stable set,
-# except codex: stable's is one T3 Code's model manifest distrusts, and T3 then
-# quietly ignores the packaged one instead of failing (0.1.10 marks below 0.149
-# broken and only trusts 0.156 and up), so callers hand in the cached codex from
-# the channel they take the recipe from.
+# recipe calls for comes from `pkgs`, which callers set to the stable set.
+#
+# The recipe's `enableCodex` defaults on and wires the codex CLI into T3's
+# PATH, where it only exists for the Codex provider. This repo never uses that
+# provider, so it is turned off: the wrapper carries no second agent, and
+# codex's version stops constraining the pin. The recipe still takes a codex
+# argument, so it gets null.
 #
 # That split is what keeps the daily build cheap: cache.nixos.org carries
 # electron for the stable channel, while nixos-unstable-small does not build
@@ -34,10 +36,6 @@
   # The nixpkgs tree carrying the t3code recipe, e.g. `pkgs-unstable-small.path`.
   # Only the recipe files are read from it; nothing it packages is used.
   recipeSrc,
-  # Codex for the codex driver, required rather than defaulted to `pkgs.codex`:
-  # the stable default is one the model manifest marks broken, and the app would
-  # build and install happily while ignoring it.
-  codex,
   lockPath ? ./lock.nix,
 }:
 let
@@ -70,7 +68,10 @@ let
   });
 in
 base.override {
-  inherit codex;
+  # The Codex provider is not used here; see the header. The recipe still takes
+  # the argument, and nothing evaluates it while the provider is off.
+  enableCodex = false;
+  codex = null;
   t3code-unwrapped = unwrapped;
   t3code-resource-monitor = resourceMonitor;
 }

@@ -23,9 +23,8 @@
     nixpkgs-unstable.url = "nixpkgs/nixos-unstable";
 
     # opencode tracks latest upstream here, and pkgs/t3code reuses this
-    # channel's recipe and codex for its stable-tag build. The other packages
-    # come from stable, whose cache carries electron, which this channel does
-    # not build; codex is here because stable's is below what T3 trusts.
+    # channel's recipe for its stable-tag build. The other packages come from
+    # stable, whose cache carries electron, which this channel does not build.
     nixpkgs-unstable-small.url = "nixpkgs/nixos-unstable-small";
 
     jail-nix = {

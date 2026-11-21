@@ -1,7 +1,7 @@
-# T3 Code on a desktop: the app itself, its URL scheme, and the repair for its
-# headless browser download. A headless host takes apps/t3code/server.nix
-# instead, which runs the same package as a service and skips the URL-scheme
-# registration.
+# T3 Code on a desktop: the source-built app, its URL scheme, and the repair
+# for its headless browser download. A headless host takes
+# apps/t3code/server.nix instead, which serves upstream's prebuilt tarball and
+# skips the desktop launcher and URL-scheme registration.
 {
   config,
   pkgs,
@@ -11,13 +11,11 @@
 let
   # The tag and the fixed-output hashes live in pkgs/t3code/lock.nix and move
   # with the daily update (pkgs/t3code/update.sh). Every dependency comes from
-  # the stable set, whose cache carries electron. The recipe and codex come from
-  # unstable-small: stable only has a 0.0.x recipe, and its codex is below what
-  # the current T3 marks broken.
+  # the stable set, whose cache carries electron. The recipe comes from
+  # unstable-small: stable only has a 0.0.x recipe.
   t3code = import ../../pkgs/t3code {
     inherit pkgs;
     recipeSrc = pkgs-unstable-small.path;
-    codex = pkgs-unstable-small.codex;
   };
 in
 {

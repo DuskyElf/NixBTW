@@ -73,8 +73,9 @@ set_lock_value() { sed -i "s|^  $1 = \".*\";\$|  $1 = \"$2\";|" "$LOCK"; }
 # live tree, so the module and this expression resolve the same inputs). Config
 # and overlays therefore live in one place instead of here.
 #
-# The recipe and codex come from the unstable-small pin: that tree carries a
-# recipe new enough for a 0.1.x tag, and a codex new enough for T3 to trust.
+# The recipe comes from the unstable-small pin: that tree carries a recipe new
+# enough for a 0.1.x tag. The codex provider is off, so nothing else is taken
+# from it.
 # Building against the stable set is what keeps this cheap: its channel cache
 # carries electron, and unstable-small's does not, so a build from that set
 # would compile Chromium. The wrapper's lock is the one source of truth; a hand
@@ -92,7 +93,6 @@ build_pkg() {
     import $PKG {
       pkgs = dotfiles.stable;
       recipeSrc = dotfiles.unstable-small.path;
-      codex = dotfiles.unstable-small.codex;
     }
   "
 }
