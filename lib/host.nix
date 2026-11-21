@@ -74,6 +74,24 @@ let
         description = "Open 22 on every interface. False keeps sshd on the tailscale interface only, which is the laptop's policy.";
       };
 
+      ssh.aliases = mkOption {
+        type = types.attrsOf types.str;
+        default = { };
+        description = ''
+          Host aliases this machine's ~/.ssh/config carries, keyed by the name
+          `ssh` takes and valued with the HostName it resolves to: a bare
+          hostname or address, with no `user@` and no options. The value is
+          another machine's address, so a host restates it here and apps/ stays
+          free of it.
+
+          The block carries no User line: ssh logs in as the local account name,
+          so an alias works only where both machines use the same account.
+
+          apps/openssh/home.nix renders the file, and lib/mkHost.nix fails the
+          evaluation of a host that sets an alias without importing it.
+        '';
+      };
+
       tailscale.operator = mkOption {
         type = types.bool;
         default = false;

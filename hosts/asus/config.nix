@@ -37,6 +37,11 @@
   # `tailscale serve`, so this account operates tailscaled.
   tailscale.operator = true;
 
+  # `ssh homelab` from this laptop, through ~/.ssh/config (apps/openssh/home.nix).
+  # The LAN address on purpose: homelab keeps 22 open there so this path works
+  # when its tailnet is the thing that broke.
+  ssh.aliases.homelab = "192.168.1.200";
+
   # The laptop runs the whole daily update: the T3 Code pin, the devshell pin
   # and the store collection, tied to the desktop session. Its wrapper declares
   # the inputs below, so the run moves all of them.

@@ -16,7 +16,7 @@ The layout is the first thing to read:
 * `apps/` is one app's config per file, with split apps in their own subdirectory. An app's own files sit in that subdirectory beside its `.nix`: `apps/quickshell/` is the QML and the scripts it calls, `apps/nvim/neovimBTW/` and `apps/opencode/opencodeBTW/` are submodules, `apps/wallpaper/wallpaper-guardian/` is the Guardian submodule. There is no registry: a host imports the app module it wants, one import per half for a split app, and the list the import sits in decides which rebuild applies, so a split app's `home.nix` belongs in the home list and its `system.nix` in the system list. The shells are separate apps (`sh` for aliases and small tools, `zsh` and `bash` for one shell's own config), and so are the home-switch link (`home-switch`), the root power helper (`power`), and the daily update (`daily-update`, home and system halves).
 * `pkgs/` is packages this repo builds itself. `pkgs/t3code/` is the T3 Code stable pin, and `pkgs/t3code/update.sh` is the script the daily timer runs to move it.
 * Default apps are declared, never set at runtime. `base/home.nix` enables home-manager's `xdg.mimeApps`, so `~/.config/mimeapps.list` is a read-only store link that each switch rewrites: a program that calls `xdg-mime default` for its own scheme fails silently, so the association never applies. Declare the scheme in that app's module under `apps/` instead. Browser and file defaults are stated there too because `mimeinfo.cache` sorts `chromium-browser.desktop` before `zen-beta.desktop`, which would otherwise make chromium the browser.
-* `hosts/<name>/` is one machine. `config.nix` holds its identity and hardware as data (user, home, hostname, time zone, state versions, panels, battery, GPU, and the `dailyUpdate` group that says which steps of the daily run it takes and how), `default.nix` imports the base modules and the app modules that machine opts into, one import per half for a split app, `system.nix` holds the driver, kernel, bootloader, and kernel work, `disk.nix` holds the disk device and filesystem labels that `disko.nix` reads, `disko.nix` is the installer layout, and `lib/mkHost.nix` adds the disko module only when that key is set. A host that is already installed leaves the key out and keeps its `disko.nix` only for a reinstall; asus is that case. `lib/host.nix` is the schema and `lib/mkHost.nix` evaluates it once, passing it to `base/` and `apps/` as `hostConfig`. Never hardcode a username, connector name, or device path in `base/` or `apps/`; add an option to the schema instead.
+* `hosts/<name>/` is one machine. `config.nix` holds its identity and hardware as data (user, home, hostname, time zone, state versions, ssh aliases, panels, battery, GPU, and the `dailyUpdate` group that says which steps of the daily run it takes and how), `default.nix` imports the base modules and the app modules that machine opts into, one import per half for a split app, `system.nix` holds the driver, kernel, bootloader, and kernel work, `disk.nix` holds the disk device and filesystem labels that `disko.nix` reads, `disko.nix` is the installer layout, and `lib/mkHost.nix` adds the disko module only when that key is set. A host that is already installed leaves the key out and keeps its `disko.nix` only for a reinstall; asus is that case. `lib/host.nix` is the schema and `lib/mkHost.nix` evaluates it once, passing it to `base/` and `apps/` as `hostConfig`. Never hardcode a username, connector name, or device path in `base/` or `apps/`; add an option to the schema instead.
 
 Subrepos own their domains. Read their docs when you work inside them and do not duplicate them here:
 * `apps/nvim/neovimBTW/`
@@ -30,7 +30,7 @@ This repo is NOT the deploy flake. `deploy-system/` is a private wrapper flake p
 All rebuilds go through the wrapper with the live-tree override so uncommitted edits apply immediately:
 
 * System (`base/core.nix`, `base/workstation.nix`, the system imports in a host's `default.nix`, `hosts/`): `sudo /usr/local/sbin/nixos-switch.sh`. That is the command the daily timer runs (the wrapper, the live-tree override, the host's `--cores`), it needs no password, and it takes `/run/nixos-switch.lock`. Without the lock a hand run and the timer's run both reach switch-to-configuration through the same transient unit name, the loser dies there after the activation already happened, and its caller reports a switch that did happen as failed. A host that has no helper yet uses the explicit form, run on that host: `sudo nixos-rebuild switch --flake <wrapper>#<host> --override-input my-dotfiles path:<checkout> --cores <cores>`, which the homelab redeploy below fills in. A `--target-host` run starts the transient unit on the target without taking its lock, so the redeploy races that host's own daily run, and the loser reports a switch that happened as failed.
-* Home (`base/home.nix`, `base/home-workstation.nix`, the home imports in a host's `default.nix`): `~/.config/scripts/hm-switch.sh`
+* Home (`base/home.nix`, `base/home-workstation.nix`, the home imports in a host's `default.nix`, and a `hosts/` value only the home half reads such as `ssh.aliases`): `~/.config/scripts/hm-switch.sh`
 
 `hm-switch.sh` is the home switch. Evaluation is ~20s of single-core work and is the floor for any content change, so the script keys the generation derivation by the content of the tree, reuses it, and skips activation when that generation is already active: an unchanged tree returns in about a second. `--force` re-activates. It passes `path:`, so untracked files count. Its state is `~/.local/state/hm-switch` (`drv-cache`, `activated`, `generation`, `lock`), which is where to look when a change seems not to apply, or when a switch waits up to 10 min on another one holding the lock. `home-manager switch --rollback` followed by a switch re-activates the tree's generation, undoing the rollback. Rolling back across the `~/.config/scripts` change needs `rm -rf ~/.config/scripts` first, because a pre-move generation wants that path as a directory link and cannot replace the file link this tree creates. The longer `home-manager switch --flake ...deploy-system --override-input my-dotfiles path:...` still works; the script wraps only the switch, so that is the command for `home-manager news`, `rollback` and `generations` (the last two never evaluate the flake). The CLI evaluates the configuration twice, its news feed being a second evaluation, and prints the news count and the overridden-lock notice that the script drops.
 
@@ -76,7 +76,14 @@ kernel comes from, so CI can build both from one rev. Its address is
 `192.168.1.200/24`, configured statically in `hosts/homelab/system.nix` and
 matched by MAC rather than by interface name, with a MAC-independent DHCP
 fallback so a wrong address cannot lose the box; `/mnt/personal-storage` is the
-250G ext4 partition for data. `disk.nix` and `disko.nix` describe the whole
+250G ext4 partition for data. From the laptop on the LAN it is `ssh homelab`:
+`ssh.aliases.homelab` in `hosts/asus/config.nix` holds that address and
+`apps/openssh/home.nix` renders `~/.ssh/config` from it as a store link, so a new
+alias takes a home switch; that LAN path is what still works when the box's
+tailnet is what broke, and off the LAN the route is
+`ssh homelab.tail5dc115.ts.net`. The alias repeats the box's static address, so
+a new address moves in both `hosts/homelab/system.nix` and the laptop's
+`config.nix`. `disk.nix` and `disko.nix` describe the whole
 disk, the fileSystems entries come from that disko module, and
 `hosts/homelab/hardware.nix` is the file the install generated on the box and
 is committed; a reinstall may replace it. The firmware flag that regeneration
@@ -108,7 +115,7 @@ evaluation error:
       'path:/home/duskyelf/dotfiles/deploy-system#nixosConfigurations.homelab.config.system.build.toplevel' \
       --override-input my-dotfiles path:/home/duskyelf/dotfiles
 
-    ssh duskyelf@192.168.1.200
+    ssh homelab
     cd ~/dotfiles && git pull --rebase --autostash
     sudo /usr/local/sbin/nixos-switch.sh
     ~/.config/scripts/hm-switch.sh
@@ -244,8 +251,8 @@ as root instead, and the one password prompt is the console password:
     gen=$(nix build --no-link --print-out-paths \
       path:/home/duskyelf/dotfiles#homeConfigurations."duskyelf@homelab".activationPackage)
     nix-store --export $(nix-store -qR "$gen") > .tmp/home.nar
-    ssh duskyelf@192.168.1.200 'sudo nix-store --import' < .tmp/home.nar
-    ssh duskyelf@192.168.1.200 "$gen/activate"
+    ssh homelab 'sudo nix-store --import' < .tmp/home.nar
+    ssh homelab "$gen/activate"
 
 Both root and `duskyelf` start with the password `nixos`; change both after the
 install. sshd is key-only, so those passwords are for the local console.

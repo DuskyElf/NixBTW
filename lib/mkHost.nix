@@ -10,9 +10,9 @@
 # A host imports each app module into the half it rebuilds. The list an import
 # sits in is what puts it in the system configuration or the home one, and a
 # split app names its halves `home.nix` and `system.nix`, so the import has to
-# sit in the matching list. checkHalf fails eval on the one mistake that would
-# otherwise apply quietly: an import that works in either configuration, like
-# the daily update's timer, landing in the wrong one.
+# sit in the matching list. checkHalf fails eval on the mistake that would
+# otherwise apply quietly: an import that works in either configuration, like the
+# daily update's timer, landing in the wrong one.
 {
   inputs,
   pkgs,
@@ -66,11 +66,16 @@ let
         throw "${hostConfig.hostName}: ${lib.removePrefix repoDir (toString module)} is a ${half} module, imported into the ${kind} list"
     ) modules;
 
-  # Nothing reads `host.apps` any more, so a host file still carrying the old
-  # block would evaluate clean and install nothing. Say so instead.
+  # Two host mistakes evaluate clean and install nothing, so they fail here:
+  # the old host.apps block, which nothing reads any more, and an ssh.aliases
+  # entry on a host that does not import the module which renders it.
+  opensshHome = ../apps/openssh/home.nix;
+
   host' =
     if host ? apps then
       throw "${hostConfig.hostName}: host.apps is gone; import each app module into the system or home list"
+    else if hostConfig.ssh.aliases != { } && !builtins.elem opensshHome host.home then
+      throw "${hostConfig.hostName}: ssh.aliases is set, so ${lib.removePrefix repoDir (toString opensshHome)} belongs in the home list"
     else
       host;
 in

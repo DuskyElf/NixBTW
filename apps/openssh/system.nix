@@ -3,6 +3,8 @@
 # tailscale interface only, which is the laptop's policy. The rule for that
 # interface is added whenever tailscale is enabled. Keys only, and root stays
 # out.
+#
+# The client half, this machine's ~/.ssh/config, is apps/openssh/home.nix.
 {
   config,
   hostConfig,

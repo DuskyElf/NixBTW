@@ -17,7 +17,7 @@
     ../../apps/auto-cpufreq.nix
     ../../apps/niri/system.nix
     ../../apps/keyd.nix
-    ../../apps/openssh.nix
+    ../../apps/openssh/system.nix
     ../../apps/tailscale.nix
     ../../apps/power.nix
     ../../apps/daily-update/system.nix
@@ -31,6 +31,7 @@
     ../../apps/home-switch.nix
     ../../apps/daily-update/home.nix
     ../../apps/git.nix
+    ../../apps/openssh/home.nix
     ../../apps/tmux.nix
     ../../apps/nvim.nix
     ../../apps/languages.nix

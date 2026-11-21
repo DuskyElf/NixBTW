@@ -16,7 +16,7 @@
     ./cpu.nix
     ./idle.nix
 
-    ../../apps/openssh.nix
+    ../../apps/openssh/system.nix
     ../../apps/tailscale.nix
     ../../apps/daily-update/system.nix
     # The tailnet side of the agent's dashboard (config.nix states its origin).

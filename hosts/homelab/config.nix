@@ -34,8 +34,8 @@
 
   # The box has a tailnet now, and 22 stays open on the LAN as the recovery
   # path: if tailscaled or the tailnet is what broke, ssh over the LAN is how to
-  # get in and fix it. apps/openssh.nix allows 22 on the tailscale interface
-  # either way.
+  # get in and fix it. apps/openssh/system.nix allows 22 on the tailscale
+  # interface either way.
   ssh.openLanPort = true;
 
   # The agent's dashboard is published on the tailnet, so a browser on the

@@ -44,11 +44,11 @@ matching list.
 ### Host identity
 
 `hosts/<name>/config.nix` is data, not work: the login user, home directory,
-hostname, time zone, locale, state versions, git identity, niri outputs, and the
-hardware the app modules branch on (screenpad, battery, backlight, GPU). The
-schema is `lib/host.nix`; `lib/mkHost.nix` evaluates it once and passes the
-result to both the NixOS and home-manager configurations as `hostConfig`.
-`base/` and `apps/` read that argument, so a second machine is a new `hosts/`
+hostname, time zone, locale, state versions, git identity, ssh aliases, niri
+outputs, and the hardware the app modules branch on (screenpad, battery,
+backlight, GPU). The schema is `lib/host.nix`; `lib/mkHost.nix` evaluates it once
+and passes the result to both the NixOS and home-manager configurations as
+`hostConfig`. `base/` and `apps/` read that argument, so a second machine is a new `hosts/`
 directory with a `config.nix` and a `default.nix`; `flake.nix` discovers the
 directory, and nothing in it is listed by hand. The flake output names
 (`nixosConfigurations.asus`, `homeConfigurations."duskyelf@asus"`) come from
@@ -132,7 +132,7 @@ sudo nixos-rebuild switch \
 
 A `--target-host` run reaches the target's switch-to-configuration directly and
 cannot take the target's lock, so it still collides with that host's own daily
-run: ssh in and run the helper there.
+run: ssh in and run the helper there, reached from the laptop with `ssh homelab`.
 
 The live-tree override is what applies uncommitted edits. Without it the
 wrapper evaluates its pinned `my-dotfiles` rev, which can be older than your
@@ -143,7 +143,7 @@ What needs which rebuild:
 
 | Changed | Apply with |
 | --- | --- |
-| `base/home.nix`, `base/home-workstation.nix`, the home imports in a host's `default.nix` | `hm-switch.sh` |
+| `base/home.nix`, `base/home-workstation.nix`, the home imports in a host's `default.nix`, and a `hosts/` value only the home half reads such as `ssh.aliases` | `hm-switch.sh` |
 | `base/core.nix`, `base/workstation.nix`, the system imports in a host's `default.nix`, `hosts/` | `sudo /usr/local/sbin/nixos-switch.sh` |
 | `apps/niri/system.nix` | `sudo /usr/local/sbin/nixos-switch.sh`; the rest of `apps/niri/` is a home module |
 | `apps/hermes/system.nix` | `sudo /usr/local/sbin/nixos-switch.sh`; it publishes the loopback dashboard on the tailnet, and the rest of `apps/hermes/` is a home module |

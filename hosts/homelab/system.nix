@@ -112,9 +112,9 @@ in
   ];
 
   # ssh over the LAN is how the box is administered, and this is the account's
-  # key. sshd itself is key-only (apps/openssh.nix), so the passwords below are
-  # for the local console only. They are temporary: change both after the
-  # install.
+  # key. sshd itself is key-only (apps/openssh/system.nix), so the passwords
+  # below are for the local console only. They are temporary: change both after
+  # the install.
   users.users.${hostConfig.user.name} = {
     openssh.authorizedKeys.keys = [
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGorD4B49TQtqDXpf7vxDyFo2OCCRZ2L05b83AQdLHoX"
