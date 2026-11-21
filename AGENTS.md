@@ -228,13 +228,43 @@ closure, so `.github/workflows/compile-hermes.yml` publishes the paths
 cache.nixos.org lacks (about 240 of 385) to the same signed site under
 `hermes-<store hash>`, and the box substitutes them. A release that is pruned or
 incomplete puts those paths back on its two cores. That cache carries the agent,
-not the desktop app, so the laptop builds the app itself once. Keys go in
-`~/.config/hermes/env` (mode 0600, `mkdir -p` first, made on the box
-by hand, never in the tree): the activation merges that file into
-`~/.hermes/.env`, so a new key needs `hm-switch.sh --force` and a restart of
-`hermes-agent` and `hermes-backend`, and the activation only warns while the file
-is missing. The module is managed, so `hermes setup` and `hermes config set`
-refuse to run: a settings change is a home switch.
+not the desktop app, so the laptop builds the app itself once.
+
+The install is not managed, so the app owns `~/.hermes`: its provider wizard,
+its settings panes and `hermes config set` from an ssh shell all write, and
+`apps/hermes/home.nix` says which three parts of the upstream module's
+ownership it turns off to allow that. An activation that rewrote `.env` would
+delete the key the wizard had just collected, so `environmentFiles` stays empty
+(and `environment` unset) and `.env` is the app's file. The module still merges
+`terminal.cwd` and the `_config_version` stamp into `config.yaml` on each
+switch, and keeps every other key the app writes.
+
+The dashboard origin is deployment data, so it travels in the unit environment.
+`apps/hermes/home.nix` writes `HERMES_DASHBOARD_PUBLIC_URL` beside
+`HERMES_MANAGED=off` into one store file that systemd reads, and the app's
+`resolve_public_url` gives the variable precedence over `config.yaml`. A config
+write therefore cannot clear the gate, and a change to
+`hermes.dashboard.publicUrl` changes the unit file, which restarts the backend.
+
+The gate values are the one secret the unit environment carries. On a host that
+publishes the dashboard, the backend reads `~/.config/hermes/env` (mode 0600,
+`mkdir -p` first, made on the box by hand, never in the tree) as a systemd
+environment file: systemd does not expand `$` there, which the scrypt hash
+needs, and a rotated password needs only `systemctl --user restart
+hermes-backend`. Keep those three, and `HERMES_DASHBOARD_PUBLIC_URL`, out of
+`~/.hermes/.env`: Hermes loads that file with override, so a copy would shadow
+the unit's values, and the managed generation wrote such a copy of the three
+once. The gateway re-reads `.env` on each turn, so a key the wizard writes is
+live for the next message; restart `hermes-backend` when a key added from a
+shell has to reach the dashboard process.
+
+The app owning `config.yaml` leaves one sharp edge: a write can add or remove
+any key Nix does not own, which is the point, and the managed refusal no longer
+stands in front of `config.yaml` or `.env`. The activation merge is still the
+other writer, so a key the app adds survives a switch while comments do not,
+and a write that lands inside the merge's read-modify-write can be lost. The
+trust boundary is unchanged, because the agent already ran arbitrary tools over
+the home as this user.
 
 The homelab runs from its own checkout, so before its first home switch put
 this tree at `/home/duskyelf/dotfiles` there (`git clone --recurse-submodules`,
