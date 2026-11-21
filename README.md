@@ -427,6 +427,47 @@ shows a pi below the ACP adapter's floor. Codex stays off for both hosts. The
 source package keeps codex off T3's PATH, so that provider fails its health
 check.
 
+### Driving T3 tools from the agent
+
+`apps/t3code/t3mcp.nix` installs `t3mcp`, a shell command that speaks MCP to a
+paired T3 environment without configuring the agent as an MCP client. It reads
+every tool the server advertises at run time, so pairing is the only setup.
+On a server, mint a one-time code; on the homelab, consume it:
+
+```sh
+# on the laptop, which is the server being paired
+t3 auth pairing create --json --label t3mcp --ttl 15m
+
+# on the homelab
+t3mcp pair asus --url https://asus.<tailnet>.ts.net --code <credential>
+# for its own server, mint the code there and pair the ts.net name
+t3mcp pair homelab --url https://homelab.<tailnet>.ts.net --code <credential>
+```
+
+`--access` picks what an outside agent may do on that server: `read-only`,
+`approval-required` (the default), `auto-accept-edits`, `auto`, or
+`full-access`. The session lasts 30 days; when the CLI says it was refused, pair
+again. Pairing shows up as `t3mcp:<name>` in that server's Sharing & access.
+`unpair` only forgets the token locally, so revoke the session on the server
+too. Plain http is refused except for loopback and Tailscale addresses, because
+the token travels in a header; the homelab's server binds 127.0.0.1, so pair it
+through its `*.ts.net` name.
+
+```sh
+t3mcp servers                      # paired environments, * marks the default
+t3mcp tools --server asus          # names, descriptions and input schemas
+t3mcp call t3_project_list '{}'
+t3mcp call t3_thread_list --server homelab '{"allProjects":true}'
+t3mcp default asus                 # what a call without --server uses
+```
+
+`--server` falls back to `$T3MCP_SERVER`, then the default, then the only paired
+server. Arguments are a JSON object, or `-` for stdin. Most thread tools need a
+`threadId`, and this client runs outside a thread, so list threads first and
+pass one. The CLI exits 1 when the tool itself failed, with its body still on
+stdout, and 2 on a usage mistake. It is store-pinned: an edit to
+`apps/t3code/t3mcp.py` needs a switch.
+
 ## Checks
 
 Evaluate each configuration before switching:
