@@ -28,7 +28,7 @@ All rebuilds go through the wrapper with the live-tree override, so uncommitted 
 * System `sudo /usr/local/sbin/nixos-switch.sh`.
 * Home `~/.local/state/hm-switch`.
 
-Both the hosts currently have custom kernel config that's heavily fine-tuned for the hardware. It's built on Github actions and released on github & gh-pages and then used as cache. There's Github CI for checking for kernel update daily independent of the hosts. The CI creates a PR, when merged starts to build the kernel on github.
+Both the hosts currently have custom kernel config that's heavily fine-tuned for the hardware. It's built on Github actions and released on github & gh-pages and then used as cache. There's Github CI for checking for kernel update daily independent of the hosts. The CI creates a PR, when merged starts to build the kernel on github. Nothing shall be built / compiled locally on any host.
 
 A host with no helper yet, the plain `home-manager switch` that `news`, `rollback` and `generations` need, and the table of what needs which rebuild are in `README.md` under Rebuild.
 
