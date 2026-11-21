@@ -1,7 +1,14 @@
-# Hermes Desktop on the laptop. Only the application: the daemons stay off
-# here, because a backend service on this machine would be a second, unused one
-# once the app is pointed at the homelab's, and the application carries the same
-# hermes-agent runtime the service would, so it installs no second copy.
+# Hermes Desktop on the laptop. The application and the command line, no
+# daemons: a backend service on this machine would be a second, unused one once
+# the app is pointed at the homelab's, and the application carries the same
+# hermes-agent runtime the service would, so the command line below adds
+# symlinks to that same store path rather than a second copy.
+#
+# The command line is here for t3code's local ACP provider. Settings > Providers
+# > Add provider > Show more > Local ACP command runs `hermes acp` from the
+# server process, which inherits the session PATH, so `hermes` has to be on it.
+# `programs.hermes-agent.enable` is what puts it there; `desktop.enable` alone
+# installs hermes-desktop and leaves the `hermes` binary out of the profile.
 #
 # The upstream module is imported for its option, and only once per machine:
 # it declares both `programs.hermes-agent` and `services.hermes-agent`, so a
@@ -23,5 +30,6 @@
 {
   imports = [ inputs.hermes-agent.homeManagerModules.default ];
 
+  programs.hermes-agent.enable = true;
   programs.hermes-agent.desktop.enable = true;
 }
