@@ -49,7 +49,7 @@ let
   image = "docker.io/unclecode/crawl4ai:0.9.6@sha256:14bcdc57464635d7e1467753eb540e438b3f7b21b0423c8b69fa6dbf4f40658f";
 
   containerPort = 11235;
-  apiPort = 10002;
+  apiPort = 10001;
 
   # The container's API requires a bearer token even on loopback, and its
   # entrypoint decides the bind address from whether one is set. GUNICORN_BIND
