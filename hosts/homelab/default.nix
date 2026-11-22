@@ -3,11 +3,9 @@
 # configuration is base/home.nix plus the shared shell, editor, language,
 # daily-update, and agent modules; the git identity stays in home.nix, and the
 # desktop-only apps (tmux, zsh, opencode) are left off. What it does run beyond
-# ssh is the T3 Code server, with pi as its agent, and the Crawl4AI fetch API on
-# 10001, the browser agents call for pages a plain fetch cannot read. Search is
-# not served here: the script that does it belongs to pi, in
-# ~/.pi/agent/scripts/, as does the t3mcp that drives a T3 environment. The
-# fetch API answers on the tailnet only. A 2012 AMD A10 laptop: UEFI, one 500 GB
+# ssh is the T3 Code server, with pi as its agent, plus the fetch and search
+# tools pi owns in ~/.pi/agent there. Fetch starts one browser per call and
+# exits, so nothing listens on this box. A 2012 AMD A10 laptop: UEFI, one 500 GB
 # HDD, no desktop.
 #
 # The install that produced it ran from the laptop, with the target booted from
@@ -74,9 +72,6 @@
     ../../apps/openssh/system.nix
     ../../apps/tailscale.nix
     ../../apps/daily-update/system.nix
-
-    # A browser for pages a plain fetch cannot read, on the tailnet only.
-    ../../apps/crawl4ai/system.nix
   ];
   home = [
     ./home.nix
@@ -89,7 +84,6 @@
     ../../apps/languages.nix
     ../../apps/pi.nix
     ../../apps/t3code/server.nix
-    ../../apps/crawl4ai/home.nix
   ];
 
   # Only the installer reads this; it is what nixos-anywhere formats with.
