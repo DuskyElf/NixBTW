@@ -73,8 +73,11 @@ in
               zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
               # Filename completion colors
               zstyle ':completion:*' list-colors "''${(s.:.)LS_COLORS}"
-              # Only auto-attach inside kitty (KITTY_WINDOW_ID). Other terms (t3code, etc.) get plain zsh.
-              if command -v tmux &> /dev/null && [ -n "$PS1" ] && [ -n "$KITTY_WINDOW_ID" ] && [[ ! "$TERM" =~ screen ]] && [[ ! "$TERM" =~ tmux ]] && [ -z "$TMUX" ]; then
+              # Only auto-attach inside foot (TERM=foot*), and never over ssh,
+              # which forwards TERM from the local terminal. Other terms
+              # (t3code, etc.) get plain zsh. TMUX still matters as the guard
+              # for a configuration that gives panes TERM=foot.
+              if command -v tmux &> /dev/null && [ -n "$PS1" ] && [[ "$TERM" == foot* ]] && [ -z "$SSH_CONNECTION" ] && [ -z "$TMUX" ]; then
                 if tmux has-session -t main 2>/dev/null; then
                   tmux attach -t main
                 else

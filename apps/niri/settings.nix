@@ -75,7 +75,7 @@ in
             "10%"
           ];
         }
-        { argv = [ "kitty" ]; }
+        { argv = [ "foot" ]; }
       ]
       ++ lib.optionals (screenpad != null) [
         # The output config keeps DP-2 unmapped at every compositor start, but

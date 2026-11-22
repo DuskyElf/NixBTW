@@ -13,12 +13,12 @@
     polkit-gnome.enable = true;
   };
 
-  # Terminal=true entries (btop, vim, nvim) open in kitty. fuzzel runs them
+  # Terminal=true entries (btop, vim, nvim) open in foot. fuzzel runs them
   # through `terminal` and otherwise spawns them with no tty, where they die
   # silently.
   programs.fuzzel = {
     enable = true;
-    settings.main.terminal = "kitty";
+    settings.main.terminal = "foot";
   };
 
   # X11 support: niri 25.08+ spawns xwayland-satellite on demand when the

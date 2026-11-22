@@ -43,7 +43,7 @@
     ../../apps/local-llm.nix
     ../../apps/opencode.nix
     ../../apps/t3code/home.nix
-    ../../apps/kitty.nix
+    ../../apps/foot.nix
     ../../apps/zen-browser.nix
     ../../apps/chromium.nix
     ../../apps/blender.nix

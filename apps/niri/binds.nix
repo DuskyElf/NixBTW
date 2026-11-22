@@ -89,7 +89,7 @@ in
         repeat = false;
         action = close-window;
       };
-      "Mod+T".action = spawn "kitty";
+      "Mod+T".action = spawn "foot";
       "Mod+O".action = spawn "fuzzel";
 
       "Mod+N".action = spawn "bash" "-c" "${lib.getExe wallpaperGuardian} next";
