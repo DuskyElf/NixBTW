@@ -27,9 +27,9 @@ path, so it pulls the bytes from `/artifacts/<run>/<file>`, where `<run>` is the
 last path component of the file's directory. Runs are deleted after a day, and
 the workspace as a whole is kept under its size cap by dropping the oldest.
 
-The tailnet is the only authentication either route has, as for SearXNG. A
-`query` with a configured model spends the OpenCode Go key, so any tailnet peer
-can spend it.
+The tailnet is the only authentication either route has, as for the search
+API. A `query` with a configured model spends the OpenCode Go key, so any
+tailnet peer can spend it.
 
 The LLM is optional and lives in Crawl4AI, not here: a `query` is passed to the
 container's own LLM content filter when `models` names one and `llm.env` holds a
@@ -64,7 +64,7 @@ TOKEN = os.environ.get("CRAWL4AI_API_TOKEN", "")
 WORKSPACE = os.environ.get("CRAWL4AI_WORKSPACE", "")
 MODELS_FILE = os.environ.get("CRAWL4AI_MODELS", "")
 LLM_ENV_FILE = os.environ.get("CRAWL4AI_LLM_ENV", "")
-PORT = int(os.environ.get("CRAWL4AI_PORT", "8788"))
+PORT = int(os.environ.get("CRAWL4AI_PORT", "10002"))
 
 MAX_IMAGES = 8
 MAX_IMAGE_ATTEMPTS = 12

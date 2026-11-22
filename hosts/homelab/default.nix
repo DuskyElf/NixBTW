@@ -5,9 +5,9 @@
 # desktop-only apps (tmux, zsh, opencode) are left off. What it does run beyond
 # ssh is the T3 Code server, with pi as its agent, and t3mcp so that agent can
 # drive either environment's T3 tools. It also serves the two web services the
-# agents call instead of their built-in tools: SearXNG on 8888 and the Crawl4AI
-# fetch API on 8788, both on the tailnet only. A 2012 AMD A10 laptop: UEFI,
-# one 500 GB HDD, no desktop.
+# agents call instead of their built-in tools: the search API over Tavily, Exa
+# and TinyFish on 10001, and the Crawl4AI fetch API on 10002, both on the
+# tailnet only. A 2012 AMD A10 laptop: UEFI, one 500 GB HDD, no desktop.
 #
 # The install that produced it ran from the laptop, with the target booted from
 # a live ISO:
@@ -77,7 +77,7 @@
     # The two web services the agents call instead of their built-in tools:
     # search, and a browser for pages a plain fetch cannot read. Both answer on
     # the tailnet only.
-    ../../apps/searxng/system.nix
+    ../../apps/search/system.nix
     ../../apps/crawl4ai/system.nix
   ];
   home = [
@@ -93,6 +93,7 @@
     ../../apps/t3code/server.nix
     ../../apps/t3code/t3mcp.nix
     ../../apps/crawl4ai/home.nix
+    ../../apps/search/home.nix
   ];
 
   # Only the installer reads this; it is what nixos-anywhere formats with.

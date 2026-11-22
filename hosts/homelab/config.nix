@@ -46,19 +46,18 @@
   # as this user inherits it.
   tailscale.operator = true;
 
-  # The box updates itself once a day like the laptop: nixpkgs, the unstable
-  # input SearXNG comes from (its engine scrapers are the part that goes stale),
-  # and the two submodule inputs the wrapper pins. No T3 Code pin and no devshell
-  # pin. It has no graphical session, so the timer needs linger to start at boot,
-  # and two cores keep a rebuild polite on the A10. The store caches stay in the
-  # home directory (the default cacheRoot): there is no scratch tmpfs here.
+  # The box updates itself once a day like the laptop, but only the stable
+  # track: nixpkgs, and the two submodule inputs the wrapper pins. No T3 Code
+  # pin and no devshell pin. It has no graphical session, so the timer needs
+  # linger to start at boot, and two cores keep a rebuild polite on the A10. The
+  # store caches stay in the home directory (the default cacheRoot): there is no
+  # scratch tmpfs here.
   dailyUpdate = {
     collect = true;
     linger = true;
     cores = 2;
     wrapperInputs = [
       "nixpkgs"
-      "nixpkgs-unstable"
       "neovimBTW"
       "wallpaper-guardian"
     ];
