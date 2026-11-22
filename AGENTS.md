@@ -21,7 +21,7 @@ The layout is the first thing to read:
 The homelab serves the fetch API agents call instead of their built-in fetch, on the tailnet only:
 * Fetch: `POST http://homelab:10001/fetch` with `{url, want:["text"|"image"], query?}`. Text, screenshots and the page's images land under the checkout's `.tmp/crawl4ai/` on the homelab and come back as absolute paths (a caller on the laptop has to pull them from `GET /artifacts/<run>/<file>`); `status` in the answer is the page's HTTP status, not the API's.
 
-Search is not served here. The pi agent on the homelab owns it in its own git repo at `~/.pi/agent`: run `ssh homelab '~/.pi/agent/scripts/search.py "query" --limit 10 --freshness day'` (freshness is day, week, month or year). It prints JSON `{provider, results:[{title, url, content, published_at}]}` from Tavily, Exa or TinyFish and falls through when one refuses. Keys are in `~/.config/search/keys.env` there.
+Search is not served here. The pi agent on the homelab owns it in its own git repo at `~/.pi/agent`: run `ssh homelab '~/.pi/agent/scripts/search.py "query" --limit 10 --freshness day'` (freshness is day, week, month or year). It prints JSON `{provider, results:[{title, url, content, published_at}]}` from Tavily, Exa or TinyFish and falls through when one refuses. Keys are in `~/.pi/user/search/keys.env` there.
 
 Subrepos own their domains. Read their docs when you work inside them and do not duplicate them here:
 * `apps/nvim/neovimBTW/`
