@@ -18,6 +18,10 @@ The layout is the first thing to read:
 `hosts/asus/` is the laptop, `hosts/homelab/` a headless box on the LAN. A change to a shared module has to suit both.
 `ssh homelab` for setting up things there. (assuming you're on the laptop)
 
+The homelab serves the two APIs agents call instead of their built-in tools, both on the tailnet only. Use them instead of a built-in web search or fetch when freshness or a page rendered by JavaScript matters:
+* Search: `http://homelab:8888/search?q=…&format=json`. Add `categories=it` to reach the GitHub issue engine, and do not pass `time_range` (no working engine supports it).
+* Fetch: `POST http://homelab:8788/fetch` with `{url, want:["text"|"image"], query?}`. Text, screenshots and the page's images land under the checkout's `.tmp/crawl4ai/` on the homelab and come back as absolute paths (a caller on the laptop has to pull them from `GET /artifacts/<run>/<file>`); `status` in the answer is the page's HTTP status, not the API's.
+
 Subrepos own their domains. Read their docs when you work inside them and do not duplicate them here:
 * `apps/nvim/neovimBTW/`
 * `apps/opencode/opencodeBTW/`
@@ -41,7 +45,7 @@ Background work is a systemd unit, never a shell daemon.
 
 Packages are as jailed as possible using `lib/jail.nix`, see each app module to check their perms.
 
-Checks worth running before a switch: `nix fmt`; the tests beside what they cover, which all run against fakes with no network or store access (`pkgs/t3code/test-update.sh`, `pkgs/t3code/test-update-server.sh`, `apps/t3code/test-chrome-shim.sh`, `apps/home-switch/test-hm-switch.sh`, `apps/daily-update/test-daily-update.sh`, `hosts/homelab/test-undervolt-guard.py`); and, for a change that only moves files, a before-and-after diff of `home.packages` and `environment.systemPackages` evaluated with `nix eval --json`, because `nix store diff-closures` compares names and versions, so a rebuilt package at the same version is invisible to it.
+Checks worth running before a switch: `nix fmt`; the tests beside what they cover, which all run against fakes with no network or store access (`pkgs/t3code/test-update.sh`, `pkgs/t3code/test-update-server.sh`, `apps/t3code/test-chrome-shim.sh`, `apps/home-switch/test-hm-switch.sh`, `apps/daily-update/test-daily-update.sh`, `hosts/homelab/test-undervolt-guard.py`, `apps/crawl4ai/test-fetch.py`); and, for a change that only moves files, a before-and-after diff of `home.packages` and `environment.systemPackages` evaluated with `nix eval --json`, because `nix store diff-closures` compares names and versions, so a rebuilt package at the same version is invisible to it.
 
 What belongs in this file (AGENTS.md):
 A line stays only if every task needs it, a new agent would get it wrong without it, and no comment in the code already says it. When you add a line, name the task that breaks without it; when a behavior changes, prune the line that explains it. Everything else is a comment beside the code it describes, kept in sync with the change; install steps and one-off procedures live beside the code that owns them, and `README.md` stays the overview.

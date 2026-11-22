@@ -1,0 +1,13 @@
+# Models Crawl4AI may use to answer a `query`, best first. One per line, named
+# the way opencode runs them. The free list on OpenCode Go changes without
+# notice, so this file is read on every request: add a line, drop a line, no
+# rebuild and no restart. If one fails the next is tried, and if they all fail
+# the query falls back to a keyword filter with no model at all. The whole
+# phase has a two minute budget, so a long list is cut short rather than kept
+# waiting on.
+#
+# Commented-out lines cost nothing. An empty file means no LLM.
+opencode-go/hy4-flash-free
+opencode-go/longcat-2.5-free
+opencode-go/iceman-contributor-free
+opencode-go/beam-free

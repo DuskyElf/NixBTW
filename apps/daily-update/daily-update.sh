@@ -80,8 +80,8 @@ home_switch=
 # passes this host's list from lib/host.nix dailyUpdate.wrapperInputs, so
 # production never reads this default. Three of the five float from the network
 # (nixpkgs, nixpkgs-unstable-small, zen-browser) and the two submodule inputs are
-# re-locked from their checkouts. The homelab lists nixpkgs, neovimBTW and
-# wallpaper-guardian only.
+# re-locked from their checkouts. The homelab lists nixpkgs, nixpkgs-unstable
+# (SearXNG's engine scrapers), neovimBTW and wallpaper-guardian only.
 wrapper_inputs="nixpkgs nixpkgs-unstable-small zen-browser neovimBTW wallpaper-guardian"
 marker=
 kernel_cache=

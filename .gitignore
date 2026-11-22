@@ -5,3 +5,6 @@ flake.lock
 .tmp/
 # Private deploy wrapper (lock source of truth, pushed to NixBTW-deploy, never to this repo)
 deploy-system/
+
+# Python bytecode from a module beside its test
+__pycache__/
