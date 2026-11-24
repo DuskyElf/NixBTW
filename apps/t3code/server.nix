@@ -15,7 +15,7 @@
 # own server, so a client opens `https://homelab.<tailnet>.ts.net`, this node's
 # name under the tailnet's DNS name, with no port in the URL. The server binds
 # 127.0.0.1 (`--host` below), so that name is the way in from another machine,
-# including the t3mcp script the pi agent runs (~/.pi/agent/scripts/t3mcp.py).
+# including the t3mcp tool the pi agent runs (~/.pi/agent/tools/t3mcp).
 # That needs tailscaled and this user as its operator
 # (hostConfig.tailscale.operator), and it serves HTTPS with a valid certificate
 # from the tailnet, which a browser needs before it will hand the app its

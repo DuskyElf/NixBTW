@@ -21,7 +21,7 @@ The layout is the first thing to read:
 Agents fetch through the pi agent's own repo on the homelab (`~/.pi/agent` there, not this checkout):
 * Fetch: `ssh homelab '~/.pi/agent/tools/fetch URL --json'` prints `{url, status, text, text_file, images, screenshot, fetched_at, filter, llm, llm_error}`. `--images` adds a screenshot and up to 8 page images; `--query Q` filters the text, by a free OpenCode Go model when `~/.pi/user/fetch/keys.env` has a key, by keyword otherwise. A failure exits 1 and prints `fetch: ...` on stderr, plus `{"error": ...}` on stdout with `--json`; a bad or non-public URL exits 2 without JSON. Paths are absolute on homelab, so a caller on the laptop pulls one with `scp homelab:<path> .`, and runs are pruned at 24 hours and 256 MB. Each call starts one browser and exits: no port, no service, no listener.
 
-Search is not served here either. The pi agent on the homelab owns it in that same repo: run `ssh homelab '~/.pi/agent/tools/search.py "query" --limit 10 --freshness day'` (freshness is day, week, month or year). It prints JSON `{provider, results:[{title, url, content, published_at}]}` from Tavily, Exa or TinyFish and falls through when one refuses. Keys are in `~/.pi/user/search/keys.env` there.
+Search is not served here either. The pi agent on the homelab owns it in that same repo: run `ssh homelab '~/.pi/agent/tools/search "query" --limit 10 --freshness day'` (freshness is day, week, month or year). It prints JSON `{provider, results:[{title, url, content, published_at}]}` from Tavily, Exa or TinyFish and falls through when one refuses. Keys are in `~/.pi/user/search/keys.env` there.
 
 Subrepos own their domains. Read their docs when you work inside them and do not duplicate them here:
 * `apps/nvim/neovimBTW/`
