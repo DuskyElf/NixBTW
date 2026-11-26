@@ -9,8 +9,8 @@
 # (apps/opencode.nix), and it is not in `wrapperInputs`
 # (hosts/homelab/config.nix), so the daily update leaves both alone: bump it in
 # deploy-system by hand when T3's Pi health check or `pi --version` shows a pi
-# below the adapter's floor, or when the OpenCode provider rejects the version
-# it finds. That bump moves both. The assertion is a floor, not a live check:
+# below the adapter's floor, or when the OpenCode provider flags the version it
+# finds. That bump moves both. The assertion is a floor, not a live check:
 # T3 fetches the adapter from the ACP registry at runtime, so an adapter that
 # moves past this host's frozen pi shows up as a failed Pi provider health
 # check, not here.
