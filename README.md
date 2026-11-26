@@ -8,8 +8,8 @@ compiles it, and the homelab skips its switch.
 
 The laptop mixes nixpkgs channels on purpose (unstable for niri and zen,
 unstable-small for the agents, fast-release for its tuned kernel). The homelab
-is on stable apart from pi and its kernel. Each host pins its own inputs
-through a private `deploy-system/` wrapper flake.
+is on stable apart from the agents (pi and opencode) and its kernel. Each host
+pins its own inputs through a private `deploy-system/` wrapper flake.
 
 ## Rebuild
 

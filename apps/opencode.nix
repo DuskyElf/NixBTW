@@ -1,3 +1,17 @@
+# OpenCode, the coding agent, plus the config it reads from ~/.config/opencode.
+# The laptop runs it as its own CLI; the homelab's T3 Code server runs it as a
+# provider, so the binary has to stay on the profile PATH.
+#
+# The config is a live symlink into the checkout, not a store copy, so an edit
+# to apps/opencode/opencodeBTW applies on the next opencode start with no
+# switch. That directory is a submodule, so a fresh checkout needs it
+# initialized.
+#
+# unstable-small is in the laptop's `wrapperInputs` but not the homelab's
+# (hosts/homelab/config.nix), so the homelab's copy stays at the version
+# deploy-system pins until that input is bumped there by hand. T3's OpenCode
+# provider probes `opencode --version`, so a version it cannot probe shows up
+# as a failed provider health check, not here.
 {
   config,
   hostConfig,

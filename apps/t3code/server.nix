@@ -28,10 +28,16 @@
 # writes the model credentials to ~/.pi, with `--no-browser` when the login has
 # to run over ssh, and `ssh homelab t3 pair --tailscale` prints a pairing URL
 # and an app link. Open the link on the laptop, then enable the Pi provider in
-# T3's settings; pi is the agent this host configures. T3 fetches the pi-acp
-# adapter from the ACP registry with npm on its first use and runs `pi` from the
-# service PATH below, which is the login profile plus the system profile: git,
-# gh and node are there, and neither opencode nor the Claude CLI is.
+# T3's settings. T3 fetches the pi-acp adapter from the ACP registry with npm on
+# its first use and runs `pi` from the service PATH below, which is the login
+# profile plus the system profile: git, gh, node and opencode are there, and the
+# Claude CLI is not.
+#
+# OpenCode is the second provider: apps/opencode.nix puts its CLI on that same
+# PATH. After `ssh homelab opencode auth login --standalone`, enable the
+# provider in T3's settings. --standalone keeps the login from starting a
+# background service on a headless box; opencode's login and its config at
+# ~/.config/opencode decide which providers and models it offers.
 {
   config,
   hostConfig,
@@ -47,7 +53,8 @@ let
 
   # PAM already puts the profile on the user manager's PATH; it is stated here
   # so the service does not depend on that policy, and so the providers T3
-  # spawns resolve pi, npm, and git to the ones this configuration installs.
+  # spawns resolve pi, opencode, npm, and git to the ones this configuration
+  # installs.
   searchPath = [
     "${config.home.homeDirectory}/.nix-profile/bin"
     "/run/current-system/sw/bin"
