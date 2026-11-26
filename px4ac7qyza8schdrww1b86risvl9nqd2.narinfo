@@ -1,0 +1,10 @@
+StorePath: /nix/store/px4ac7qyza8schdrww1b86risvl9nqd2-linux-6.18.65-modules
+URL: https://github.com/DuskyElf/NixBTW/releases/download/kernel-homelab-6.18.65/05l6sfdkj32sv81i8aa3jl5vzvdbm2frjh5admj6yf5lg7dpfybr.nar.xz
+Compression: xz
+FileHash: sha256:05l6sfdkj32sv81i8aa3jl5vzvdbm2frjh5admj6yf5lg7dpfybr
+FileSize: 110961780
+NarHash: sha256:0jx38xz2y63kdvij6wr7wvsasdgi3dgilhriph30kqlw0ad1simf
+NarSize: 116855200
+References: 
+Deriver: yxzxyv7cj8anx392grzksaxvhklplr0x-linux-6.18.65.drv
+Sig: i9-kernel-cache:hb5SejKlxokPmI2xkrt3TMR6ZM3J+UXz697wt9Cllg0w7BUATnHY+/mt/U5RS0nCTq15YCSd3KIuv+N0E+I/CA==

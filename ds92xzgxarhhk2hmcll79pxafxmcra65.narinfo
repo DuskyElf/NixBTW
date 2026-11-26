@@ -1,0 +1,10 @@
+StorePath: /nix/store/ds92xzgxarhhk2hmcll79pxafxmcra65-nvidia-open-615.78.08-7.3.6
+URL: https://github.com/DuskyElf/NixBTW/releases/download/kernel-7.3.6/1sh733fciwdrydlz4z0f16ak97gvymz56amibilhwwp1jdyadfnd.nar.xz
+Compression: xz
+FileHash: sha256:1sh733fciwdrydlz4z0f16ak97gvymz56amibilhwwp1jdyadfnd
+FileSize: 28549188
+NarHash: sha256:1p2p3q7zng4f15m7zk9h3h88bsd48nny0b365l22qmn3vyxggw5l
+NarSize: 31753136
+References: 
+Deriver: gd4ff9a9ydqmx52vkgfyzc843gy3f73f-nvidia-open-615.78.08-7.3.6.drv
+Sig: i9-kernel-cache:B2fak11Fd/mORXuZ3YdOVC+VqDgO8ghRrQoj70X8z2b44l2IndpddYqm7mWGpmkghlIuOZXUYBp1Wx1VWUBWBA==
