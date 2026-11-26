@@ -25,12 +25,10 @@ let
   withVersion = name: {
     inherit name;
     version =
-      let probed = builtins.tryEval kernels.${name}.version;
+      let
+        probed = builtins.tryEval kernels.${name}.version;
       in
-      if
-        probed.success
-        && builtins.length (lib.splitString "." probed.value) == 3
-      then
+      if probed.success && builtins.length (lib.splitString "." probed.value) == 3 then
         probed.value
       else
         null;
