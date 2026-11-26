@@ -101,7 +101,7 @@ for key in srcHash pnpmDepsHash cargoHash; do
     case $key in
         srcHash) drv=/nix/store/00000000000000000000000000000000-source.drv ;;
         pnpmDepsHash) drv=/nix/store/11111111111111111111111111111111-t3code-unwrapped-pnpm-deps.drv ;;
-        cargoHash) drv=/nix/store/22222222222222222222222222222222-t3code-resource-monitor-vendor.drv ;;
+        cargoHash) drv=/nix/store/22222222222222222222222222222222-t3code-resource-monitor-vendor-staging.drv ;;
     esac
     want=$(value "$key" "$T3_TEST_TRUTH")
     have=$(value "$key" "$T3_TEST_LOCK")

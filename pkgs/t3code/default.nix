@@ -66,9 +66,21 @@ let
   });
 
   # Built from the same src, so its version and vendor hash track the stable tag too.
+  #
+  # The hash goes on `cargoDeps.vendorStaging`, not on `cargoHash`.
+  # buildRustPackage reads `cargoHash` once, when the recipe is called, and
+  # builds the vendor staging fixed-output derivation from it into `cargoDeps`;
+  # overriding the attribute afterwards leaves that derivation on the recipe's
+  # hash, so the build fails on a hash the lock cannot change. The staging
+  # derivation takes its src and version from the overridden attributes, so the
+  # vendor tree still follows the tag and only the hash needed replacing.
   resourceMonitor = base.resourceMonitor.overrideAttrs (old: {
     inherit version src;
-    cargoHash = lock.cargoHash;
+    cargoDeps = old.cargoDeps.overrideAttrs (vendor: {
+      vendorStaging = vendor.vendorStaging.overrideAttrs (_: {
+        outputHash = lock.cargoHash;
+      });
+    });
   });
 in
 base.override {
