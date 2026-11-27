@@ -19,12 +19,10 @@
     # Pinned by rev (not branch) so GitHub Actions builds the exact same
     # kernel closures as both machines. CI has no lock file for this flake, so a
     # floating ref would drift and every signed-cache lookup would miss. One pin
-    # covers both kernels: the laptop's series and the homelab's LTS both come
-    # out of this rev. The CI check compares it with release-26.05.
-    # The rev carries whatever hosts/asus/stable-kernel.nix picks (the newest
-    # series with a stable patch release). The daily check-kernel-update workflow
-    # moves this pin to the channel tip once the channel is not behind, and
-    # holds while this pin is ahead.
+    # covers both kernels: the laptop's series (hosts/asus/stable-kernel.nix)
+    # and the homelab's LTS (hosts/homelab/kernel.nix) both come out of this
+    # rev. The CI check compares it with release-26.05 and moves the pin to the
+    # channel tip only when that moves no host's kernel backwards.
     # NOTE: deploy-system must NOT follows-override this input, or local
     # builds will use a different rev than CI and miss the cache.
     nixpkgs-fast-release.url = "github:NixOS/nixpkgs/0fd1e8f4d772064af902762c4a828853e40cafa3";
@@ -105,10 +103,19 @@
       ) hostNames;
     in
     {
-      # The stable kernel series this machine tracks (see
-      # hosts/asus/stable-kernel.nix). CI compares this against a candidate
-      # pin: nix eval --raw .#kernelVersion --override-input nixpkgs-fast-release <rev>
-      kernelVersion = dotfiles.kernel.version;
+      # The kernel each host runs, keyed by host name. One question to a
+      # candidate pin returns every machine's answer, so CI never re-derives a
+      # selection that lives in the host files:
+      #   nix eval --json .#kernelVersions --override-input nixpkgs-fast-release <rev>
+      # The laptop's value is hosts/asus/stable-kernel.nix; the homelab names
+      # its LTS series in hosts/homelab/kernel.nix. Both read the same pin, so
+      # one rev moves both kernels, and either can move alone.
+      kernelVersions = builtins.listToAttrs (
+        map (host: {
+          name = host.hostConfig.hostName;
+          value = host.nixos.config.boot.kernelPackages.kernel.version;
+        }) hosts
+      );
 
       # Both names come from hosts/<name>/config.nix, so the outputs follow a
       # host rename or a new user without an edit here.

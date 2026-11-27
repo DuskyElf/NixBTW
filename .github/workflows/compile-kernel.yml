@@ -133,17 +133,15 @@ jobs:
       matrix:
         include:
           - host: asus
-            # The flake output stays the laptop's selector; nothing else reads
-            # it.
-            version: .#kernelVersion
+            # Every host asks the same flake output, so the tag and the answer
+            # can never disagree about which kernel is being published.
+            version: .#kernelVersions.asus
             tag_prefix: kernel-
             tag_re: ^kernel-[0-9]
             nvidia: .#nixosConfigurations.asus.config.hardware.nvidia.package.open
             asserts: .github/kernel-asserts/asus.txt
           - host: homelab
-            # No selector output: the LTS series is named in the host file, so
-            # the version is asked of the kernel the flake evaluates.
-            version: .#nixosConfigurations.homelab.config.boot.kernelPackages.kernel.version
+            version: .#kernelVersions.homelab
             tag_prefix: kernel-homelab-
             tag_re: ^kernel-homelab-
             nvidia: ""

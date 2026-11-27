@@ -1,13 +1,28 @@
 name: "Check Kernel Update"
 
-# Daily: if the channel (CHANNEL below) carries a newer stable kernel than our
+# Daily: if any host's kernel in the channel (CHANNEL below) is newer than the
 # pin, stage the flake.nix bump on the kernel-bump branch and open or update a
 # PR to main.
 #
-# "Stable kernel" means the newest series with a stable patch release, as
-# decided by hosts/asus/stable-kernel.nix. Comparing versions rather than
-# series names is what turns a new series (7.3.1, later 7.4.1) into an
-# ordinary pin bump instead of an edit to the kernel selection.
+# One pin moves every kernel in the repo, but the hosts do not track the same
+# series: the laptop follows the newest stable series, the homelab names the
+# LTS one. So each host's version is compared, and a bump is a bump when any of
+# them moved. A host that would go backwards holds the whole pin instead,
+# because one rev moves both kernels and a forward bump for one would be a
+# downgrade for the other. The PR lists the hosts that moved and their
+# versions, because "the stable kernel went up" is not the whole diff: a
+# homelab-only LTS patch is still a kernel CI has to rebuild.
+#
+# The versions come from the flake's kernelVersions output, which evaluates
+# each host's configuration, so this job needs both machines to evaluate: a tip
+# that will not evaluate fails this run, before the merge, instead of before a
+# switch after it. An unrelated eval break does the same, since the flake's
+# other inputs are unlocked too.
+#
+# On the laptop, "stable kernel" means the newest series with a stable patch
+# release, as decided by hosts/asus/stable-kernel.nix. Comparing versions
+# rather than series names is what turns a new series (7.3.1, later 7.4.1)
+# into an ordinary pin bump instead of an edit to the kernel selection.
 #
 # Nothing lands on main by itself: merging the PR is the only manual gate.
 # The merge triggers compile-kernel (path filter), which uploads the nars to a
@@ -42,14 +57,23 @@ jobs:
         with:
           submodules: recursive
 
+      # Seconds, no nix eval. A wrong answer in the step below is silent (no
+      # PR, or a staged downgrade), so it is rehearsed against fixtures first.
+      - name: Rehearse The Compare Step
+        run: ./.github/test-kernel-compare.sh
+
       - name: Install Nix
         uses: cachix/install-nix-action@v31
         with:
           extra_nix_config: |
             experimental-features = nix-command flakes
 
-      - name: Compare Channel Kernel With Pinned Kernel
+      - name: Compare Channel Kernels With Pinned Kernels
         id: check
+        env:
+          # Outside the checkout: the file carries nothing to commit, and a
+          # stray `git add -A` cannot pick it up.
+          CHANGES: ${{ runner.temp }}/kernel-changes
         run: |
           set -euo pipefail
           PINNED_REV=$(grep -oP 'nixpkgs-fast-release\.url = "github:NixOS/nixpkgs/\K[0-9a-f]{40}' flake.nix)
@@ -63,45 +87,82 @@ jobs:
           [ -n "$LATEST_REV" ] && [ "$LATEST_REV" != "null" ] || { echo "could not resolve channel rev" >&2; exit 1; }
           echo "latest rev: $LATEST_REV"
 
-          ver_at() {
-            # Ask the flake itself which kernel a rev yields, so the selection
-            # rule (hosts/asus/stable-kernel.nix) is never duplicated here.
-            nix eval --raw .#kernelVersion --override-input nixpkgs-fast-release "github:NixOS/nixpkgs/$1"
-          }
-          # The pinned side is the flake as committed: this is also a check that
-          # the rev grepped above is the rev that actually resolves.
-          PINNED_VER=$(nix eval --raw .#kernelVersion)
-          LATEST_VER=$(ver_at "$LATEST_REV")
-          echo "pinned kernel: $PINNED_VER, channel kernel: $LATEST_VER"
+          # One eval per side, every host at once: the flake answers which
+          # kernel each machine runs, so the selection rule is never duplicated
+          # here and a new host is compared without an edit. It is not covered
+          # end to end until .github/kernel-asserts/<host>.txt exists and
+          # compile-kernel.yml's matrix names it, and the step below fails on
+          # the first of those. The pinned side is the flake as committed, which
+          # is also a check that the rev grepped above is the rev that resolves.
+          PINNED=$(nix eval --json .#kernelVersions)
+          LATEST=$(nix eval --json .#kernelVersions \
+            --override-input nixpkgs-fast-release "github:NixOS/nixpkgs/$LATEST_REV")
+          HOSTS=$(echo "$PINNED" | jq -r 'keys|join(" ")')
+          # An empty answer is a broken output, not a machine with no kernels:
+          # without this, every loop below runs zero times and the job is green
+          # with no PR, which is the failure this workflow exists to avoid.
+          [ -n "$HOSTS" ] || { echo "kernelVersions returned no hosts" >&2; exit 1; }
+          echo "hosts: $HOSTS"
 
-          if [ "$PINNED_VER" = "$LATEST_VER" ]; then
-            echo "kernel $PINNED_VER still current, nothing to do"
+          # Every host has to be answerable on both sides before anything is
+          # written. A run that cannot compare one host stages nothing, rather
+          # than a bump for the hosts it could read.
+          version() {
+            echo "$1" | jq -r --arg h "$2" '.[$h] // empty'
+          }
+          for host in $HOSTS; do
+            [ -n "$(version "$PINNED" "$host")" ] \
+              || { echo "the pinned flake has no kernel version for $host" >&2; exit 1; }
+            [ -n "$(version "$LATEST" "$host")" ] \
+              || { echo "the channel flake has no kernel version for $host" >&2; exit 1; }
+          done
+
+          # host old new, one line per host that moved forward. Collected, not
+          # written: a hold and a no-op must leave $CHANGES untouched.
+          moved=()
+          held=
+          for host in $HOSTS; do
+            old=$(version "$PINNED" "$host")
+            new=$(version "$LATEST" "$host")
+            if [ "$old" = "$new" ]; then
+              echo "$host: $old, unchanged"
+              continue
+            fi
+            # Forward-only. Normally the pin trails the channel and only a real
+            # move gets here, but a hand-picked staging rev can sit ahead of it
+            # for days. Never stage a downgrade of any host: the pin is one rev,
+            # so moving it forward for one kernel would move the other back.
+            if [ "$(printf '%s\n%s\n' "$old" "$new" | sort -V | head -n1)" = "$new" ]; then
+              echo "$host: pinned $old ahead of channel $new, holding"
+              held=1
+              continue
+            fi
+            echo "$host: $old -> $new"
+            moved+=("$host $old $new")
+          done
+          if [ -n "$held" ]; then
+            echo "pin is ahead of the channel for at least one host, holding"
             exit 0
           fi
-          # Forward-only. Normally the pin trails the channel and the check
-          # above only fires on a real move, but a hand-picked staging rev can
-          # sit ahead of it for days. Never stage a downgrade.
-          if [ "$(printf '%s\n%s\n' "$PINNED_VER" "$LATEST_VER" | sort -V | head -n1)" = "$LATEST_VER" ]; then
-            echo "pinned $PINNED_VER ahead of channel $LATEST_VER, holding"
+          if [ "${#moved[@]}" -eq 0 ]; then
+            echo "kernels still current, nothing to do"
             exit 0
           fi
-          echo "new kernel available: $PINNED_VER -> $LATEST_VER"
-          {
-            echo "new_version=$LATEST_VER"
-            echo "new_rev=$LATEST_REV"
-            echo "old_version=$PINNED_VER"
-          } >> "$GITHUB_OUTPUT"
+          printf '%s\n' "${moved[@]}" > "$CHANGES"
+          echo "new_rev=$LATEST_REV" >> "$GITHUB_OUTPUT"
+          echo "hosts=$HOSTS" >> "$GITHUB_OUTPUT"
 
       # The PR is the manual gate, so the gate should arrive green: a rev that
       # renames a symbol a host's trim sets must fail here, not on main after
       # the merge with the homelab sitting on its old generation.
-      - name: Check Both Kernels Against The Candidate
-        if: steps.check.outputs.new_version != ''
+      - name: Check Every Kernel Against The Candidate
+        if: steps.check.outputs.new_rev != ''
         env:
           NEW_REV: ${{ steps.check.outputs.new_rev }}
+          HOSTS: ${{ steps.check.outputs.hosts }}
         run: |
           set -euo pipefail
-          for host in asus homelab; do
+          for host in $HOSTS; do
             nix build --out-link "./result-$host" \
               ".#nixosConfigurations.$host.config.boot.kernelPackages.kernel.configfile" \
               --override-input nixpkgs-fast-release "github:NixOS/nixpkgs/$NEW_REV"
@@ -109,13 +170,12 @@ jobs:
           done
 
       - name: Stage Toolchain Bump PR
-        if: steps.check.outputs.new_version != ''
+        if: steps.check.outputs.new_rev != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PINNED_REV: ${{ steps.check.outputs.pinned_rev }}
           NEW_REV: ${{ steps.check.outputs.new_rev }}
-          NEW_VER: ${{ steps.check.outputs.new_version }}
-          OLD_VER: ${{ steps.check.outputs.old_version }}
+          CHANGES: ${{ runner.temp }}/kernel-changes
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
@@ -127,22 +187,22 @@ jobs:
           CHANGED=$(git diff --numstat flake.nix | awk '{print $1 + $2}')
           [ "$CHANGED" = "2" ] || { echo "pin replacement touched $CHANGED lines, aborting" >&2; git diff flake.nix >&2; exit 1; }
 
+          # The wording lives in .github/kernel-bump-message.sh, where the
+          # test can reach it. The commit subject and the PR title are one
+          # string, so a bump cannot name one host in git and another on GitHub.
+          TITLE=$(.github/kernel-bump-message.sh title "$CHANGES")
+          BODY=$(.github/kernel-bump-message.sh body "$CHANGES")
+
           git add flake.nix
-          git commit -m "chore(kernel): stage toolchain for linux ${OLD_VER} -> ${NEW_VER}" || echo "nothing new to commit"
+          # No fallback on failure: new_rev only exists because the pin line
+          # changed, so a commit that cannot happen is a broken run, not a
+          # re-bump of the same rev. Pushing anyway would advertise a bump the
+          # branch does not carry.
+          git commit -m "$TITLE"
           # Forced because the branch is a bot-owned staging area: a re-bump
           # replaces the previous one rather than stacking on it.
           git push -f origin kernel-bump
 
-          TITLE="chore(kernel): build linux ${NEW_VER}"
-          BODY="${CHANNEL} moved the stable kernel ${OLD_VER} -> ${NEW_VER}.
-
-          Merging this PR triggers the compile-kernel build for both machines;
-          once CI uploads the nars to the release and publishes the narinfos,
-          the next daily run's system switch substitutes them (cache hit, no 2h
-          compile). A kernel that is not published yet is the exception: the
-          laptop compiles it, and the homelab skips its switch instead of
-          building, so a failed run costs a day, not a night. Nothing reboots,
-          so boot it when you next reboot."
           # Only an OPEN PR may be edited. gh resolves a head branch whatever its
           # state, so the merged PR from an earlier bump still answers to
           # kernel-bump; editing it renames a dead PR and leaves this bump with
