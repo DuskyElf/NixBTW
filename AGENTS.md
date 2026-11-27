@@ -1,4 +1,4 @@
-This repo is my nix dotfiles for all of my hosts. It contains my entire machine, NixOS, home-manager, niri, scripts, editors, agents. You are a guest with wide read access. Treat that as trust to repay with care, not room to act. Each host is under `hosts/` (my main laptop and homelab for now).
+This repo is my nix dotfiles for all of my hosts. It contains my entire machine, NixOS, home-manager, niri, scripts, editors, agents. You are a guest with wide read access. Treat that as trust to repay with care, not room to act. Each host is under `hosts/` (my main laptop and homelab for now), check via `hostname` where you are being run currently.
 
 Control rules:
 * Never widen a trust boundary to make a job easier. Sandboxed commands stay sandboxed. `power.sh` stays the only root path from keybinds.
@@ -17,11 +17,6 @@ The layout is the first thing to read:
 
 `hosts/asus/` is the laptop, `hosts/homelab/` a headless box on the LAN. A change to a shared module has to suit both.
 `ssh homelab` for setting up things there. (assuming you're on the laptop)
-
-Agents fetch through the pi agent's own repo on the homelab (`~/.pi/agent` there, not this checkout):
-* Fetch: `ssh homelab '~/.pi/agent/tools/fetch URL --json'` prints `{url, status, text, text_file, images, screenshot, fetched_at, filter, llm, llm_error}`. `--images` adds a screenshot and up to 8 page images; `--query Q` filters the text, by a free OpenCode Go model when `~/.pi/user/fetch/keys.env` has a key, by keyword otherwise. A failure exits 1 and prints `fetch: ...` on stderr, plus `{"error": ...}` on stdout with `--json`; a bad or non-public URL exits 2 without JSON. Paths are absolute on homelab, so a caller on the laptop pulls one with `scp homelab:<path> .`, and runs are pruned at 24 hours and 256 MB. Each call starts one browser and exits: no port, no service, no listener.
-
-Search is not served here either. The pi agent on the homelab owns it in that same repo: run `ssh homelab '~/.pi/agent/tools/search "query" --limit 10 --freshness day'` (freshness is day, week, month or year). It prints JSON `{provider, results:[{title, url, content, published_at}]}` from Tavily, Exa or TinyFish and falls through when one refuses. Keys are in `~/.pi/user/search/keys.env` there.
 
 Subrepos own their domains. Read their docs when you work inside them and do not duplicate them here:
 * `apps/nvim/neovimBTW/`
